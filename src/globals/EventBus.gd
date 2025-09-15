@@ -1,6 +1,12 @@
 extends Node
 class_name EventBus
 
+## Holds a reference to the autoloaded singleton instance so code can resolve the
+## EventBus without resorting to scene tree lookups. The value is assigned when
+## the node enters the tree and cleared on exit so tests can instantiate their
+## own isolated copies without side effects.
+static var _singleton: EventBus = null
+
 ## Centralized, autoloaded event bus that brokers decoupled communication between
 ## gameplay systems. All signals defined here must accept exactly one argument –
 ## a Dictionary payload – so the event contracts can evolve without requiring
@@ -110,9 +116,28 @@ func _ready() -> void:
     # This node is intended to be added as an autoload singleton.
     pass
 
+func _enter_tree() -> void:
+    _singleton = self
+
+func _exit_tree() -> void:
+    if _singleton == self:
+        _singleton = null
+
+## Returns the active EventBus singleton when it has been registered as an
+## autoload. This is intentionally static so callers can access the shared
+## instance without depending on the autoload name or scene tree paths.
+static func get_singleton() -> EventBus:
+    return _singleton
+
+## Convenience helper allowing call sites to guard EventBus usage until the
+## autoload has been initialized.
+static func is_singleton_ready() -> bool:
+    return is_instance_valid(_singleton)
+
 ## Broadcasts a signal after validating the provided payload dictionary against the
 ## documented contract. Returns a Godot error code that callers can inspect when
 ## running in validation-heavy environments (e.g., automated tests).
+@warning_ignore("native_method_override")
 func emit_signal(signal_name: StringName, payload: Variant = null) -> int:
     var validation_result := _validate_payload(signal_name, payload)
     if validation_result != OK:
@@ -132,7 +157,7 @@ func _validate_payload(signal_name: StringName, payload: Variant) -> int:
     if typeof(payload) != TYPE_DICTIONARY:
         push_error("EventBus.%s expects a Dictionary payload but received %s." % [
             signal_name,
-            Variant.get_type_name(typeof(payload)),
+            type_string(typeof(payload)),
         ])
         return ERR_INVALID_PARAMETER
 
@@ -151,7 +176,7 @@ func _validate_payload(signal_name: StringName, payload: Variant) -> int:
                 "EventBus.%s payload key \"%s\" has invalid type %s (expected %s)." % [
                     signal_name,
                     key,
-                    Variant.get_type_name(typeof(payload[key])),
+                    type_string(typeof(payload[key])),
                     _describe_expected_type(required[key]),
                 ]
             )
@@ -164,7 +189,7 @@ func _validate_payload(signal_name: StringName, payload: Variant) -> int:
                 "EventBus.%s optional key \"%s\" has invalid type %s (expected %s)." % [
                     signal_name,
                     key,
-                    Variant.get_type_name(typeof(payload[key])),
+                    type_string(typeof(payload[key])),
                     _describe_expected_type(optional[key]),
                 ]
             )
@@ -198,7 +223,7 @@ func _describe_expected_type(expected_rule: Variant) -> String:
     if typeof(expected_rule) == TYPE_ARRAY:
         var names := PackedStringArray()
         for allowed_type in expected_rule:
-            names.append(Variant.get_type_name(int(allowed_type)))
+            names.append(type_string(int(allowed_type)))
         return ", ".join(names)
 
-    return Variant.get_type_name(int(expected_rule))
+    return type_string(int(expected_rule))

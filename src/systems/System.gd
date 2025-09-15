@@ -1,6 +1,8 @@
 extends Node
 class_name System
 
+const EVENT_BUS_SCRIPT := preload("res://src/globals/EventBus.gd")
+
 ## Abstract base class for gameplay systems that operate on entities.
 ## Systems are expected to iterate over entities each frame and perform logic.
 ## Systems must stay decoupled from each other – use emit_event()/subscribe_event()
@@ -44,6 +46,12 @@ func subscribe_event(signal_name: StringName, callback: Callable, flags: int = O
 ## Internal helper that fetches the EventBus autoload or returns null when the
 ## system is running outside of a full game tree (e.g. during isolated tests).
 func _get_event_bus() -> Node:
+    if EVENT_BUS_SCRIPT.is_singleton_ready():
+        return EVENT_BUS_SCRIPT.get_singleton()
+
+    if typeof(EventBus) == TYPE_OBJECT and EventBus is Node:
+        return EventBus
+
     var scene_tree := get_tree()
     if scene_tree == null:
         return null
