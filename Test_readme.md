@@ -1,6 +1,6 @@
 # Godot Headless Test Runner
 
-This document provides a thorough reference for the `tests/Test_runner.gd` script. The runner executes GDScript-based tests in a headless Godot environment, supports dependency ordering, flaky test retries, result aggregation, and output serialization.
+This document provides a thorough reference for the `tests/Test_runner.gd` script. The runner executes GDScript-based tests in a headless Godot environment, supports dependency ordering, flaky test retries, result aggregation, output serialization, and basic leak diagnostics.
 
 ## Overview
 
@@ -18,13 +18,11 @@ Key features include:
 
 ## Running the Runner
 
-Invoke the runner with a headless Godot binary:
+Invoke the runner with a headless Godot 4.4.1 binary:
 
 ```bash
-/path/to/godot --headless --path . -s tests/Test_runner.gd
+/path/to/godot4 --headless --path . -s tests/Test_runner.gd
 ```
-
-> **Note:** The current script uses a `condition ? value_true : value_false` syntax which caused a parse error when tested with Godot 4.2.2. The runner may require adjustments or a compatible engine version before execution.
 
 ## Command-line Flags
 
@@ -94,6 +92,10 @@ After execution, the runner prints grouped summaries:
 - **Tag** – aggregation by tag.
 
 Flaky tests are listed separately when detected.
+
+### Resource Diagnostics
+
+To aid debugging when Godot reports resources still in use at exit, the runner now emits a "Resource Diagnostics" section. It prints the total number of `Resource` objects still alive and lists any cached test scripts or assets that remain referenced. This helps pinpoint leaks during test development.
 
 ## Notes
 

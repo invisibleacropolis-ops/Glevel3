@@ -5,6 +5,7 @@ extends SceneTree
 
 var use_color: bool = true
 var out_dir: String = "res://tests/"
+var _tracked_paths: Array = []
 
 func _init() -> void:
     print("Running headless test suite...")
@@ -28,6 +29,9 @@ func _init() -> void:
     var results: Dictionary = {"tests": []}
 
     var test_scripts: Array = _load_manifest("res://tests/tests_manifest.json")
+    for e in test_scripts:
+        var p: String = e["path"] if e is Dictionary else e
+        _tracked_paths.append(p)
     # Reorder tests so that dependencies run before dependents
     test_scripts = _resolve_dependencies(test_scripts)
     if test_scripts.is_empty():
@@ -139,7 +143,7 @@ func _init() -> void:
             var last_duration: int = 0
 
             while attempt <= max_retries and not final_passed:
-                var test_class: Script = load(script_path)
+                var test_class: Script = ResourceLoader.load(script_path, "", ResourceLoader.CACHE_MODE_IGNORE)
                 if test_class == null:
                     _log("[color=red]FAIL[/color] %s — could not load script" % name)
                     all_passed = false
@@ -160,6 +164,7 @@ func _init() -> void:
                 var start: int = Time.get_ticks_msec()
                 var result: Dictionary = await test_instance.run_test()
                 test_instance.queue_free()
+                await process_frame
 
                 last_duration = Time.get_ticks_msec() - start
 
@@ -280,6 +285,8 @@ func _init() -> void:
 
     var summary_line: String = "::summary::%d/%d tests passed, %d failed, %d skipped, %d flaky, %d blocked in %d ms" % [global_successes, global_total, global_total - global_successes, global_skipped, global_flaky, global_blocked, suite_duration_ms]
     print(summary_line)
+
+    _dump_resource_cache()
 
     if all_passed:
         _log("[color=green]✅ All test suites passed.[/color]")
@@ -425,6 +432,27 @@ func _log(msg: String) -> void:
     else:
         var clean := msg.replace("[color=green]","").replace("[color=red]","").replace("[color=yellow]","").replace("[b]","").replace("[/b]","").replace("[/color]","")
         print(clean)
+
+func _dump_resource_cache() -> void:
+    var count: int = int(Performance.get_monitor(Performance.OBJECT_RESOURCE_COUNT))
+    if count > 0:
+        _log("")
+        _log("[b]=== Resource Diagnostics ===[/b]")
+        _log("Resources still in memory: %d" % count)
+        for path in _tracked_paths:
+            if ResourceLoader.has_cached(path):
+                _log("Cached: %s" % path)
+        var dir := DirAccess.open("res://tests/test_assets/")
+        if dir:
+            dir.list_dir_begin()
+            var file_name := dir.get_next()
+            while file_name != "":
+                if file_name.ends_with(".tres"):
+                    var apath := "res://tests/test_assets/" + file_name
+                    if ResourceLoader.has_cached(apath):
+                        _log("Cached: %s" % apath)
+                file_name = dir.get_next()
+            dir.list_dir_end()
 
 
 

@@ -58,5 +58,8 @@ func run_test() -> Dictionary:
 
     # Summary
     print("Summary: %d/%d tests passed." % [successes, total])
-
+    fake_module.free()
+    new_module.free()
+    ModuleRegistry.modules.clear()
+    ModuleRegistry.free()
     return {"passed": passed, "successes": successes, "total": total}
