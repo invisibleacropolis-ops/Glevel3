@@ -1,0 +1,20 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource path="res://src/globals/EventBus.gd" type="Script" id=1]
+[ext_resource path="res://src/tests/EventBusHarness.gd" type="Script" id=2]
+
+[node name="EventBusHarness" type="Control"]
+script = ExtResource(2)
+
+[node name="VBox" type="VBoxContainer" parent="."]
+
+[node name="EntityKilledLine" type="LineEdit" parent="VBox"]
+placeholder_text = "entity_id"
+
+[node name="KillerIdLine" type="LineEdit" parent="VBox"]
+placeholder_text = "killer_id"
+
+[node name="EmitButton" type="Button" parent="VBox"]
+text = "Emit entity_killed"
+
+[node name="Log" type="RichTextLabel" parent="VBox"]
