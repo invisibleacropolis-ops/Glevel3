@@ -310,7 +310,7 @@ The following rules and protocols are mandatory for all team members working wit
 
 5.2 Singleton Discipline: Using Global Systems Responsibly
 
-The project architecture relies on several autoload singletons (EventBus, AssetRegistry, ModuleRegistry) to manage global systems.1 While powerful, the overuse or misuse of singletons is a common architectural anti-pattern that can introduce hidden dependencies, make code difficult to test, and lead to the creation of monolithic "god objects" that violate the single responsibility principle.9
+The project architecture relies on several autoload singletons (EventBus, AssetRegistry, ModuleRegistry) to manage global systems.1 Godot 4.x requires the scripts that back these autoloads to export distinct `class_name` identifiers, so the runtime classes are registered as `EventBusSingleton`, `AssetRegistrySingleton`, and `ModuleRegistrySingleton` while the autoload entries stay on the shorter names used throughout the design docs. This separation keeps the parser happy and preserves the ergonomic API consumed by gameplay systems. While powerful, the overuse or misuse of singletons is a common architectural anti-pattern that can introduce hidden dependencies, make code difficult to test, and lead to the creation of monolithic "god objects" that violate the single responsibility principle.9
 Operationally, each singleton should expose narrow accessors. For ModuleRegistry,
 consumers request dependencies via `get_module("id")` and can probe optional
 dependencies with `has_module("id")` rather than reading the internal

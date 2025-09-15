@@ -7,7 +7,7 @@ const EntityData = preload("res://src/core/EntityData.gd")
 const StatsComponent = preload("res://src/systems/StatsComponent.gd")
 
 ## Optional EventBus reference to allow dependency injection in tests.
-var event_bus: EventBus = null
+var event_bus: EventBusSingleton = null
 
 ## Simple system that prints entity statistics to the console each physics frame.
 ## Designed for Godot 4.4.1.
@@ -76,7 +76,7 @@ func _connect_event_bus(bus: Node) -> bool:
     return true
 
 ## Attempts to locate the global EventBus if it was not injected manually.
-func _get_event_bus() -> Node:
+func _get_event_bus() -> EventBusSingleton:
     if event_bus:
         return event_bus
 
@@ -92,7 +92,7 @@ func _get_event_bus() -> Node:
     if tree:
         var root := tree.get_root()
         if root:
-            event_bus = root.get_node_or_null("EventBus")
+            event_bus = root.get_node_or_null("EventBus") as EventBusSingleton
     return event_bus
 
 ## Ensures we always emit a usable entity identifier for debug payloads.
