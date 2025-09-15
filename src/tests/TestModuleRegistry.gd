@@ -20,16 +20,20 @@ func run_test() -> Dictionary:
 
     ModuleRegistry.register_module("fake_gen", fake_module)
 
-    var retrieved = ModuleRegistry.modules.get("fake_gen", null)
-    if retrieved == null:
-        push_error("FAIL: Could not retrieve registered module.")
-        passed = false
-    elif retrieved != fake_module:
-        push_error("FAIL: Retrieved module does not match registered one.")
+    if not ModuleRegistry.has_module("fake_gen"):
+        push_error("FAIL: ModuleRegistry did not report registered module.")
         passed = false
     else:
-        print("PASS: ModuleRegistry registered and retrieved module correctly.")
-        successes += 1
+        var retrieved = ModuleRegistry.get_module("fake_gen")
+        if retrieved == null:
+            push_error("FAIL: Could not retrieve registered module.")
+            passed = false
+        elif retrieved != fake_module:
+            push_error("FAIL: Retrieved module does not match registered one.")
+            passed = false
+        else:
+            print("PASS: ModuleRegistry registered and retrieved module correctly.")
+            successes += 1
 
     # Test 2: Overwriting an existing module
     total += 1
@@ -38,7 +42,7 @@ func run_test() -> Dictionary:
 
     ModuleRegistry.register_module("fake_gen", new_module)
 
-    var overwritten = ModuleRegistry.modules.get("fake_gen", null)
+    var overwritten = ModuleRegistry.get_module("fake_gen")
     if overwritten != new_module:
         push_error("FAIL: ModuleRegistry did not overwrite module correctly.")
         passed = false
@@ -48,18 +52,21 @@ func run_test() -> Dictionary:
 
     # Test 3: Retrieve missing module
     total += 1
-    var missing = ModuleRegistry.modules.get("non_existent", null)
-    if missing != null:
-        push_error("FAIL: Expected null for non-existent module, got something else.")
+    if ModuleRegistry.has_module("non_existent"):
+        push_error("FAIL: ModuleRegistry incorrectly reported a missing module as present.")
         passed = false
     else:
-        print("PASS: ModuleRegistry returned null for missing module as expected.")
-        successes += 1
+        var missing = ModuleRegistry.get_module("non_existent")
+        if missing != null:
+            push_error("FAIL: Expected null for non-existent module, got something else.")
+            passed = false
+        else:
+            print("PASS: ModuleRegistry returned null for missing module as expected.")
+            successes += 1
 
     # Summary
     print("Summary: %d/%d tests passed." % [successes, total])
     fake_module.free()
     new_module.free()
-    ModuleRegistry.modules.clear()
     ModuleRegistry.free()
     return {"passed": passed, "successes": successes, "total": total}

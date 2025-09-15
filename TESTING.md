@@ -5,7 +5,11 @@ This project is organized as a Godot 4 game with the following script layout:
 - `src/core` – fundamental Resource types such as `Component` and `EntityData`.
 - `src/globals` – autoload singletons like `AssetRegistry`, `EventBus`, and `ModuleRegistry`.
 - `src/systems` – example gameplay systems and components.
-- `src/tests` – individual test scripts exercising the registries.
+- `src/tests` – individual test scripts exercising the registries. When
+  interacting with the `ModuleRegistry`, rely on its helper methods
+  (`register_module`, `get_module`, and `has_module`) instead of
+  manipulating the internal `modules` dictionary directly so future
+  refactors only need to adjust the singleton.
 - `tests` – a headless test harness and its manifest.
 
 ## Test Runner
