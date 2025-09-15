@@ -1,4 +1,4 @@
-extends Component
+extends "res://src/core/Component.gd"
 class_name TraitComponent
 
 ## Component holding a list of traits or tags for an entity.

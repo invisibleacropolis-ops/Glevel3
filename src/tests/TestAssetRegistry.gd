@@ -37,5 +37,6 @@ func run_test() -> Dictionary:
 
     # Summary
     print("Summary: %d/%d tests passed." % [successes, total])
-
+    AssetRegistry.assets.clear()
+    AssetRegistry.free()
     return {"passed": passed, "successes": successes, "total": total}
