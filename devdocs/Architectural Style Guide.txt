@@ -235,6 +235,8 @@ The "Call Down, Signal Up" principle is a widely accepted best practice within t
 	* Signal Up: If a child node needs to communicate an event to its parent (e.g., an AnimationPlayer emitting its animation_finished signal), it should emit a local signal. The entity's root script is then responsible for connecting to that signal and handling the logic.
 This dual approach ensures that individual entities remain self-contained and reusable, while the broader game architecture remains decoupled and scalable.
 
+For a concrete implementation of this pattern, review `res://src/tests/EventBusHarness.gd`. The harness' root Control node wires its child buttons directly ("call down") and relies on their emitted signals to bubble payloads back through the shared EventBus singleton ("signal up"), providing a practical, self-contained example of the contract in action for engineers validating inter-node communication flows.
+
 Section 4: Implementation Standards and Conventions
 
 This section serves as a practical, day-to-day reference guide for all developers. Strict adherence to these standards is mandatory to ensure consistency, readability, and maintainability across the entire project codebase.
