@@ -392,7 +392,12 @@ Secondary Test Case:
 * Expand the Components dictionary and inspect the StatsComponent resource.
 * Change the Health value in the remote inspector (e.g., to 75).
 * Expected Result: The console output must immediately reflect this change, now printing Test Dummy Health: 75. This proves the real-time data link between the running game logic and the underlying Resource data.
+
+
+
+
 Works cited
+
 1. Project Chimera.docx
 2. Why isn't Godot an ECS-based game engine?, accessed September 14, 2025, https://godotengine.org/article/why-isnt-godot-ecs-based-game-engine/(https://godotengine.org/article/why-isnt-godot-ecs-based-game-engine/)
 3. Godot's design philosophy — Godot Engine (4.4) documentation in English, accessed September 14, 2025, https://docs.godotengine.org/en/4.4/getting_started/introduction/godot_design_philosophy.html(https://docs.godotengine.org/en/4.4/getting_started/introduction/godot_design_philosophy.html)
@@ -410,4 +415,5 @@ Works cited
 15. Problem when loading a scene, after sharing through git - Help - Godot Forum, accessed September 14, 2025, https://forum.godotengine.org/t/problem-when-loading-a-scene-after-sharing-through-git/111098(https://forum.godotengine.org/t/problem-when-loading-a-scene-after-sharing-through-git/111098)
 16. Any downsides to Autoload/Singletons ? : r/godot - Reddit, accessed September 14, 2025, https://www.reddit.com/r/godot/comments/1g3ankx/any_downsides_to_autoloadsingletons/(https://www.reddit.com/r/godot/comments/1g3ankx/any_downsides_to_autoloadsingletons/)
 17. Tutorial - Singletons and how they can help scale your games with reusable code : r/godot, accessed September 14, 2025, https://www.reddit.com/r/godot/comments/1f5yh08/tutorial_singletons_and_how_they_can_help_scale/(https://www.reddit.com/r/godot/comments/1f5yh08/tutorial_singletons_and_how_they_can_help_scale/)
+
 
