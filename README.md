@@ -1,3 +1,9 @@
+# G-LEV-3.0DEV
+
+## Project vision
+G-LEV-3.0DEV (Project Chimera) is an ambitious Godot 4 strategy-RPG prototype that pursues modular, data-first design so systemic content can be composed on the fly instead of hard-coding bespoke encounters.【F:project.godot†L1-L15】【F:devdocs/Project Chimera.txt†L2-L45】 The design bible mandates a hybrid approach where Custom Resources capture data, gameplay Systems operate over entity groups, and a global EventBus singleton keeps modules decoupled while still allowing them to react to world events.【F:devdocs/Project Chimera.txt†L18-L46】 Procedural generation pipelines—map construction, quest planning, and meta-narrative state—are planned as layered services that transform seeds and registries of reusable content into coherent runs.【F:devdocs/Project Chimera.txt†L143-L177】 
+
+
 # Project Chimera Architecture Reference
 
 This repository prototypes the compositional runtime architecture described in the Project Chimera design bible. The new diagrams
@@ -32,3 +38,39 @@ Chimera design doc.
 
 Editable Mermaid definitions are stored alongside the rendered assets in `devdocs/diagrams/` so future contributors can refresh
 the images after architecture updates.
+
+## Repository layout
+- `assets/` – Hand-authored data resources (traits, archetypes, etc.) that Systems and registries consume; for example, the Merchant archetype aggregates trait resources such as Fire-Attuned to describe behaviors and stat templates.【F:assets/archetypes/MerchantArchetype.tres†L1-L15】【F:assets/traits/FireAttunedTrait.tres†L1-L11】 
+- `devdocs/` – Canonical design references covering architecture, style standards, and troubleshooting practices for Godot 4 projects.【F:devdocs/Architectural Style Guide.txt†L205-L253】【F:devdocs/GDScriptOPS.txt†L201-L227】 
+- `src/core/` – Base data primitives like `EntityData` and `Component` resources that encode entity identity plus component dictionaries for Systems to consume.【F:src/core/EntityData.gd†L6-L22】 
+- `src/globals/` – Autoload-friendly singletons (`EventBus`, `AssetRegistry`, `ModuleRegistry`) that broker inter-system communication and shared data access.【F:src/globals/EventBus.gd†L1-L156】【F:src/globals/AssetRegistry.gd†L4-L33】【F:src/globals/ModuleRegistry.gd†L4-L20】 
+- `src/systems/` – Reusable gameplay systems and components such as `DebugSystem`, `StatsComponent`, and `TraitComponent` that operate on grouped entities through the EventBus pattern.【F:src/systems/DebugSystem.gd†L1-L118】【F:src/systems/StatsComponent.gd†L1-L13】【F:src/systems/TraitComponent.gd†L1-L36】 
+- `src/tests/` – Focused GDScript unit suites that instantiate registries and systems directly to verify signal contracts, data loading, and style rules via each script’s `run_test()` helper.【F:src/tests/TestEventBus.gd†L4-L184】【F:src/tests/TestAssetRegistry.gd†L4-L42】【F:src/tests/TestModuleRegistry.gd†L4-L72】【F:src/tests/TestDebugSystem.gd†L4-L87】【F:src/tests/TestSystemStyle.gd†L4-L155】 
+- `tests/` – Godot scenes, manifests, and mock resources used for manual and automated validation, including the EventBus harness, sprint validation scene, and companion test assets like `TestDummy.tres` + stats.【F:tests/EventBus_TestHarness.tscn†L1-L200】【F:tests/Sprint1_Validation.tscn†L1-L14】【F:tests/test_assets/TestDummy.tres†L1-L13】【F:tests/test_assets/TestDummyStats.tres†L1-L7】【F:tests/tests_manifest.json†L1-L13】 
+
+## Autoload singletons
+Register the following scripts under **Project > Project Settings > Autoload** before running gameplay or tests so every system can resolve its global dependencies:
+
+- **EventBus** – `res://src/globals/EventBus.gd` (autoload name `EventBus`). Centralizes all cross-system signals, enforces dictionary payload contracts, and exposes static helpers so tests can inject isolated instances.【F:src/globals/EventBus.gd†L4-L188】 The architectural guides treat this singleton as the “central nervous system” of the project, so every broadcast and subscription should route through it.【F:devdocs/Architectural Style Guide.txt†L205-L228】 
+- **AssetRegistry** – `res://src/globals/AssetRegistry.gd` (autoload name `AssetRegistry`). Scans data directories on startup (by default `res://assets/items/`) and caches `.tres` resources for instant lookup during procedural generation.【F:src/globals/AssetRegistry.gd†L4-L33】【F:devdocs/Project Chimera.txt†L41-L45】 Override or extend the scan paths as the asset catalog grows. 
+- **ModuleRegistry** – `res://src/globals/ModuleRegistry.gd` (autoload name `ModuleRegistry`). Keeps a dictionary of procedural generator nodes so higher-level directors can request content without hardcoding node paths.【F:src/globals/ModuleRegistry.gd†L4-L20】【F:devdocs/Project Chimera.txt†L41-L45】 
+
+Load singletons in dependency order (e.g., EventBus → AssetRegistry → ModuleRegistry) so any static type hints resolve when Godot parses the scripts; the GDScript operations guide calls out autoload order as a common cause of parse errors.【F:devdocs/GDScriptOPS.txt†L201-L227】 
+
+## Developer documentation
+All design references live under [`devdocs/`](devdocs):
+
+- [`Project Chimera`](devdocs/Project%20Chimera.txt) – High-level goals, ECS/Resource hybrid rationale, and procedural content pipelines that inform every system’s responsibilities.【F:devdocs/Project Chimera.txt†L2-L196】 
+- [`Architectural Style Guide`](devdocs/Architectural%20Style%20Guide.txt) – Mandatory coding standards (no direct system references, signal usage expectations, directory layout) plus rationale for the EventBus-first topology.【F:devdocs/Architectural Style Guide.txt†L205-L253】 
+- [`GDScript OPS Guide`](devdocs/GDScriptOPS.txt) – Troubleshooting playbook for parser issues, autoload ordering, and circular dependency mitigation strategies in Godot 4.x.【F:devdocs/GDScriptOPS.txt†L201-L233】 
+
+These texts should accompany code reviews so new engineers can align with the project’s architecture and debugging norms. 
+
+## Running test scenes and suites
+1. **Event bus manual validation** – Open `tests/EventBus_TestHarness.tscn` and press ▶ in the Godot editor (or run `godot4 --path <project> --scene res://tests/EventBus_TestHarness.tscn`). The harness lets you enter payload dictionaries for each signal and emit them via UI buttons while a sibling listener logs the results—ideal for verifying new EventBus contracts interactively.【F:tests/EventBus_TestHarness.tscn†L37-L188】【F:devdocs/Architectural Style Guide.txt†L223-L238】【F:src/tests/EventBusHarness.gd†L200-L245】 
+2. **Sprint integration smoke test** – Run `tests/Sprint1_Validation.tscn` headlessly (`godot4 --headless --path <project> --scene res://tests/Sprint1_Validation.tscn`) or from the editor. The scene spawns a `TestDummyEntity` with stats data and a `DebugSystem`, allowing you to confirm that systems discover entities through the `entities` group and emit `debug_stats_reported` snapshots through the EventBus.【F:tests/Sprint1_Validation.tscn†L3-L14】【F:tests/test_assets/TestDummy.tres†L1-L13】【F:tests/test_assets/TestDummyStats.tres†L1-L7】【F:src/tests/TestDummyEntity.gd†L7-L13】【F:src/systems/DebugSystem.gd†L18-L33】 Watch the output console for the HP printout and ensure your autoloaded EventBus receives the broadcast. 
+3. **Script-level unit tests** – Each `src/tests/Test*.gd` script exposes a `run_test()` helper that instantiates the singleton under test, executes assertions, and prints a summary; the manifest in `tests/tests_manifest.json` enumerates the expected modules for automation harnesses.【F:src/tests/TestEventBus.gd†L74-L184】【F:src/tests/TestAssetRegistry.gd†L16-L42】【F:src/tests/TestModuleRegistry.gd†L16-L72】【F:src/tests/TestDebugSystem.gd†L37-L87】【F:src/tests/TestSystemStyle.gd†L13-L155】【F:tests/tests_manifest.json†L1-L13】 You can wire these into your preferred runner by loading each script as a node, calling `run_test()`, and aggregating the returned dictionaries; ensure required autoloads are registered beforehand to satisfy their dependencies. 
+
+All test assets and harnesses target Godot 4.4.1, matching the engine features specified by the project and the design docs.【F:project.godot†L11-L15】【F:src/tests/TestEventBus.gd†L4-L6】【F:src/tests/TestDebugSystem.gd†L4-L6】 
+
+

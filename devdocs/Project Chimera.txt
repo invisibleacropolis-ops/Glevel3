@@ -261,6 +261,31 @@ A robust and clearly defined save/load architecture is essential for a game with
 MetaState dictionary will be saved alongside it in the same file using store_var().
 This clear architectural separation of the run state from the meta state is paramount. It prevents data corruption by isolating the high-frequency, potentially volatile run-save from the low-frequency, critical meta-save. This design also clarifies the game's logic. The meta_save.dat is loaded into global singletons at startup and persists for the entire session, while a run_save.dat is only loaded when the player explicitly continues a game in progress. The logic for "ending a run" becomes a critical transaction: the system reads the final state of the run, processes its outcomes to update the in-memory MetaState and PlayerAccount singletons, and then securely writes those updated objects to the meta_save.dat file.
 
+Section 7: Automated Testing and Continuous Integration
+
+Project Chimera's modular architecture only remains reliable if its regression suite is executed consistently. The automated tests validate the integrity of the EventBus, registries, system scaffolding, and component contracts that underpin the gameplay framework. This section explains how those tests are organized and how to run them from a clean command-line environment.
+
+7.1 Test Layout and Manifest
+
+All unit tests live under `res://src/tests/`, and the harness is controlled by the manifest at `res://tests/tests_manifest.json`. The manifest enumerates the scripts that should run in every regression pass, such as `TestEventBus.gd`, `TestModuleRegistry.gd`, and `TestStatsComponent.gd`, and ensures consistent coverage of the project's core abstractions. Supplemental test data is stored in `res://tests/test_assets/` so that cases exercising resource loading or serialization have deterministic fixtures to work with.
+
+7.2 Prerequisites
+
+Running the suite requires the command-line Godot binary with unit-testing support enabled. Official release builds do not ship with that flag, so engineers must either compile Godot from source with `tests=yes` in the SCons build invocation or download a tests-enabled artifact from the continuous-integration builds published by the engine team. The binary should target the same feature set advertised by `project.godot` (Godot 4.4 Forward+ in the current branch) to avoid API mismatches during parsing. No windowing system is required because all tests run headless, but the `godot` executable must be available on the PATH or invoked via an absolute path.
+
+7.3 Running the Suite Locally
+
+From the repository root, execute the test runner in headless mode so that `res://` resolves to the current project directory:
+
+* `godot --headless --path . --run-tests --test junit --output tests/results.xml`
+* `godot --headless --path . --run-tests --test json --output tests/results.json`
+
+The first command produces a JUnit report that most CI servers can ingest, and the second captures a machine-readable summary that mirrors the structure of the in-editor Test Runner panel. Both commands can be chained in the same session if you need parallel artifacts; each invocation overwrites the previous contents of the corresponding file in `tests/`.
+
+7.4 Interpreting the Output
+
+On success, the CLI prints a short summary indicating that all registered scripts completed without failures and exits with code `0`. The generated `tests/results.xml` file reports a `<testsuite>` node whose `tests` attribute lists the number of executed assertions (currently twenty-two) and whose `failures` attribute remains `0`. The JSON companion exposes the same signal via the `global` object: `"passed"` evaluates to `true`, `"successes"` matches `"total"`, and each entry in the `tests` array shows `"errors": []`. If a regression occurs, the process exits with a non-zero status, `global.passed` flips to `false`, and the failing script's entry in the JSON payload will contain descriptive error text for triage. Treat those artifacts as the canonical source of truth when gating merges in CI.
+
 Conclusion and Recommendations
 
 The architectural blueprint detailed in this document provides a comprehensive and technically sound foundation for the development of Project Chimera in Godot 4.5. The design is ambitious, but by adhering to the core pillars of modularity, data-oriented design, and procedural generation, the project's goals of creating a deeply replayable and emergent Turn-Based Strategy RPG are achievable.
