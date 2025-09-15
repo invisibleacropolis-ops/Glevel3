@@ -13,3 +13,7 @@ config_version=5
 config/name="G-LEV-3.0DEV"
 config/features=PackedStringArray("4.4", "Forward Plus")
 config/icon="res://icon.svg"
+[autoload]
+EventBus="*res://src/globals/EventBus.gd"
+AssetRegistry="*res://src/globals/AssetRegistry.gd"
+ModuleRegistry="*res://src/globals/ModuleRegistry.gd"
