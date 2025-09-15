@@ -12,7 +12,7 @@ func _on_run_pressed() -> void:
     var args: PackedStringArray = []
     if options.get_node("NoColor").button_pressed:
         args.append("--no-color")
-    var out_dir := options.get_node("OutDir").text.strip_edges()
+    var out_dir: String = options.get_node("OutDir").text.strip_edges()
     if out_dir != "":
         args.append_array(["--out-dir", out_dir])
     if options.get_node("NoJson").button_pressed:
@@ -29,16 +29,16 @@ func _on_run_pressed() -> void:
     var retries := int(options.get_node("Retries").value)
     if retries > 0:
         args.append_array(["--retries", str(retries)])
-    var tags := options.get_node("Tags").text.strip_edges()
+    var tags: String = options.get_node("Tags").text.strip_edges()
     if tags != "":
         args.append_array(["--tags", tags])
-    var skip := options.get_node("Skip").text.strip_edges()
+    var skip: String = options.get_node("Skip").text.strip_edges()
     if skip != "":
         args.append_array(["--skip", skip])
-    var pri := options.get_node("Priority").text.strip_edges()
+    var pri: String = options.get_node("Priority").text.strip_edges()
     if pri != "":
         args.append_array(["--priority", pri])
-    var owner := options.get_node("Owner").text.strip_edges()
+    var owner: String = options.get_node("Owner").text.strip_edges()
     if owner != "":
         args.append_array(["--owner", owner])
 
