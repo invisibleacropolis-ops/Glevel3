@@ -4,20 +4,23 @@ extends Node
 ## Automated tests for the EventBus singleton.
 ## Designed for Godot 4.4.1.
 
+# Instantiate EventBus explicitly for isolated testing.
+var EventBus = preload("res://src/globals/EventBus.gd").new()
+
+# Tracks whether our test signal was received.
+var received := false
+
+func _on_entity_killed(data: Dictionary) -> void:
+    received = (data.get("entity_id", "") == "test_entity")
+
 func run_test() -> Dictionary:
     var passed := true
     var total := 0
     var successes := 0
     print("-- EventBus Tests --")
 
-    var received := false
-
-    # Listener for entity_killed
-    func _on_entity_killed(data: Dictionary) -> void:
-        nonlocal received
-        received = (data.get("entity_id", "") == "test_entity")
-
-    EventBus.connect("entity_killed", Callable(self, "_on_entity_killed"))
+    received = false
+    EventBus.entity_killed.connect(_on_entity_killed)
 
     # Test 1: Emit and receive signal
     total += 1
