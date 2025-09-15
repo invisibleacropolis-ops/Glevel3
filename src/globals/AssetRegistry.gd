@@ -1,5 +1,5 @@
 extends Node
-class_name AssetRegistry
+class_name AssetRegistrySingleton
 
 ## Registry responsible for loading and providing game assets.
 ## Designed for Godot 4.4.1.

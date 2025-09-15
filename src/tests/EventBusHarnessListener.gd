@@ -8,7 +8,7 @@ const EVENT_BUS_SCRIPT := preload("res://src/globals/EventBus.gd")
 ## functional, regardless of the state of other gameplay systems.
 
 var _connected: Array[StringName] = []
-var _event_bus: EventBus = null
+var _event_bus: EventBusSingleton = null
 var _signal_names: Array[StringName] = []
 
 func _ready() -> void:
@@ -20,7 +20,7 @@ func _ready() -> void:
 func _exit_tree() -> void:
     _disconnect_from_bus()
 
-func set_event_bus(event_bus: EventBus) -> void:
+func set_event_bus(event_bus: EventBusSingleton) -> void:
     ## Allows the harness scene to inject a specific EventBus instance, ensuring the
     ## listener remains synchronized with whichever singleton is under test.
     if event_bus == _event_bus:
@@ -70,7 +70,7 @@ func _on_signal_received(payload: Dictionary, signal_name: String) -> void:
     if harness and harness.has_method("append_log"):
         harness.append_log(signal_name, payload)
 
-func _find_event_bus() -> EventBus:
+func _find_event_bus() -> EventBusSingleton:
     ## Attempt to locate the EventBus singleton within the active SceneTree without
     ## instantiating a new node. Harness.gd will fall back to creating its own copy
     ## if this lookup fails.
@@ -82,7 +82,7 @@ func _find_event_bus() -> EventBus:
     if root == null:
         return null
 
-    return root.get_node_or_null(EVENT_BUS_NODE_NAME) as EventBus
+    return root.get_node_or_null(EVENT_BUS_NODE_NAME) as EventBusSingleton
 
 func _gather_signal_names() -> Array[StringName]:
     ## Resolve the complete set of script-defined EventBus signals so the harness can

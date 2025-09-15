@@ -1,5 +1,5 @@
 extends Node
-class_name ModuleRegistry
+class_name ModuleRegistrySingleton
 
 ## Simple registry for dynamically added modules.
 ## Designed for Godot 4.4.1.
