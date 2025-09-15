@@ -64,6 +64,10 @@ text = "Clear Log"
 unique_name_in_owner = true
 text = "Save Log"
 
+[node name="ReplayLogButton" type="Button" parent="Margin/Scroll/VBox/LogActions"]
+unique_name_in_owner = true
+text = "Replay Log"
+
 [node name="Log" type="RichTextLabel" parent="Margin/Scroll/VBox"]
 unique_name_in_owner = true
 size_flags_horizontal = 3
@@ -79,3 +83,10 @@ title = "Save Signal Log"
 file_mode = 2
 access = 2
 filters = PackedStringArray("*.log ; Log Files", "*.txt ; Text Files", "* ; All Files")
+
+[node name="ReplayLogDialog" type="FileDialog" parent="."]
+unique_name_in_owner = true
+title = "Load Replay Log"
+file_mode = 0
+access = 2
+filters = PackedStringArray("*.json ; JSON Files", "*.log ; Log Files", "* ; All Files")

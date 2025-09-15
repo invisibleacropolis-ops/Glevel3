@@ -13,7 +13,9 @@ const _REQUIRED_FIELD_BORDER_WIDTH := 2
 @onready var _log_label: RichTextLabel = %Log
 @onready var _clear_log_button: Button = %ClearLogButton
 @onready var _save_log_button: Button = %SaveLogButton
+@onready var _replay_log_button: Button = %ReplayLogButton
 @onready var _save_dialog: FileDialog = %SaveLogDialog
+@onready var _replay_dialog: FileDialog = %ReplayLogDialog
 @onready var _listener: Node = $TestListener
 @onready var _event_bus: EventBusSingleton = _resolve_event_bus()
 @onready var _signals_container: VBoxContainer = %SignalsContainer
@@ -384,6 +386,100 @@ func clear_log() -> void:
     _log_label.clear()
     _log_label.scroll_to_line(0)
 
+func replay_signals_from_json(records_json: Variant) -> void:
+    ## Replays a collection of event bus payloads from serialized JSON data. Accepts
+    ## either a raw JSON string or a parsed Array of dictionaries containing
+    ## `signal_name` and `payload` keys. Emits each entry through the EventBus and
+    ## records whether the replay succeeded so engineers can audit rehydrated test
+    ## runs directly from the harness UI.
+    if _event_bus == null:
+        _log_replay_message("EventBus is unavailable; cannot replay signals.")
+        push_error("EventBusHarness cannot replay signals without an EventBus instance.")
+        return
+
+    var entries: Array = []
+    match typeof(records_json):
+        TYPE_ARRAY:
+            entries = records_json
+        TYPE_STRING:
+            var json := JSON.new()
+            var parse_error: int = json.parse(records_json)
+            if parse_error != OK:
+                var error_context := "line %d" % json.get_error_line()
+                var parse_message := json.get_error_message()
+                if parse_message.is_empty():
+                    parse_message = error_string(parse_error)
+                _log_replay_message(
+                    "Failed to parse replay JSON (%s): %s." % [
+                        error_context,
+                        parse_message,
+                    ]
+                )
+                push_error("Replay JSON parsing failed: %s" % parse_message)
+                return
+            if typeof(json.data) != TYPE_ARRAY:
+                _log_replay_message(
+                    "Replay JSON root must be an array but received %s." % type_string(typeof(json.data))
+                )
+                push_error("Replay data must be a JSON array of dictionaries.")
+                return
+            entries = json.data
+        _:
+            _log_replay_message(
+                "Replay data must be a JSON string or array but received %s." % type_string(typeof(records_json))
+            )
+            push_error("Unsupported replay data type supplied to replay_signals_from_json().")
+            return
+
+    if entries.is_empty():
+        _log_replay_message("Replay JSON did not contain any entries.")
+        return
+
+    for index in range(entries.size()):
+        var entry := entries[index]
+        if typeof(entry) != TYPE_DICTIONARY:
+            _log_replay_message("Replay entry %d is not a dictionary; skipping." % (index + 1))
+            continue
+
+        var raw_signal_name: Variant = entry.get("signal_name", "")
+        var signal_name: StringName = StringName()
+        match typeof(raw_signal_name):
+            TYPE_STRING_NAME:
+                signal_name = raw_signal_name
+            TYPE_STRING:
+                signal_name = StringName(raw_signal_name)
+            _:
+                _log_replay_message(
+                    "Replay entry %d is missing a valid signal_name; skipping." % (index + 1)
+                )
+                continue
+
+        var payload: Variant = entry.get("payload", {})
+        if typeof(payload) != TYPE_DICTIONARY:
+            _log_replay_message(
+                "Replay entry %d for %s is missing a dictionary payload; skipping." % [
+                    index + 1,
+                    String(signal_name),
+                ]
+            )
+            continue
+
+        var error_code: int = _event_bus.emit_signal(signal_name, payload)
+        var payload_text: String = JSON.stringify(payload)
+        if error_code == OK:
+            _log_replay_message(
+                "Replayed %s with payload %s (OK)." % [String(signal_name), payload_text]
+            )
+        else:
+            _log_replay_message(
+                "Failed to replay %s with payload %s (error %s: %s)." % [
+                    String(signal_name),
+                    payload_text,
+                    error_code,
+                    error_string(error_code),
+                ]
+            )
+
 func export_log(path: String) -> Error:
     ## Persist the current log contents to disk. Returns OK on success so
     ## callers can provide user feedback or retry on failure.
@@ -429,10 +525,16 @@ func _wire_signal_controls() -> void:
     if _save_log_button:
         _save_log_button.pressed.connect(_on_save_log_button_pressed)
 
+    if _replay_log_button:
+        _replay_log_button.pressed.connect(_on_replay_log_button_pressed)
+
     if _save_dialog:
         _save_dialog.file_selected.connect(func(selected_path: String) -> void:
             export_log(selected_path)
         )
+
+    if _replay_dialog:
+        _replay_dialog.file_selected.connect(_on_replay_file_selected)
 
 func _configure_listener() -> void:
     ## Lazily propagate the resolved EventBus reference to the sibling listener so
@@ -496,3 +598,49 @@ func _build_default_log_filename() -> String:
 
 func _default_log_directory() -> String:
     return OS.get_user_data_dir()
+
+func _on_replay_log_button_pressed() -> void:
+    ## Prompt the engineer to select a previously captured replay JSON file and feed
+    ## the chosen path back into the harness once confirmed.
+    if _replay_dialog:
+        if _replay_dialog.get_current_dir().is_empty():
+            _replay_dialog.current_dir = _default_log_directory()
+        _replay_dialog.popup_centered_ratio()
+        return
+
+    _log_replay_message("Replay dialog unavailable; cannot select a log file.")
+
+func _on_replay_file_selected(selected_path: String) -> void:
+    var trimmed_path: String = selected_path.strip_edges()
+    if trimmed_path.is_empty():
+        _log_replay_message("Replay cancelled: no file selected.")
+        return
+
+    var file := FileAccess.open(trimmed_path, FileAccess.READ)
+    if file == null:
+        var open_error: int = FileAccess.get_open_error()
+        _log_replay_message(
+            "Failed to open replay file %s (error %s: %s)." % [
+                trimmed_path,
+                open_error,
+                error_string(open_error),
+            ]
+        )
+        push_error("Unable to open replay file %s" % trimmed_path)
+        return
+
+    var contents := file.get_as_text()
+    file.close()
+    replay_signals_from_json(contents)
+
+func _log_replay_message(message: String) -> void:
+    if _log_label == null:
+        push_warning(message)
+        return
+
+    var timestamp: String = Time.get_time_string_from_system()
+    _log_label.append_text("[%s] %s\n" % [timestamp, message])
+    var last_line: int = _log_label.get_line_count() - 1
+    if last_line < 0:
+        last_line = 0
+    _log_label.scroll_to_line(last_line)
