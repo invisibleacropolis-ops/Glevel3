@@ -3,70 +3,70 @@
 # blocked test reporting, and flaky test retries.
 extends SceneTree
 
-var use_color := true
-var out_dir := "res://tests/"
+var use_color: bool = true
+var out_dir: String = "res://tests/"
 
 func _init() -> void:
     print("Running headless test suite...")
 
     use_color = not _has_flag("--no-color")
-    var out_dir_values := _get_flag_values("--out-dir")
+    var out_dir_values: Array = _get_flag_values("--out-dir")
     if out_dir_values.size() > 0:
         out_dir = out_dir_values[0]
         if not out_dir.ends_with("/"):
             out_dir += "/"
 
-    var suite_start := Time.get_ticks_msec()
-    var all_passed := true
-    var global_successes := 0
-    var global_total := 0
-    var global_skipped := 0
-    var global_flaky := 0
-    var global_blocked := 0
+    var suite_start: int = Time.get_ticks_msec()
+    var all_passed: bool = true
+    var global_successes: int = 0
+    var global_total: int = 0
+    var global_skipped: int = 0
+    var global_flaky: int = 0
+    var global_blocked: int = 0
     # Tracks outcome of each test by filename for dependency resolution
-    var test_outcomes := {}
-    var results := {"tests": []}
+    var test_outcomes: Dictionary = {}
+    var results: Dictionary = {"tests": []}
 
-    var test_scripts := _load_manifest("res://tests_manifest.json")
+    var test_scripts: Array = _load_manifest("res://tests/tests_manifest.json")
     # Reorder tests so that dependencies run before dependents
     test_scripts = _resolve_dependencies(test_scripts)
     if test_scripts.is_empty():
         push_error("No tests found in manifest. Ensure res://tests_manifest.json exists and is valid.")
         quit(1)
 
-    var disable_json := _has_flag("--no-json")
-    var disable_xml := _has_flag("--no-xml")
-    var simple_mode := _has_flag("--simple")
-    var batch_size := _get_flag_values("--batch-size").size() > 0 ? int(_get_flag_values("--batch-size")[0]) : 0
-    var slow_n := _get_flag_values("--slow").size() > 0 ? int(_get_flag_values("--slow")[0]) : 5
-    var max_retries := _get_flag_values("--retries").size() > 0 ? int(_get_flag_values("--retries")[0]) : 0
+    var disable_json: bool = _has_flag("--no-json")
+    var disable_xml: bool = _has_flag("--no-xml")
+    var simple_mode: bool = _has_flag("--simple")
+    var batch_size: int = int(_get_flag_values("--batch-size")[0]) if _get_flag_values("--batch-size").size() > 0 else 0
+    var slow_n: int = int(_get_flag_values("--slow")[0]) if _get_flag_values("--slow").size() > 0 else 5
+    var max_retries: int = int(_get_flag_values("--retries")[0]) if _get_flag_values("--retries").size() > 0 else 0
 
-    var tag_filters := _get_flag_values("--tags")
-    var skip_filters := _get_flag_values("--skip")
-    var pri_filters := _get_flag_values("--priority")
-    var owner_filters := _get_flag_values("--owner")
+    var tag_filters: Array = _get_flag_values("--tags")
+    var skip_filters: Array = _get_flag_values("--skip")
+    var pri_filters: Array = _get_flag_values("--priority")
+    var owner_filters: Array = _get_flag_values("--owner")
 
-    var batch_count := batch_size > 0 ? int(ceil(float(test_scripts.size()) / float(batch_size))) : 1
+    var batch_count: int = int(ceil(float(test_scripts.size()) / float(batch_size))) if batch_size > 0 else 1
 
-    var by_priority := {}
-    var by_owner := {}
-    var by_tags := {}
-    var flaky_tests := []
+    var by_priority: Dictionary = {}
+    var by_owner: Dictionary = {}
+    var by_tags: Dictionary = {}
+    var flaky_tests: Array = []
 
     for b in range(batch_count):
         if batch_size > 0:
-            _log("[b]=== Batch %d/%d ===[/b]" % [b+1, batch_count])
-        var batch_failed := false
-        var start_index := b * batch_size
-        var end_index := batch_size > 0 ? min((b+1) * batch_size, test_scripts.size()) : test_scripts.size()
-        var scripts_in_batch := test_scripts.slice(start_index, end_index)
+            _log("[b]=== Batch %d/%d ===[/b]" % [b + 1, batch_count])
+        var batch_failed: bool = false
+        var start_index: int = b * batch_size
+        var end_index: int = min((b + 1) * batch_size, test_scripts.size()) if batch_size > 0 else test_scripts.size()
+        var scripts_in_batch: Array = test_scripts.slice(start_index, end_index)
 
         for entry in scripts_in_batch:
-            var script_path := typeof(entry) == TYPE_DICTIONARY ? entry.path : entry
-            var name := script_path.get_file()
-            var tags := typeof(entry) == TYPE_DICTIONARY and entry.has("tags") ? entry.tags : []
-            var priority := typeof(entry) == TYPE_DICTIONARY and entry.has("priority") ? entry.priority : "unspecified"
-            var owner := typeof(entry) == TYPE_DICTIONARY and entry.has("owner") ? entry.owner : "unspecified"
+            var script_path: String = entry["path"] if entry is Dictionary else entry
+            var name: String = script_path.get_file()
+            var tags: Array = entry["tags"] if entry is Dictionary and entry.has("tags") else []
+            var priority: String = entry["priority"] if entry is Dictionary and entry.has("priority") else "unspecified"
+            var owner: String = entry["owner"] if entry is Dictionary and entry.has("owner") else "unspecified"
 
             if tag_filters.size() > 0 and not _tags_match(tags, tag_filters):
                 _log("[color=yellow]SKIP[/color] %s — tag filter mismatch" % name)
@@ -89,7 +89,7 @@ func _init() -> void:
                 test_outcomes[name] = "skipped"
                 continue
 
-            var test_result := {
+            var test_result: Dictionary = {
                 "name": name,
                 "path": script_path,
                 "tags": tags,
@@ -106,13 +106,13 @@ func _init() -> void:
                 "blocked_reason": ""
             }
 
-            var depends := typeof(entry) == TYPE_DICTIONARY and entry.has("depends_on") ? entry.depends_on : []
-            var blocked := false
-            var blocked_reason := ""
+            var depends: Array = entry["depends_on"] if entry is Dictionary and entry.has("depends_on") else []
+            var blocked: bool = false
+            var blocked_reason: String = ""
             # Determine if any dependency failed or was skipped
             for dep in depends:
                 if test_outcomes.has(dep):
-                    var dep_outcome := test_outcomes[dep]
+                    var dep_outcome: String = test_outcomes[dep]
                     if dep_outcome != "passed":
                         blocked = true
                         blocked_reason = "dependency %s %s" % [dep, dep_outcome]
@@ -124,30 +124,32 @@ func _init() -> void:
             if blocked:
                 _log("[color=yellow]SKIP[/color] %s — blocked (%s)" % [name, blocked_reason])
                 global_blocked += 1
-                test_result.blocked = true
-                test_result.blocked_reason = "Dependency %s" % blocked_reason.substr(11)
+                test_result["blocked"] = true
+                test_result["blocked_reason"] = "Dependency %s" % blocked_reason.substr(11)
                 test_outcomes[name] = "blocked"
                 _update_group(by_priority, priority, test_result)
                 _update_group(by_owner, owner, test_result)
                 for t in tags:
                     _update_group(by_tags, t, test_result)
-                results.tests.append(test_result)
+                results["tests"].append(test_result)
                 continue
 
-            var attempt := 0
-            var final_passed := false
-            var last_duration := 0
+            var attempt: int = 0
+            var final_passed: bool = false
+            var last_duration: int = 0
 
             while attempt <= max_retries and not final_passed:
-                var test_class = load(script_path)
+                var test_class: Script = load(script_path)
                 if test_class == null:
                     _log("[color=red]FAIL[/color] %s — could not load script" % name)
                     all_passed = false
                     batch_failed = true
-                    test_result.errors.append("Could not load script")
+                    test_result["errors"].append("Could not load script")
                     break
 
                 var test_instance = test_class.new()
+                root.add_child(test_instance)
+                await process_frame
                 if not test_instance.has_method("run_test"):
                     _log("[color=yellow]SKIP[/color] %s — no run_test() method" % name)
                     test_result["passed"] = true
@@ -155,55 +157,46 @@ func _init() -> void:
                     test_outcomes[name] = "skipped"
                     break
 
-                var start := Time.get_ticks_msec()
-                var result : Dictionary
-                var caught_error := false
-
-                try:
-                    result = await test_instance.run_test()
-                catch e:
-                    push_error("Exception in %s: %s" % [name, str(e)])
-                    test_result.errors.append({"msg": "Exception", "got": str(e)})
-                    caught_error = true
-                    all_passed = false
-                    batch_failed = true
+                var start: int = Time.get_ticks_msec()
+                var result: Dictionary = await test_instance.run_test()
+                test_instance.queue_free()
 
                 last_duration = Time.get_ticks_msec() - start
 
-                if not caught_error and result:
-                    var passed := result.get("passed", false)
-                    var successes := result.get("successes", 0)
-                    var total := result.get("total", 0)
+                if result:
+                    var passed: bool = result.get("passed", false)
+                    var successes: int = result.get("successes", 0)
+                    var total: int = result.get("total", 0)
 
-                    test_result.successes = successes
-                    test_result.total = total
-                    test_result.duration = last_duration
+                    test_result["successes"] = successes
+                    test_result["total"] = total
+                    test_result["duration"] = last_duration
 
                     global_successes += successes
                     global_total += total
 
-                    var pct := total > 0 ? float(successes) / float(total) * 100.0 : 100.0
-                    var pct_str := "%.1f" % pct
+                    var pct := float(successes) / float(total) * 100.0 if total > 0 else 100.0
+                    var pct_str: String = "%.1f" % pct
 
                     if passed:
                         if attempt == 0:
                             _log("[color=green]PASS[/color] %s — %d/%d (%s%%) — %d ms" % [name, successes, total, pct_str, last_duration])
                         else:
                             _log("[color=green]PASS[/color] %s (retry) — %d/%d (%s%%) — %d ms" % [name, successes, total, pct_str, last_duration])
-                            test_result.flaky = true
-                            test_result.retry_count = attempt
+                            test_result["flaky"] = true
+                            test_result["retry_count"] = attempt
                             global_flaky += 1
                             flaky_tests.append(name)
                             _log("⚠️ Flaky test detected: %s (passed after %d retry)" % [name, attempt])
                         final_passed = true
-                        test_result.passed = true
+                        test_result["passed"] = true
                     else:
                         _log("[color=red]FAIL[/color] %s — %d/%d (%s%%) — %d ms" % [name, successes, total, pct_str, last_duration])
-                        var errs = result.get("errors", [])
+                        var errs: Array = result.get("errors", [])
                         for err in errs:
-                            var msg = typeof(err) == TYPE_DICTIONARY ? err.get("msg", str(err)) : str(err)
+                            var msg = err.get("msg", str(err)) if typeof(err) == TYPE_DICTIONARY else str(err)
                             _log("    ❌ %s" % msg)
-                            test_result.errors.append(err)
+                            test_result["errors"].append(err)
                         if attempt < max_retries:
                             attempt += 1
                             _log("Retrying (%d/%d)..." % [attempt, max_retries])
@@ -223,7 +216,7 @@ func _init() -> void:
                 break
 
             if not test_outcomes.has(name):
-                test_outcomes[name] = test_result.passed ? "passed" : "failed"
+                test_outcomes[name] = "passed" if test_result["passed"] else "failed"
 
             _log("   tags: %s" % ", ".join(tags))
             _log("   priority: %s" % priority)
@@ -234,7 +227,7 @@ func _init() -> void:
             for t in tags:
                 _update_group(by_tags, t, test_result)
 
-            results.tests.append(test_result)
+            results["tests"].append(test_result)
 
         if batch_size > 0:
             if batch_failed:
@@ -242,8 +235,8 @@ func _init() -> void:
             else:
                 _log("✅ All tests passed in batch %d" % (b+1))
 
-    var suite_duration_ms := Time.get_ticks_msec() - suite_start
-    var global_pct := global_total > 0 ? float(global_successes) / float(global_total) * 100.0 : 100.0
+    var suite_duration_ms: int = Time.get_ticks_msec() - suite_start
+    var global_pct := float(global_successes) / float(global_total) * 100.0 if global_total > 0 else 100.0
     var global_pct_str := "%.1f" % global_pct
 
     results["global"] = {
@@ -278,14 +271,14 @@ func _init() -> void:
             print("Results saved to %sresults.json" % out_dir)
 
     if not disable_xml:
-        var xml := _build_junit_xml(results)
+        var xml: String = _build_junit_xml(results)
         var file2 := FileAccess.open(out_dir + "results.xml", FileAccess.WRITE)
         if file2:
             file2.store_string(xml)
             file2.close()
             print("Results saved to %sresults.xml" % out_dir)
 
-    var summary_line := "::summary::%d/%d tests passed, %d failed, %d skipped, %d flaky, %d blocked in %d ms" % [global_successes, global_total, global_total - global_successes, global_skipped, global_flaky, global_blocked, suite_duration_ms]
+    var summary_line: String = "::summary::%d/%d tests passed, %d failed, %d skipped, %d flaky, %d blocked in %d ms" % [global_successes, global_total, global_total - global_successes, global_skipped, global_flaky, global_blocked, suite_duration_ms]
     print(summary_line)
 
     if all_passed:
@@ -298,19 +291,19 @@ func _init() -> void:
 func _update_group(map: Dictionary, key: String, test_result: Dictionary) -> void:
     if not map.has(key):
         map[key] = {"successes": 0, "total": 0, "failed": 0}
-    map[key].total += test_result.total
-    map[key].successes += test_result.successes
-    if not test_result.passed:
-        map[key].failed += 1
+    map[key]["total"] += test_result["total"]
+    map[key]["successes"] += test_result["successes"]
+    if not test_result["passed"]:
+        map[key]["failed"] += 1
 
 func _print_group_summary(label: String, map: Dictionary) -> void:
     _log("")
     _log("[b]=== Summary by %s ===[/b]" % label)
     for k in map.keys():
-        var v = map[k]
-        var passed := v.successes
-        var total := v.total
-        var failed := v.failed
+        var v: Dictionary = map[k]
+        var passed: int = v["successes"]
+        var total: int = v["total"]
+        var failed: int = v["failed"]
         _log("%s: %d/%d passed, %d failed" % [k, passed, total, failed])
 
 func _has_flag(flag: String) -> bool:
@@ -320,8 +313,8 @@ func _has_flag(flag: String) -> bool:
     return false
 
 func _get_flag_values(flag: String) -> Array:
-    var values := []
-    var args := OS.get_cmdline_args()
+    var values: Array = []
+    var args: Array = OS.get_cmdline_args()
     for i in range(args.size()):
         if args[i] == flag and i + 1 < args.size():
             values.append_array(args[i+1].split(","))
@@ -334,40 +327,41 @@ func _tags_match(tags: Array, filters: Array) -> bool:
     return false
 
 func _load_manifest(path: String) -> Array:
-    var scripts := []
+    var scripts: Array = []
     if not FileAccess.file_exists(path):
         return []
     var file := FileAccess.open(path, FileAccess.READ)
     if not file:
         return []
-    var data := JSON.parse_string(file.get_as_text())
+    var data: Variant = JSON.parse_string(file.get_as_text())
     file.close()
-    if typeof(data) != TYPE_DICTIONARY:
+    if not (data is Dictionary):
         return []
     if data.has("tests"):
-        for entry in data.tests:
-            if typeof(entry) == TYPE_STRING:
+        for entry in data["tests"]:
+            if entry is String:
                 scripts.append(entry)
-            elif typeof(entry) == TYPE_DICTIONARY and entry.has("path"):
+            elif entry is Dictionary and entry.has("path"):
                 scripts.append(entry)
-                if entry.path.ends_with(".json") and entry.path.find("manifest") != -1:
-                    scripts.append_array(_load_manifest(entry.path))
+                if entry["path"].ends_with(".json") and entry["path"].find("manifest") != -1:
+                    scripts.append_array(_load_manifest(entry["path"]))
     return scripts
 
 # Orders tests so that dependencies declared via `depends_on`
 # run before their dependents while preserving manifest order
 # for tests without dependencies.
 func _resolve_dependencies(tests: Array) -> Array:
-    var name_to_entry := {}
+    var name_to_entry: Dictionary = {}
     for entry in tests:
-        var path := typeof(entry) == TYPE_DICTIONARY ? entry.path : entry
+        var path: String = entry["path"] if entry is Dictionary else entry
         name_to_entry[path.get_file()] = entry
 
-    var ordered := []
-    var visiting := {}
-    var visited := {}
+    var ordered: Array = []
+    var visiting: Dictionary = {}
+    var visited: Dictionary = {}
 
-    func visit(name):
+    var visit: Callable
+    visit = func(name):
         if visited.has(name):
             return
         if visiting.has(name):
@@ -376,48 +370,48 @@ func _resolve_dependencies(tests: Array) -> Array:
         visiting[name] = true
         var e = name_to_entry.get(name, null)
         if e != null:
-            var deps := typeof(e) == TYPE_DICTIONARY and e.has("depends_on") ? e.depends_on : []
+            var deps: Array = e["depends_on"] if e is Dictionary and e.has("depends_on") else []
             for d in deps:
                 if name_to_entry.has(d):
-                    visit(d)
+                    visit.call(d)
         visiting.erase(name)
         visited[name] = true
         ordered.append(e)
 
     for entry in tests:
-        var path := typeof(entry) == TYPE_DICTIONARY ? entry.path : entry
-        visit(path.get_file())
+        var path: String = entry["path"] if entry is Dictionary else entry
+        visit.call(path.get_file())
 
     return ordered
 
 func _build_junit_xml(results: Dictionary) -> String:
-    var xml := "<testsuites>\n"
-    var global := results.global
-    var suite_name := "GodotTestSuite"
-    var total := global.total
-    var failures := total - global.successes
-    var time := str(float(global.duration) / 1000.0)
+    var xml: String = "<testsuites>\n"
+    var global: Dictionary = results["global"]
+    var suite_name: String = "GodotTestSuite"
+    var total: int = global["total"]
+    var failures: int = total - global["successes"]
+    var time := str(float(global["duration"]) / 1000.0)
 
-    xml += "  <testsuite name=\"%s\" tests=\"%d\" failures=\"%d\" skipped=\"%d\" time=\"%s\">\n" % [suite_name, total, failures, global.skipped + global.get("blocked_count", 0), time]
+    xml += "  <testsuite name=\"%s\" tests=\"%d\" failures=\"%d\" skipped=\"%d\" time=\"%s\">\n" % [suite_name, total, failures, global["skipped"] + global.get("blocked_count", 0), time]
 
-    for t in results.tests:
-        var case_name := t.name
-        var case_time := str(float(t.duration) / float(1000.0))
+    for t in results["tests"]:
+        var case_name: String = t["name"]
+        var case_time: String = str(float(t["duration"]) / float(1000.0))
         xml += "    <testcase classname=\"%s\" name=\"%s\" time=\"%s\">\n" % [case_name, case_name, case_time]
         xml += "      <properties>\n"
-        xml += "        <property name=\"tags\" value=\"%s\"/>\n" % ",".join(t.tags)
-        xml += "        <property name=\"priority\" value=\"%s\"/>\n" % t.priority
-        xml += "        <property name=\"owner\" value=\"%s\"/>\n" % t.owner
-        xml += "        <property name=\"flaky\" value=\"%s\"/>\n" % (t.flaky ? "true" : "false")
-        xml += "        <property name=\"retry_count\" value=\"%d\"/>\n" % t.retry_count
+        xml += "        <property name=\"tags\" value=\"%s\"/>\n" % ",".join(t["tags"])
+        xml += "        <property name=\"priority\" value=\"%s\"/>\n" % t["priority"]
+        xml += "        <property name=\"owner\" value=\"%s\"/>\n" % t["owner"]
+        xml += "        <property name=\"flaky\" value=\"%s\"/>\n" % ("true" if t["flaky"] else "false")
+        xml += "        <property name=\"retry_count\" value=\"%d\"/>\n" % t["retry_count"]
         xml += "      </properties>\n"
         if t.get("blocked", false):
-            var dep_tokens := t.blocked_reason.split(" ")
-            var dep_name := dep_tokens.size() >= 2 ? dep_tokens[1] : t.blocked_reason
+            var dep_tokens: Array = t["blocked_reason"].split(" ")
+            var dep_name: String = dep_tokens[1] if dep_tokens.size() >= 2 else t["blocked_reason"]
             xml += "      <skipped message=\"Blocked by dependency %s\"/>\n" % dep_name
-        elif not t.passed:
-            for err in t.errors:
-                var msg = typeof(err) == TYPE_DICTIONARY ? err.get("msg", str(err)) : str(err)
+        elif not t["passed"]:
+            for err in t["errors"]:
+                var msg = err.get("msg", str(err)) if typeof(err) == TYPE_DICTIONARY else str(err)
                 xml += "      <failure message=\"%s\">%s</failure>\n" % [msg, msg]
         xml += "    </testcase>\n"
 
