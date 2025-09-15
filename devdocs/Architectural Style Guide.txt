@@ -305,6 +305,11 @@ The following rules and protocols are mandatory for all team members working wit
 5.2 Singleton Discipline: Using Global Systems Responsibly
 
 The project architecture relies on several autoload singletons (EventBus, AssetRegistry, ModuleRegistry) to manage global systems.1 While powerful, the overuse or misuse of singletons is a common architectural anti-pattern that can introduce hidden dependencies, make code difficult to test, and lead to the creation of monolithic "god objects" that violate the single responsibility principle.9
+Operationally, each singleton should expose narrow accessors. For ModuleRegistry,
+consumers request dependencies via `get_module("id")` and can probe optional
+dependencies with `has_module("id")` rather than reading the internal
+dictionary directly. This keeps the singleton free to evolve without forcing
+call sites to change.
 To maintain a clean and modular architecture, the following rules for the use and creation of singletons are in effect.
 1. The Singleton Litmus Test: A new autoload singleton may only be proposed for the architecture if it meets all of the following criteria:
 	* Globally Unique: The system it manages is genuinely, conceptually singular within the entire application (e.g., there is only one EventBus).
