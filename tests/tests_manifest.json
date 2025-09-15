@@ -7,5 +7,8 @@
     "res://src/tests/TestSystemStyle.gd",
     "res://src/tests/TestTraitComponent.gd",
     "res://src/tests/TestArchetype.gd"
+    "res://src/tests/TestComponent.gd",
+    "res://src/tests/TestEntityData.gd",
+    "res://src/tests/TestStatsComponent.gd",
   ]
 }

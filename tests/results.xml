@@ -1,0 +1,76 @@
+<testsuites>
+  <testsuite name="GodotTestSuite" tests="22" failures="1" skipped="0" time="0.146">
+    <testcase classname="TestAssetRegistry.gd" name="TestAssetRegistry.gd" time="0.004">
+      <properties>
+        <property name="tags" value=""/>
+        <property name="priority" value="unspecified"/>
+        <property name="owner" value="unspecified"/>
+        <property name="flaky" value="false"/>
+        <property name="retry_count" value="0"/>
+      </properties>
+    </testcase>
+    <testcase classname="TestEventBus.gd" name="TestEventBus.gd" time="0.035">
+      <properties>
+        <property name="tags" value=""/>
+        <property name="priority" value="unspecified"/>
+        <property name="owner" value="unspecified"/>
+        <property name="flaky" value="false"/>
+        <property name="retry_count" value="0"/>
+      </properties>
+    </testcase>
+    <testcase classname="TestDebugSystem.gd" name="TestDebugSystem.gd" time="0.003">
+      <properties>
+        <property name="tags" value=""/>
+        <property name="priority" value="unspecified"/>
+        <property name="owner" value="unspecified"/>
+        <property name="flaky" value="false"/>
+        <property name="retry_count" value="0"/>
+      </properties>
+    </testcase>
+    <testcase classname="TestModuleRegistry.gd" name="TestModuleRegistry.gd" time="0.007">
+      <properties>
+        <property name="tags" value=""/>
+        <property name="priority" value="unspecified"/>
+        <property name="owner" value="unspecified"/>
+        <property name="flaky" value="false"/>
+        <property name="retry_count" value="0"/>
+      </properties>
+    </testcase>
+    <testcase classname="TestComponent.gd" name="TestComponent.gd" time="0.007">
+      <properties>
+        <property name="tags" value=""/>
+        <property name="priority" value="unspecified"/>
+        <property name="owner" value="unspecified"/>
+        <property name="flaky" value="false"/>
+        <property name="retry_count" value="0"/>
+      </properties>
+    </testcase>
+    <testcase classname="TestEntityData.gd" name="TestEntityData.gd" time="0.007">
+      <properties>
+        <property name="tags" value=""/>
+        <property name="priority" value="unspecified"/>
+        <property name="owner" value="unspecified"/>
+        <property name="flaky" value="false"/>
+        <property name="retry_count" value="0"/>
+      </properties>
+    </testcase>
+    <testcase classname="TestStatsComponent.gd" name="TestStatsComponent.gd" time="0.007">
+      <properties>
+        <property name="tags" value=""/>
+        <property name="priority" value="unspecified"/>
+        <property name="owner" value="unspecified"/>
+        <property name="flaky" value="false"/>
+        <property name="retry_count" value="0"/>
+      </properties>
+    </testcase>
+    <testcase classname="TestSystemStyle.gd" name="TestSystemStyle.gd" time="0.003">
+      <properties>
+        <property name="tags" value=""/>
+        <property name="priority" value="unspecified"/>
+        <property name="owner" value="unspecified"/>
+        <property name="flaky" value="false"/>
+        <property name="retry_count" value="0"/>
+      </properties>
+    </testcase>
+  </testsuite>
+</testsuites>

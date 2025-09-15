@@ -367,29 +367,30 @@ func _resolve_dependencies(tests: Array) -> Array:
     var visiting: Dictionary = {}
     var visited: Dictionary = {}
 
-    var visit: Callable
-    visit = func(name):
-        if visited.has(name):
-            return
-        if visiting.has(name):
-            push_error("Circular dependency detected for %s" % name)
-            return
-        visiting[name] = true
-        var e = name_to_entry.get(name, null)
-        if e != null:
-            var deps: Array = e["depends_on"] if e is Dictionary and e.has("depends_on") else []
-            for d in deps:
-                if name_to_entry.has(d):
-                    visit.call(d)
-        visiting.erase(name)
-        visited[name] = true
-        ordered.append(e)
-
     for entry in tests:
         var path: String = entry["path"] if entry is Dictionary else entry
-        visit.call(path.get_file())
+        _visit_dependency(path.get_file(), name_to_entry, visiting, visited, ordered)
 
     return ordered
+
+func _visit_dependency(name: String, name_to_entry: Dictionary, visiting: Dictionary, visited: Dictionary, ordered: Array) -> void:
+    if visited.has(name):
+        return
+    if visiting.has(name):
+        push_error("Circular dependency detected for %s" % name)
+        return
+
+    visiting[name] = true
+    var entry = name_to_entry.get(name, null)
+    if entry != null:
+        var deps: Array = entry["depends_on"] if entry is Dictionary and entry.has("depends_on") else []
+        for dep in deps:
+            if name_to_entry.has(dep):
+                _visit_dependency(dep, name_to_entry, visiting, visited, ordered)
+    visiting.erase(name)
+    visited[name] = true
+    if entry != null:
+        ordered.append(entry)
 
 func _build_junit_xml(results: Dictionary) -> String:
     var xml: String = "<testsuites>\n"
