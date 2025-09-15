@@ -145,7 +145,7 @@ func _gather_payload(signal_name: StringName) -> Dictionary:
         if editor == null:
             continue
         var text := editor.text.strip_edges()
-        var is_optional := field_config.get("optional", false)
+        var is_optional: bool = field_config.get("optional", false)
         if text.is_empty():
             if is_optional:
                 continue
@@ -188,7 +188,9 @@ func append_log(signal_name: String, payload: Dictionary) -> void:
     var timestamp: String = Time.get_time_string_from_system()
     var payload_text: String = JSON.stringify(payload)
     _log_label.append_text("[%s] %s -> %s\n" % [timestamp, signal_name, payload_text])
-    var last_line := max(_log_label.get_line_count() - 1, 0)
+    var last_line: int = _log_label.get_line_count() - 1
+    if last_line < 0:
+        last_line = 0
     _log_label.scroll_to_line(last_line)
 
 func clear_log() -> void:
