@@ -246,6 +246,17 @@ text = "Emit quest_state_changed"
 [node name="LogLabel" type="Label" parent="Margin/Scroll/VBox"]
 text = "Signal Log"
 
+[node name="LogActions" type="HBoxContainer" parent="Margin/Scroll/VBox"]
+size_flags_horizontal = 3
+
+[node name="ClearLogButton" type="Button" parent="Margin/Scroll/VBox/LogActions"]
+unique_name_in_owner = true
+text = "Clear Log"
+
+[node name="SaveLogButton" type="Button" parent="Margin/Scroll/VBox/LogActions"]
+unique_name_in_owner = true
+text = "Save Log"
+
 [node name="Log" type="RichTextLabel" parent="Margin/Scroll/VBox"]
 unique_name_in_owner = true
 size_flags_horizontal = 3
@@ -254,3 +265,10 @@ scroll_active = true
 
 [node name="TestListener" type="Node" parent="."]
 script = ExtResource(2)
+
+[node name="SaveLogDialog" type="FileDialog" parent="."]
+unique_name_in_owner = true
+title = "Save Signal Log"
+file_mode = 2
+access = 2
+filters = PackedStringArray("*.log ; Log Files", "*.txt ; Text Files", "* ; All Files")
