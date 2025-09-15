@@ -2,6 +2,9 @@ extends Control
 
 const EVENT_BUS_SCENE := preload("res://src/globals/EventBus.gd")
 const EVENT_BUS_NODE_NAME := "EventBus"
+const _REQUIRED_FIELD_BORDER_COLOR := Color(0.86, 0.27, 0.27)
+const _REQUIRED_FIELD_TOOLTIP_TEMPLATE := "Enter a value for \"%s\" before emitting the signal."
+const _REQUIRED_FIELD_BORDER_WIDTH := 2
 
 ## Diagnostic scene that allows engineers to emit EventBus signals with mock payloads.
 ## When combined with the sibling TestListener node, this scene provides a
@@ -19,6 +22,7 @@ const EVENT_BUS_NODE_NAME := "EventBus"
 ## Entries are populated at runtime so the harness automatically tracks newly
 ## documented contracts without requiring additional scene editing.
 var _signal_controls: Dictionary = {}
+var _has_validation_errors: bool = false
 
 func _ready() -> void:
     ## Wire the UI controls to the EventBus emitters once the scene tree is ready.
@@ -85,8 +89,8 @@ func _create_signal_section(signal_name: StringName, contract: Dictionary) -> Di
     section.add_child(fields_grid)
 
     var field_configs: Dictionary = {}
-    _populate_field_rows(fields_grid, contract.get("required_keys", {}), field_configs, false)
-    _populate_field_rows(fields_grid, contract.get("optional_keys", {}), field_configs, true)
+    _populate_field_rows(fields_grid, contract.get("required_keys", {}), field_configs, false, signal_name)
+    _populate_field_rows(fields_grid, contract.get("optional_keys", {}), field_configs, true, signal_name)
 
     var button := Button.new()
     button.text = "Emit %s" % String(signal_name)
@@ -101,7 +105,8 @@ func _populate_field_rows(
     grid: GridContainer,
     definitions: Dictionary,
     field_configs: Dictionary,
-    is_optional: bool
+    is_optional: bool,
+    signal_name: StringName
 ) -> void:
     ## Instantiate the label/editor pairs for a set of payload keys and capture the
     ## metadata the harness uses when serialising button presses into dictionaries.
@@ -131,10 +136,17 @@ func _populate_field_rows(
         var config: Dictionary = {
             "node": editor,
             "optional": is_optional,
+            "default_tooltip": editor.tooltip_text,
         }
         _apply_type_metadata(config, type_hint)
         _apply_empty_value_metadata(config, type_hint, is_optional)
         field_configs[field_name] = config
+
+        var captured_field_name := field_name
+        var captured_signal := signal_name
+        editor.text_changed.connect(func(_new_text: String) -> void:
+            _on_field_text_changed(captured_signal, captured_field_name)
+        )
 
 func _format_field_label(field_name: String, is_optional: bool) -> String:
     if is_optional:
@@ -214,6 +226,8 @@ func _emit_signal(signal_name: StringName) -> void:
         return
 
     var payload: Dictionary = _gather_payload(signal_name)
+    if _has_validation_errors:
+        return
     _event_bus.emit_signal(signal_name, payload)
 
 func _gather_payload(signal_name: StringName) -> Dictionary:
@@ -221,6 +235,7 @@ func _gather_payload(signal_name: StringName) -> Dictionary:
     ## text contents to a usable Dictionary payload.
     var payload: Dictionary = {}
     var fields: Dictionary = _signal_controls[signal_name]["fields"]
+    var has_errors := false
     for field_name in fields.keys():
         var field_config: Dictionary = fields[field_name]
         var editor := field_config.get("node") as LineEdit
@@ -230,12 +245,100 @@ func _gather_payload(signal_name: StringName) -> Dictionary:
         var is_optional: bool = field_config.get("optional", false)
         if text.is_empty():
             if is_optional:
+                _clear_field_validation(field_config)
                 continue
-            if field_config.has("empty_value"):
-                payload[field_name] = field_config["empty_value"]
-                continue
+            _mark_field_invalid(field_name, field_config)
+            has_errors = true
+            continue
+        _clear_field_validation(field_config)
         payload[field_name] = _coerce_field_value(editor.text, field_config)
+    _has_validation_errors = has_errors
     return payload
+
+func _mark_field_invalid(field_name: String, field_config: Dictionary) -> void:
+    var editor := field_config.get("node") as LineEdit
+    if editor == null:
+        return
+
+    var message := _REQUIRED_FIELD_TOOLTIP_TEMPLATE % field_name
+    editor.tooltip_text = message
+    _apply_field_error_styles(editor, field_config)
+    field_config["is_invalid"] = true
+
+func _clear_field_validation(field_config: Dictionary) -> void:
+    var editor := field_config.get("node") as LineEdit
+    if editor == null:
+        return
+
+    editor.remove_theme_stylebox_override("normal")
+    editor.remove_theme_stylebox_override("focus")
+    editor.tooltip_text = field_config.get("default_tooltip", "")
+    field_config["is_invalid"] = false
+
+func _apply_field_error_styles(editor: LineEdit, field_config: Dictionary) -> void:
+    var styles: Dictionary = _ensure_error_styles(editor, field_config)
+    var normal_style := styles.get("normal", null) as StyleBox
+    if normal_style:
+        editor.add_theme_stylebox_override("normal", normal_style)
+    var focus_style := styles.get("focus", null) as StyleBox
+    if focus_style:
+        editor.add_theme_stylebox_override("focus", focus_style)
+
+func _ensure_error_styles(editor: LineEdit, field_config: Dictionary) -> Dictionary:
+    if field_config.has("_error_styles"):
+        return field_config["_error_styles"]
+
+    var styles := {}
+    styles["normal"] = _create_error_style(editor, editor.get_theme_stylebox("normal", "LineEdit"))
+    styles["focus"] = _create_error_style(editor, editor.get_theme_stylebox("focus", "LineEdit"))
+    field_config["_error_styles"] = styles
+    return styles
+
+func _create_error_style(editor: LineEdit, base_style: StyleBox) -> StyleBox:
+    if base_style is StyleBoxFlat:
+        var flat := (base_style as StyleBoxFlat).duplicate()
+        flat.border_color = _REQUIRED_FIELD_BORDER_COLOR
+        flat.border_width_left = max(flat.border_width_left, _REQUIRED_FIELD_BORDER_WIDTH)
+        flat.border_width_right = max(flat.border_width_right, _REQUIRED_FIELD_BORDER_WIDTH)
+        flat.border_width_top = max(flat.border_width_top, _REQUIRED_FIELD_BORDER_WIDTH)
+        flat.border_width_bottom = max(flat.border_width_bottom, _REQUIRED_FIELD_BORDER_WIDTH)
+        return flat
+
+    var fallback := StyleBoxFlat.new()
+    if editor.has_theme_color("background_color", "LineEdit"):
+        fallback.bg_color = editor.get_theme_color("background_color", "LineEdit")
+    fallback.draw_center = true
+    fallback.border_color = _REQUIRED_FIELD_BORDER_COLOR
+    fallback.border_width_left = _REQUIRED_FIELD_BORDER_WIDTH
+    fallback.border_width_right = _REQUIRED_FIELD_BORDER_WIDTH
+    fallback.border_width_top = _REQUIRED_FIELD_BORDER_WIDTH
+    fallback.border_width_bottom = _REQUIRED_FIELD_BORDER_WIDTH
+    fallback.corner_radius_top_left = 4
+    fallback.corner_radius_top_right = 4
+    fallback.corner_radius_bottom_left = 4
+    fallback.corner_radius_bottom_right = 4
+    return fallback
+
+func _on_field_text_changed(signal_name: StringName, field_name: String) -> void:
+    if not _signal_controls.has(signal_name):
+        return
+    var fields: Dictionary = _signal_controls[signal_name].get("fields", {})
+    if not fields.has(field_name):
+        return
+
+    var field_config: Dictionary = fields[field_name]
+    var editor := field_config.get("node") as LineEdit
+    if editor == null:
+        return
+
+    var trimmed_text := editor.text.strip_edges()
+    if trimmed_text.is_empty():
+        if field_config.get("optional", false):
+            _clear_field_validation(field_config)
+        else:
+            _mark_field_invalid(field_name, field_config)
+    else:
+        _clear_field_validation(field_config)
 
 func _coerce_field_value(raw_text: String, field_config: Dictionary = {}) -> Variant:
     ## Attempt to coerce free-form text into a richer Variant type. Supports JSON,
