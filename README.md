@@ -3,6 +3,42 @@
 ## Project vision
 G-LEV-3.0DEV (Project Chimera) is an ambitious Godot 4 strategy-RPG prototype that pursues modular, data-first design so systemic content can be composed on the fly instead of hard-coding bespoke encounters.【F:project.godot†L1-L15】【F:devdocs/Project Chimera.txt†L2-L45】 The design bible mandates a hybrid approach where Custom Resources capture data, gameplay Systems operate over entity groups, and a global EventBus singleton keeps modules decoupled while still allowing them to react to world events.【F:devdocs/Project Chimera.txt†L18-L46】 Procedural generation pipelines—map construction, quest planning, and meta-narrative state—are planned as layered services that transform seeds and registries of reusable content into coherent runs.【F:devdocs/Project Chimera.txt†L143-L177】 
 
+
+# Project Chimera Architecture Reference
+
+This repository prototypes the compositional runtime architecture described in the Project Chimera design bible. The new diagrams
+collected here summarize how core runtime objects interact so outside engineers can quickly orient themselves before touching
+the Godot scenes or scripts.
+
+## Entity Composition
+
+Gameplay entities are ordinary Godot nodes added to the `entities` group. Each node exposes an `entity_data` property that points
+to an `EntityData` resource responsible for storing identifying metadata plus a dictionary of component resources. All component
+resources inherit from the `Component` base type, which enforces the data-only contract described in the style guide. Concrete
+resources such as `StatsComponent` and `TraitComponent` extend this base class, bridging entity data to systems and higher-order
+authoring tools. `TraitComponent` maintains references to modular `Trait` resources, while `Archetype` resources validate that a
+generated entity exposes an allowed trait mix before entering play. See the diagram below for a visual summary of these
+relationships.
+
+![Entity composition diagram](devdocs/diagrams/entity_composition_component.svg)
+
+## Event Flow Through the Global Event Bus
+
+All gameplay systems extend the `System` base class, which centralizes helper methods for publishing and subscribing to the
+autoloaded `EventBus` singleton. `DebugSystem` demonstrates the pattern by iterating over entity nodes, collecting their stats
+component payload, and emitting a `debug_stats_reported` signal whenever new telemetry is captured for diagnostics. The `EventBus`
+enforces payload contracts for shared signals such as `entity_killed`, allowing subscriber systems—quests, loot, analytics, and
+debuggers—to respond without tight coupling. The sequence below captures both the stats reporting loop and the broadcast path
+combat-oriented systems use when an entity is removed from play, matching the process documented in Section 1.3 of the Project
+Chimera design doc.
+
+![Event flow sequence diagram](devdocs/diagrams/event_flow_sequence.svg)
+
+## Diagram Sources
+
+Editable Mermaid definitions are stored alongside the rendered assets in `devdocs/diagrams/` so future contributors can refresh
+the images after architecture updates.
+
 ## Repository layout
 - `assets/` – Hand-authored data resources (traits, archetypes, etc.) that Systems and registries consume; for example, the Merchant archetype aggregates trait resources such as Fire-Attuned to describe behaviors and stat templates.【F:assets/archetypes/MerchantArchetype.tres†L1-L15】【F:assets/traits/FireAttunedTrait.tres†L1-L11】 
 - `devdocs/` – Canonical design references covering architecture, style standards, and troubleshooting practices for Godot 4 projects.【F:devdocs/Architectural Style Guide.txt†L205-L253】【F:devdocs/GDScriptOPS.txt†L201-L227】 
@@ -36,4 +72,5 @@ These texts should accompany code reviews so new engineers can align with the pr
 3. **Script-level unit tests** – Each `src/tests/Test*.gd` script exposes a `run_test()` helper that instantiates the singleton under test, executes assertions, and prints a summary; the manifest in `tests/tests_manifest.json` enumerates the expected modules for automation harnesses.【F:src/tests/TestEventBus.gd†L74-L184】【F:src/tests/TestAssetRegistry.gd†L16-L42】【F:src/tests/TestModuleRegistry.gd†L16-L72】【F:src/tests/TestDebugSystem.gd†L37-L87】【F:src/tests/TestSystemStyle.gd†L13-L155】【F:tests/tests_manifest.json†L1-L13】 You can wire these into your preferred runner by loading each script as a node, calling `run_test()`, and aggregating the returned dictionaries; ensure required autoloads are registered beforehand to satisfy their dependencies. 
 
 All test assets and harnesses target Godot 4.4.1, matching the engine features specified by the project and the design docs.【F:project.godot†L11-L15】【F:src/tests/TestEventBus.gd†L4-L6】【F:src/tests/TestDebugSystem.gd†L4-L6】 
+
 

@@ -36,6 +36,12 @@ Section 2: The Three Pillars: Entities, Components, and Systems
 
 The architecture is built upon three core concepts: the Entity, the Component, and the System. A universal, unambiguous understanding of these building blocks is essential for every member of the development team. The following definitions, rules, and code templates are non-negotiable standards.
 
+For a bird's-eye refresher on how these resources compose a playable runtime object, review the component diagram stored at
+`devdocs/diagrams/entity_composition_component.svg`. The illustration maps how Godot entity nodes point at `EntityData` assets,
+how those assets enumerate concrete component resources such as `StatsComponent` and `TraitComponent`, and how archetypes and
+traits remain in the validation loop. Keep the figure open when designing new components so the data contracts remain
+consistent across systems.
+
 2.1 The Entity: The Universal Data Container
 
 An Entity is the fundamental game object in Project Chimera. It represents any actor or interactive object in the game world. In Godot's terms, an entity is a Node in the scene tree that acts as a generic container. Its behavior and properties are not defined by its script's class but are composed entirely from the data attached to it.1

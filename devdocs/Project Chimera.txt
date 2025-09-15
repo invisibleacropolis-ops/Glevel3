@@ -35,6 +35,8 @@ Consider the following example flow when a monster is defeated in combat:
 3. The QuestSystem, which has previously connected its _on_entity_killed method to this signal, receives the broadcast. It checks the monster_data to see if this kill satisfies any active quest objectives and updates its internal state accordingly.
 4. The LootSystem is also subscribed to the entity_killed signal. It uses the monster_data (which might contain information about the monster's level and type) to trigger its procedural loot generation algorithm and spawn the appropriate items in the world.
 5. Simultaneously, the MetaNarrativeSystem receives the same signal. It logs this event to a persistent data file, tracking the player's actions to influence future "World Runs."
+
+For a quick visual refresher while reviewing this handshake, consult `devdocs/diagrams/event_flow_sequence.svg`. The sequence diagram illustrates the DebugSystem telemetry loop alongside the combat defeat broadcast, highlighting how the EventBus fans out payloads to quest, loot, analytics, and debugging modules without hard references.
 This pattern formalizes Godot's built-in signal system into a robust, game-wide communication architecture.10 The
 EventBus becomes the single, well-defined point of contact for all inter-system communication. Systems remain completely decoupled; the CombatSystem has no knowledge of quests or loot, it only knows that it must report when an entity is killed. This decoupling is absolutely essential for building a complex, emergent system where new modules can be added or existing ones modified with minimal risk of cascading failures.
 
