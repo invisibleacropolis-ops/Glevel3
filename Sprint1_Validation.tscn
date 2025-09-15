@@ -1,0 +1,13 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource path="res://src/core/EntityData.gd" type="Script" id=1]
+[ext_resource path="res://src/systems/DebugSystem.gd" type="Script" id=2]
+
+[node name="Root" type="Node"]
+
+[node name="TestEntity" type="Node" parent="."]
+script = ExtResource(1)
+groups = ["entities"]
+
+[node name="DebugSystem" type="Node" parent="."]
+script = ExtResource(2)
