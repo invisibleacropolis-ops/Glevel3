@@ -2,6 +2,7 @@
   "tests": [
     "res://src/tests/TestAssetRegistry.gd",
     "res://src/tests/TestEventBus.gd",
+    "res://src/tests/TestDebugSystem.gd",
     "res://src/tests/TestModuleRegistry.gd",
     "res://src/tests/TestSystemStyle.gd"
   ]
