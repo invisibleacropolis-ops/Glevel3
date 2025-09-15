@@ -1,11 +1,11 @@
 extends Node
-class_name EventBus
+class_name EventBusSingleton
 
 ## Holds a reference to the autoloaded singleton instance so code can resolve the
 ## EventBus without resorting to scene tree lookups. The value is assigned when
 ## the node enters the tree and cleared on exit so tests can instantiate their
 ## own isolated copies without side effects.
-static var _singleton: EventBus = null
+static var _singleton: EventBusSingleton = null
 
 ## Centralized, autoloaded event bus that brokers decoupled communication between
 ## gameplay systems. All signals defined here must accept exactly one argument –
@@ -130,7 +130,7 @@ func _exit_tree() -> void:
 ## Returns the active EventBus singleton when it has been registered as an
 ## autoload. This is intentionally static so callers can access the shared
 ## instance without depending on the autoload name or scene tree paths.
-static func get_singleton() -> EventBus:
+static func get_singleton() -> EventBusSingleton:
     return _singleton
 
 ## Convenience helper allowing call sites to guard EventBus usage until the

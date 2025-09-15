@@ -45,12 +45,12 @@ func subscribe_event(signal_name: StringName, callback: Callable, flags: int = O
 
 ## Internal helper that fetches the EventBus autoload or returns null when the
 ## system is running outside of a full game tree (e.g. during isolated tests).
-func _get_event_bus() -> Node:
+func _get_event_bus() -> EventBusSingleton:
     if EVENT_BUS_SCRIPT.is_singleton_ready():
         return EVENT_BUS_SCRIPT.get_singleton()
 
     if typeof(EventBus) == TYPE_OBJECT and EventBus is Node:
-        return EventBus
+        return EventBus as EventBusSingleton
 
     var scene_tree := get_tree()
     if scene_tree == null:
@@ -60,4 +60,4 @@ func _get_event_bus() -> Node:
     if root == null:
         return null
 
-    return root.get_node_or_null("EventBus")
+    return root.get_node_or_null("EventBus") as EventBusSingleton
