@@ -1,23 +1,20 @@
 extends Node
 
 const EVENT_BUS_NODE_NAME := "EventBus"
+const EVENT_BUS_SCRIPT := preload("res://src/globals/EventBus.gd")
 
 ## Connects to every EventBus signal and forwards payloads to the harness log.
 ## This node mirrors an omniscient subscriber that verifies the bus remains
 ## functional, regardless of the state of other gameplay systems.
 
-const SIGNAL_NAMES := [
-    "entity_killed",
-    "item_acquired",
-    "quest_state_changed",
-]
-
 var _connected: Array[StringName] = []
 var _event_bus: Node = null
+var _signal_names: Array[StringName] = []
 
 func _ready() -> void:
     if _event_bus == null:
         _event_bus = _find_event_bus()
+    _signal_names = _gather_signal_names()
     _connect_to_bus()
 
 func _exit_tree() -> void:
@@ -30,6 +27,7 @@ func set_event_bus(event_bus: Node) -> void:
         return
     _disconnect_from_bus()
     _event_bus = event_bus
+    _signal_names = _gather_signal_names()
     if is_inside_tree():
         _connect_to_bus()
 
@@ -40,7 +38,7 @@ func _connect_to_bus() -> void:
         push_warning("EventBusHarnessListener cannot connect without an EventBus instance.")
         return
 
-    for signal_name in SIGNAL_NAMES:
+    for signal_name in _signal_names:
         var signal_id := StringName(signal_name)
         if _connected.has(signal_id):
             continue
@@ -87,3 +85,27 @@ func _find_event_bus() -> Node:
         return null
 
     return root.get_node_or_null(EVENT_BUS_NODE_NAME)
+
+func _gather_signal_names() -> Array[StringName]:
+    ## Resolve the complete set of script-defined EventBus signals so the harness can
+    ## automatically track future additions without hand-maintained lists.
+    var names: Array[StringName] = []
+    if _event_bus:
+        for signal_info in _event_bus.get_signal_list():
+            var flags := int(signal_info.get("flags", 0))
+            if (flags & Object.METHOD_FLAG_FROM_SCRIPT) == 0:
+                continue
+            var name_text := String(signal_info.get("name", ""))
+            if name_text.is_empty():
+                continue
+            var name := StringName(name_text)
+            if not names.has(name):
+                names.append(name)
+
+    if names.is_empty():
+        for contract_name in EVENT_BUS_SCRIPT.SIGNAL_CONTRACTS.keys():
+            var signal_name := StringName(contract_name)
+            if not names.has(signal_name):
+                names.append(signal_name)
+
+    return names

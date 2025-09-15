@@ -12,29 +12,105 @@ const EVENT_BUS_NODE_NAME := "EventBus"
 @onready var _event_bus: Node = _resolve_event_bus()
 
 ## Mapping of EventBus signal names to their emit buttons and field editors.
-## Each LineEdit represents a payload key that will be serialized before
-## emission. The nodes referenced here are marked as unique within the scene
-## tree so they can be accessed through the %NodeName shorthand.
+## Each entry includes metadata describing whether a field is optional and the
+## control responsible for collecting user input. The nodes referenced here are
+## marked as unique within the scene tree so they can be accessed through the
+## %NodeName shorthand.
 @onready var _signal_controls: Dictionary = {
-    "entity_killed": {
+    &"debug_stats_reported": {
+        "button": %DebugStatsEmitButton,
+        "fields": {
+            "entity_id": {
+                "node": %DebugStatsEntityId,
+                "optional": false,
+            },
+            "stats": {
+                "node": %DebugStatsStats,
+                "optional": false,
+                "empty_value": {},
+            },
+            "timestamp": {
+                "node": %DebugStatsTimestamp,
+                "optional": true,
+            },
+        },
+    },
+    &"entity_killed": {
         "button": %EntityKilledEmitButton,
         "fields": {
-            "entity_id": %EntityKilledEntityId,
-            "killer_id": %EntityKilledKillerId,
+            "entity_id": {
+                "node": %EntityKilledEntityId,
+                "optional": false,
+            },
+            "killer_id": {
+                "node": %EntityKilledKillerId,
+                "optional": true,
+            },
+            "archetype_id": {
+                "node": %EntityKilledArchetypeId,
+                "optional": true,
+            },
+            "entity_type": {
+                "node": %EntityKilledEntityType,
+                "optional": true,
+                "type": TYPE_STRING_NAME,
+            },
+            "components": {
+                "node": %EntityKilledComponents,
+                "optional": true,
+            },
         },
     },
-    "item_acquired": {
+    &"item_acquired": {
         "button": %ItemAcquiredEmitButton,
         "fields": {
-            "item_id": %ItemAcquiredItemId,
-            "quantity": %ItemAcquiredQuantity,
+            "item_id": {
+                "node": %ItemAcquiredItemId,
+                "optional": false,
+            },
+            "quantity": {
+                "node": %ItemAcquiredQuantity,
+                "optional": false,
+            },
+            "owner_id": {
+                "node": %ItemAcquiredOwnerId,
+                "optional": true,
+            },
+            "source": {
+                "node": %ItemAcquiredSource,
+                "optional": true,
+                "type": TYPE_STRING_NAME,
+            },
+            "metadata": {
+                "node": %ItemAcquiredMetadata,
+                "optional": true,
+            },
         },
     },
-    "quest_state_changed": {
+    &"quest_state_changed": {
         "button": %QuestStateChangedEmitButton,
         "fields": {
-            "quest_id": %QuestStateChangedQuestId,
-            "state": %QuestStateChangedState,
+            "quest_id": {
+                "node": %QuestStateChangedQuestId,
+                "optional": false,
+            },
+            "state": {
+                "node": %QuestStateChangedState,
+                "optional": false,
+                "type": TYPE_STRING_NAME,
+            },
+            "progress": {
+                "node": %QuestStateChangedProgress,
+                "optional": true,
+            },
+            "objectives": {
+                "node": %QuestStateChangedObjectives,
+                "optional": true,
+            },
+            "metadata": {
+                "node": %QuestStateChangedMetadata,
+                "optional": true,
+            },
         },
     },
 }
@@ -44,7 +120,7 @@ func _ready() -> void:
     _wire_signal_controls()
     _configure_listener()
 
-func _emit_signal(signal_name: String) -> void:
+func _emit_signal(signal_name: StringName) -> void:
     ## Construct a payload dictionary from the configured LineEdits and emit the
     ## signal on the shared EventBus singleton.
     if not _signal_controls.has(signal_name):
@@ -58,24 +134,34 @@ func _emit_signal(signal_name: String) -> void:
     var payload: Dictionary = _gather_payload(signal_name)
     _event_bus.emit_signal(signal_name, payload)
 
-func _gather_payload(signal_name: String) -> Dictionary:
+func _gather_payload(signal_name: StringName) -> Dictionary:
     ## Read every configured LineEdit for the provided signal and serialise their
     ## text contents to a usable Dictionary payload.
     var payload: Dictionary = {}
     var fields: Dictionary = _signal_controls[signal_name]["fields"]
     for field_name in fields.keys():
-        var editor := fields[field_name] as LineEdit
+        var field_config: Dictionary = fields[field_name]
+        var editor := field_config.get("node") as LineEdit
         if editor == null:
             continue
-        payload[field_name] = _coerce_field_value(editor.text)
+        var text := editor.text.strip_edges()
+        var is_optional := field_config.get("optional", false)
+        if text.is_empty():
+            if is_optional:
+                continue
+            if field_config.has("empty_value"):
+                payload[field_name] = field_config["empty_value"]
+                continue
+        payload[field_name] = _coerce_field_value(editor.text, field_config)
     return payload
 
-func _coerce_field_value(raw_text: String) -> Variant:
+func _coerce_field_value(raw_text: String, field_config: Dictionary = {}) -> Variant:
     ## Attempt to coerce free-form text into a richer Variant type. Supports JSON,
-    ## integers, floats, booleans and defaults to string content.
+    ## integers, floats, booleans and configurable fallbacks via the supplied
+    ## field configuration metadata.
     var value: String = raw_text.strip_edges()
     if value.is_empty():
-        return ""
+        return field_config.get("empty_value", "")
 
     var json := JSON.new()
     if json.parse(value) == OK:
@@ -91,6 +177,9 @@ func _coerce_field_value(raw_text: String) -> Variant:
         return true
     if lower == "false":
         return false
+
+    if field_config.get("type") == TYPE_STRING_NAME:
+        return StringName(value)
 
     return value
 
@@ -112,8 +201,9 @@ func _wire_signal_controls() -> void:
     for signal_name in _signal_controls.keys():
         var button := _signal_controls[signal_name]["button"] as Button
         if button:
+            var signal_to_emit: StringName = signal_name
             button.pressed.connect(func() -> void:
-                _emit_signal(signal_name)
+                _emit_signal(signal_to_emit)
             )
 
 func _configure_listener() -> void:
