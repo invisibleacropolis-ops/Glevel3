@@ -1,6 +1,8 @@
 extends Resource
 class_name EntityData
 
+const Component = preload("res://src/core/Component.gd")
+
 ## Data container describing an in-game entity.
 ## Holds identifying information and a dictionary of components.
 ## Intended to be used as a resource assigned to nodes representing entities.
