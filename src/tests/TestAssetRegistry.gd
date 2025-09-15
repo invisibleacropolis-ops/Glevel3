@@ -4,6 +4,9 @@ extends Node
 ## Tests for the AssetRegistry loader.
 ## Designed for Godot 4.4.1.
 
+# Manually instantiate the registry to avoid relying on project autoloads.
+var AssetRegistry = preload("res://src/globals/AssetRegistry.gd").new()
+
 func run_test() -> Dictionary:
     var passed := true
     var total := 0
