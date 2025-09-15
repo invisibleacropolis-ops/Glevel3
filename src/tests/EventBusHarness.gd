@@ -2,6 +2,9 @@ extends Control
 
 const EVENT_BUS_SCENE := preload("res://src/globals/EventBus.gd")
 const EVENT_BUS_NODE_NAME := "EventBus"
+const _REQUIRED_FIELD_BORDER_COLOR := Color(0.86, 0.27, 0.27)
+const _REQUIRED_FIELD_TOOLTIP_TEMPLATE := "Enter a value for \"%s\" before emitting the signal."
+const _REQUIRED_FIELD_BORDER_WIDTH := 2
 
 ## Diagnostic scene that allows engineers to emit EventBus signals with mock payloads.
 ## When combined with the sibling TestListener node, this scene provides a
@@ -10,7 +13,9 @@ const EVENT_BUS_NODE_NAME := "EventBus"
 @onready var _log_label: RichTextLabel = %Log
 @onready var _clear_log_button: Button = %ClearLogButton
 @onready var _save_log_button: Button = %SaveLogButton
+@onready var _replay_log_button: Button = %ReplayLogButton
 @onready var _save_dialog: FileDialog = %SaveLogDialog
+@onready var _replay_dialog: FileDialog = %ReplayLogDialog
 @onready var _listener: Node = $TestListener
 @onready var _event_bus: EventBusSingleton = _resolve_event_bus()
 @onready var _signals_container: VBoxContainer = %SignalsContainer
@@ -19,6 +24,7 @@ const EVENT_BUS_NODE_NAME := "EventBus"
 ## Entries are populated at runtime so the harness automatically tracks newly
 ## documented contracts without requiring additional scene editing.
 var _signal_controls: Dictionary = {}
+var _has_validation_errors: bool = false
 
 func _ready() -> void:
     ## Wire the UI controls to the EventBus emitters once the scene tree is ready.
@@ -85,8 +91,8 @@ func _create_signal_section(signal_name: StringName, contract: Dictionary) -> Di
     section.add_child(fields_grid)
 
     var field_configs: Dictionary = {}
-    _populate_field_rows(fields_grid, contract.get("required_keys", {}), field_configs, false)
-    _populate_field_rows(fields_grid, contract.get("optional_keys", {}), field_configs, true)
+    _populate_field_rows(fields_grid, contract.get("required_keys", {}), field_configs, false, signal_name)
+    _populate_field_rows(fields_grid, contract.get("optional_keys", {}), field_configs, true, signal_name)
 
     var button := Button.new()
     button.text = "Emit %s" % String(signal_name)
@@ -101,7 +107,8 @@ func _populate_field_rows(
     grid: GridContainer,
     definitions: Dictionary,
     field_configs: Dictionary,
-    is_optional: bool
+    is_optional: bool,
+    signal_name: StringName
 ) -> void:
     ## Instantiate the label/editor pairs for a set of payload keys and capture the
     ## metadata the harness uses when serialising button presses into dictionaries.
@@ -131,10 +138,17 @@ func _populate_field_rows(
         var config: Dictionary = {
             "node": editor,
             "optional": is_optional,
+            "default_tooltip": editor.tooltip_text,
         }
         _apply_type_metadata(config, type_hint)
         _apply_empty_value_metadata(config, type_hint, is_optional)
         field_configs[field_name] = config
+
+        var captured_field_name := field_name
+        var captured_signal := signal_name
+        editor.text_changed.connect(func(_new_text: String) -> void:
+            _on_field_text_changed(captured_signal, captured_field_name)
+        )
 
 func _format_field_label(field_name: String, is_optional: bool) -> String:
     if is_optional:
@@ -214,6 +228,8 @@ func _emit_signal(signal_name: StringName) -> void:
         return
 
     var payload: Dictionary = _gather_payload(signal_name)
+    if _has_validation_errors:
+        return
     _event_bus.emit_signal(signal_name, payload)
 
 func _gather_payload(signal_name: StringName) -> Dictionary:
@@ -221,6 +237,7 @@ func _gather_payload(signal_name: StringName) -> Dictionary:
     ## text contents to a usable Dictionary payload.
     var payload: Dictionary = {}
     var fields: Dictionary = _signal_controls[signal_name]["fields"]
+    var has_errors := false
     for field_name in fields.keys():
         var field_config: Dictionary = fields[field_name]
         var editor := field_config.get("node") as LineEdit
@@ -230,12 +247,100 @@ func _gather_payload(signal_name: StringName) -> Dictionary:
         var is_optional: bool = field_config.get("optional", false)
         if text.is_empty():
             if is_optional:
+                _clear_field_validation(field_config)
                 continue
-            if field_config.has("empty_value"):
-                payload[field_name] = field_config["empty_value"]
-                continue
+            _mark_field_invalid(field_name, field_config)
+            has_errors = true
+            continue
+        _clear_field_validation(field_config)
         payload[field_name] = _coerce_field_value(editor.text, field_config)
+    _has_validation_errors = has_errors
     return payload
+
+func _mark_field_invalid(field_name: String, field_config: Dictionary) -> void:
+    var editor := field_config.get("node") as LineEdit
+    if editor == null:
+        return
+
+    var message := _REQUIRED_FIELD_TOOLTIP_TEMPLATE % field_name
+    editor.tooltip_text = message
+    _apply_field_error_styles(editor, field_config)
+    field_config["is_invalid"] = true
+
+func _clear_field_validation(field_config: Dictionary) -> void:
+    var editor := field_config.get("node") as LineEdit
+    if editor == null:
+        return
+
+    editor.remove_theme_stylebox_override("normal")
+    editor.remove_theme_stylebox_override("focus")
+    editor.tooltip_text = field_config.get("default_tooltip", "")
+    field_config["is_invalid"] = false
+
+func _apply_field_error_styles(editor: LineEdit, field_config: Dictionary) -> void:
+    var styles: Dictionary = _ensure_error_styles(editor, field_config)
+    var normal_style := styles.get("normal", null) as StyleBox
+    if normal_style:
+        editor.add_theme_stylebox_override("normal", normal_style)
+    var focus_style := styles.get("focus", null) as StyleBox
+    if focus_style:
+        editor.add_theme_stylebox_override("focus", focus_style)
+
+func _ensure_error_styles(editor: LineEdit, field_config: Dictionary) -> Dictionary:
+    if field_config.has("_error_styles"):
+        return field_config["_error_styles"]
+
+    var styles := {}
+    styles["normal"] = _create_error_style(editor, editor.get_theme_stylebox("normal", "LineEdit"))
+    styles["focus"] = _create_error_style(editor, editor.get_theme_stylebox("focus", "LineEdit"))
+    field_config["_error_styles"] = styles
+    return styles
+
+func _create_error_style(editor: LineEdit, base_style: StyleBox) -> StyleBox:
+    if base_style is StyleBoxFlat:
+        var flat := (base_style as StyleBoxFlat).duplicate()
+        flat.border_color = _REQUIRED_FIELD_BORDER_COLOR
+        flat.border_width_left = max(flat.border_width_left, _REQUIRED_FIELD_BORDER_WIDTH)
+        flat.border_width_right = max(flat.border_width_right, _REQUIRED_FIELD_BORDER_WIDTH)
+        flat.border_width_top = max(flat.border_width_top, _REQUIRED_FIELD_BORDER_WIDTH)
+        flat.border_width_bottom = max(flat.border_width_bottom, _REQUIRED_FIELD_BORDER_WIDTH)
+        return flat
+
+    var fallback := StyleBoxFlat.new()
+    if editor.has_theme_color("background_color", "LineEdit"):
+        fallback.bg_color = editor.get_theme_color("background_color", "LineEdit")
+    fallback.draw_center = true
+    fallback.border_color = _REQUIRED_FIELD_BORDER_COLOR
+    fallback.border_width_left = _REQUIRED_FIELD_BORDER_WIDTH
+    fallback.border_width_right = _REQUIRED_FIELD_BORDER_WIDTH
+    fallback.border_width_top = _REQUIRED_FIELD_BORDER_WIDTH
+    fallback.border_width_bottom = _REQUIRED_FIELD_BORDER_WIDTH
+    fallback.corner_radius_top_left = 4
+    fallback.corner_radius_top_right = 4
+    fallback.corner_radius_bottom_left = 4
+    fallback.corner_radius_bottom_right = 4
+    return fallback
+
+func _on_field_text_changed(signal_name: StringName, field_name: String) -> void:
+    if not _signal_controls.has(signal_name):
+        return
+    var fields: Dictionary = _signal_controls[signal_name].get("fields", {})
+    if not fields.has(field_name):
+        return
+
+    var field_config: Dictionary = fields[field_name]
+    var editor := field_config.get("node") as LineEdit
+    if editor == null:
+        return
+
+    var trimmed_text := editor.text.strip_edges()
+    if trimmed_text.is_empty():
+        if field_config.get("optional", false):
+            _clear_field_validation(field_config)
+        else:
+            _mark_field_invalid(field_name, field_config)
+    else:
+        _clear_field_validation(field_config)
 
 func _coerce_field_value(raw_text: String, field_config: Dictionary = {}) -> Variant:
     ## Attempt to coerce free-form text into a richer Variant type. Supports JSON,
@@ -280,6 +385,100 @@ func clear_log() -> void:
     ## position so subsequent appends start at the top of the viewport.
     _log_label.clear()
     _log_label.scroll_to_line(0)
+
+func replay_signals_from_json(records_json: Variant) -> void:
+    ## Replays a collection of event bus payloads from serialized JSON data. Accepts
+    ## either a raw JSON string or a parsed Array of dictionaries containing
+    ## `signal_name` and `payload` keys. Emits each entry through the EventBus and
+    ## records whether the replay succeeded so engineers can audit rehydrated test
+    ## runs directly from the harness UI.
+    if _event_bus == null:
+        _log_replay_message("EventBus is unavailable; cannot replay signals.")
+        push_error("EventBusHarness cannot replay signals without an EventBus instance.")
+        return
+
+    var entries: Array = []
+    match typeof(records_json):
+        TYPE_ARRAY:
+            entries = records_json
+        TYPE_STRING:
+            var json := JSON.new()
+            var parse_error: int = json.parse(records_json)
+            if parse_error != OK:
+                var error_context := "line %d" % json.get_error_line()
+                var parse_message := json.get_error_message()
+                if parse_message.is_empty():
+                    parse_message = error_string(parse_error)
+                _log_replay_message(
+                    "Failed to parse replay JSON (%s): %s." % [
+                        error_context,
+                        parse_message,
+                    ]
+                )
+                push_error("Replay JSON parsing failed: %s" % parse_message)
+                return
+            if typeof(json.data) != TYPE_ARRAY:
+                _log_replay_message(
+                    "Replay JSON root must be an array but received %s." % type_string(typeof(json.data))
+                )
+                push_error("Replay data must be a JSON array of dictionaries.")
+                return
+            entries = json.data
+        _:
+            _log_replay_message(
+                "Replay data must be a JSON string or array but received %s." % type_string(typeof(records_json))
+            )
+            push_error("Unsupported replay data type supplied to replay_signals_from_json().")
+            return
+
+    if entries.is_empty():
+        _log_replay_message("Replay JSON did not contain any entries.")
+        return
+
+    for index in range(entries.size()):
+        var entry := entries[index]
+        if typeof(entry) != TYPE_DICTIONARY:
+            _log_replay_message("Replay entry %d is not a dictionary; skipping." % (index + 1))
+            continue
+
+        var raw_signal_name: Variant = entry.get("signal_name", "")
+        var signal_name: StringName = StringName()
+        match typeof(raw_signal_name):
+            TYPE_STRING_NAME:
+                signal_name = raw_signal_name
+            TYPE_STRING:
+                signal_name = StringName(raw_signal_name)
+            _:
+                _log_replay_message(
+                    "Replay entry %d is missing a valid signal_name; skipping." % (index + 1)
+                )
+                continue
+
+        var payload: Variant = entry.get("payload", {})
+        if typeof(payload) != TYPE_DICTIONARY:
+            _log_replay_message(
+                "Replay entry %d for %s is missing a dictionary payload; skipping." % [
+                    index + 1,
+                    String(signal_name),
+                ]
+            )
+            continue
+
+        var error_code: int = _event_bus.emit_signal(signal_name, payload)
+        var payload_text: String = JSON.stringify(payload)
+        if error_code == OK:
+            _log_replay_message(
+                "Replayed %s with payload %s (OK)." % [String(signal_name), payload_text]
+            )
+        else:
+            _log_replay_message(
+                "Failed to replay %s with payload %s (error %s: %s)." % [
+                    String(signal_name),
+                    payload_text,
+                    error_code,
+                    error_string(error_code),
+                ]
+            )
 
 func export_log(path: String) -> Error:
     ## Persist the current log contents to disk. Returns OK on success so
@@ -326,10 +525,16 @@ func _wire_signal_controls() -> void:
     if _save_log_button:
         _save_log_button.pressed.connect(_on_save_log_button_pressed)
 
+    if _replay_log_button:
+        _replay_log_button.pressed.connect(_on_replay_log_button_pressed)
+
     if _save_dialog:
         _save_dialog.file_selected.connect(func(selected_path: String) -> void:
             export_log(selected_path)
         )
+
+    if _replay_dialog:
+        _replay_dialog.file_selected.connect(_on_replay_file_selected)
 
 func _configure_listener() -> void:
     ## Lazily propagate the resolved EventBus reference to the sibling listener so
@@ -393,3 +598,49 @@ func _build_default_log_filename() -> String:
 
 func _default_log_directory() -> String:
     return OS.get_user_data_dir()
+
+func _on_replay_log_button_pressed() -> void:
+    ## Prompt the engineer to select a previously captured replay JSON file and feed
+    ## the chosen path back into the harness once confirmed.
+    if _replay_dialog:
+        if _replay_dialog.get_current_dir().is_empty():
+            _replay_dialog.current_dir = _default_log_directory()
+        _replay_dialog.popup_centered_ratio()
+        return
+
+    _log_replay_message("Replay dialog unavailable; cannot select a log file.")
+
+func _on_replay_file_selected(selected_path: String) -> void:
+    var trimmed_path: String = selected_path.strip_edges()
+    if trimmed_path.is_empty():
+        _log_replay_message("Replay cancelled: no file selected.")
+        return
+
+    var file := FileAccess.open(trimmed_path, FileAccess.READ)
+    if file == null:
+        var open_error: int = FileAccess.get_open_error()
+        _log_replay_message(
+            "Failed to open replay file %s (error %s: %s)." % [
+                trimmed_path,
+                open_error,
+                error_string(open_error),
+            ]
+        )
+        push_error("Unable to open replay file %s" % trimmed_path)
+        return
+
+    var contents := file.get_as_text()
+    file.close()
+    replay_signals_from_json(contents)
+
+func _log_replay_message(message: String) -> void:
+    if _log_label == null:
+        push_warning(message)
+        return
+
+    var timestamp: String = Time.get_time_string_from_system()
+    _log_label.append_text("[%s] %s\n" % [timestamp, message])
+    var last_line: int = _log_label.get_line_count() - 1
+    if last_line < 0:
+        last_line = 0
+    _log_label.scroll_to_line(last_line)
