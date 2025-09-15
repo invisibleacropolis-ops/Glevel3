@@ -8,7 +8,7 @@ const EVENT_BUS_SCRIPT := preload("res://src/globals/EventBus.gd")
 ## functional, regardless of the state of other gameplay systems.
 
 var _connected: Array[StringName] = []
-var _event_bus: Node = null
+var _event_bus: EventBus = null
 var _signal_names: Array[StringName] = []
 
 func _ready() -> void:
@@ -20,7 +20,7 @@ func _ready() -> void:
 func _exit_tree() -> void:
     _disconnect_from_bus()
 
-func set_event_bus(event_bus: Node) -> void:
+func set_event_bus(event_bus: EventBus) -> void:
     ## Allows the harness scene to inject a specific EventBus instance, ensuring the
     ## listener remains synchronized with whichever singleton is under test.
     if event_bus == _event_bus:
@@ -38,19 +38,18 @@ func _connect_to_bus() -> void:
         push_warning("EventBusHarnessListener cannot connect without an EventBus instance.")
         return
 
-    for signal_name in _signal_names:
-        var signal_id := StringName(signal_name)
-        if _connected.has(signal_id):
+    for signal_name: StringName in _signal_names:
+        if _connected.has(signal_name):
             continue
-        if not _event_bus.has_signal(signal_id):
+        if not _event_bus.has_signal(signal_name):
             push_warning("EventBus is missing expected signal: %s" % signal_name)
             continue
-        var callable := Callable(self, "_on_signal_received").bind(signal_name)
-        var error := _event_bus.connect(signal_id, callable, Object.CONNECT_REFERENCE_COUNTED)
+        var callable: Callable = Callable(self, "_on_signal_received").bind(String(signal_name))
+        var error: int = _event_bus.connect(signal_name, callable, Object.CONNECT_REFERENCE_COUNTED)
         if error != OK:
             push_error("Failed to connect to EventBus.%s (error %s)" % [signal_name, error])
             continue
-        _connected.push_back(signal_id)
+        _connected.push_back(signal_name)
 
 func _disconnect_from_bus() -> void:
     ## Remove every active connection established by _connect_to_bus, gracefully
@@ -59,52 +58,50 @@ func _disconnect_from_bus() -> void:
         _connected.clear()
         return
 
-    for signal_id in _connected:
-        if _event_bus.has_signal(signal_id):
-            var signal_name := String(signal_id)
-            var callable := Callable(self, "_on_signal_received").bind(signal_name)
-            if _event_bus.is_connected(signal_id, callable):
-                _event_bus.disconnect(signal_id, callable)
+    for signal_name: StringName in _connected:
+        if _event_bus.has_signal(signal_name):
+            var callable: Callable = Callable(self, "_on_signal_received").bind(String(signal_name))
+            if _event_bus.is_connected(signal_name, callable):
+                _event_bus.disconnect(signal_name, callable)
     _connected.clear()
 
 func _on_signal_received(payload: Dictionary, signal_name: String) -> void:
-    var harness := get_parent()
+    var harness: Node = get_parent()
     if harness and harness.has_method("append_log"):
         harness.append_log(signal_name, payload)
 
-func _find_event_bus() -> Node:
+func _find_event_bus() -> EventBus:
     ## Attempt to locate the EventBus singleton within the active SceneTree without
     ## instantiating a new node. Harness.gd will fall back to creating its own copy
     ## if this lookup fails.
-    var tree := get_tree()
+    var tree: SceneTree = get_tree()
     if tree == null:
         return null
 
-    var root := tree.get_root()
+    var root: Node = tree.get_root()
     if root == null:
         return null
 
-    return root.get_node_or_null(EVENT_BUS_NODE_NAME)
+    return root.get_node_or_null(EVENT_BUS_NODE_NAME) as EventBus
 
 func _gather_signal_names() -> Array[StringName]:
     ## Resolve the complete set of script-defined EventBus signals so the harness can
     ## automatically track future additions without hand-maintained lists.
     var names: Array[StringName] = []
     if _event_bus:
-        for signal_info in _event_bus.get_signal_list():
-            var flags := int(signal_info.get("flags", 0))
-            if (flags & Object.METHOD_FLAG_FROM_SCRIPT) == 0:
-                continue
-            var name_text := String(signal_info.get("name", ""))
+        for signal_info: Dictionary in _event_bus.get_signal_list():
+            var name_text: String = String(signal_info.get("name", ""))
             if name_text.is_empty():
                 continue
-            var name := StringName(name_text)
+            var name: StringName = StringName(name_text)
+            if not _event_bus.has_user_signal(name):
+                continue
             if not names.has(name):
                 names.append(name)
 
     if names.is_empty():
         for contract_name in EVENT_BUS_SCRIPT.SIGNAL_CONTRACTS.keys():
-            var signal_name := StringName(contract_name)
+            var signal_name: StringName = contract_name
             if not names.has(signal_name):
                 names.append(signal_name)
 
