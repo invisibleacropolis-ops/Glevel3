@@ -90,14 +90,14 @@ func _gather_signal_names() -> Array[StringName]:
     var names: Array[StringName] = []
     if _event_bus:
         for signal_info: Dictionary in _event_bus.get_signal_list():
-            var name_text: String = String(signal_info.get("name", ""))
-            if name_text.is_empty():
+            var signal_name_text: String = String(signal_info.get("name", ""))
+            if signal_name_text.is_empty():
                 continue
-            var name: StringName = StringName(name_text)
-            if not _event_bus.has_user_signal(name):
+            var signal_name: StringName = StringName(signal_name_text)
+            if not _event_bus.has_user_signal(signal_name):
                 continue
-            if not names.has(name):
-                names.append(name)
+            if not names.has(signal_name):
+                names.append(signal_name)
 
     if names.is_empty():
         for contract_name in EVENT_BUS_SCRIPT.SIGNAL_CONTRACTS.keys():

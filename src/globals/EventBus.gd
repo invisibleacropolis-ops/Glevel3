@@ -80,6 +80,7 @@ const SIGNAL_CONTRACTS := {
 ## - "entity_id" (String or StringName): Unique identifier for the reported entity.
 ## - "stats" (Dictionary): Snapshot of the StatsComponent values (health, action_points, etc.).
 ## - Optional "timestamp" (float): Monotonic timestamp indicating when the sample was captured.
+@warning_ignore("unused_signal")
 signal debug_stats_reported(data: Dictionary)
 
 ## Emitted when CombatSystem determines an entity has been removed from play.
@@ -90,6 +91,7 @@ signal debug_stats_reported(data: Dictionary)
 ## - "archetype_id" (String or StringName): Source archetype for postmortem analytics.
 ## - "entity_type" (StringName): High-level taxonomy from ComponentKeys/Enums.
 ## - "components" (Dictionary): Snapshot of relevant Components for downstream systems.
+@warning_ignore("unused_signal")
 signal entity_killed(data: Dictionary)
 
 ## Emitted whenever an item stack enters an inventory.
@@ -100,6 +102,7 @@ signal entity_killed(data: Dictionary)
 ## - "owner_id" (String or StringName): Identifier of the receiving entity.
 ## - "source" (StringName): Origin of the acquisition (loot_drop, vendor_purchase, etc.).
 ## - "metadata" (Dictionary): Arbitrary supplemental data for UI, analytics, or logging.
+@warning_ignore("unused_signal")
 signal item_acquired(data: Dictionary)
 
 ## Emitted whenever a quest transitions between states.
@@ -110,6 +113,7 @@ signal item_acquired(data: Dictionary)
 ## - "progress" (float): Normalized progress value between 0.0 and 1.0.
 ## - "objectives" (Array): Collection of objective payload dictionaries for UI updates.
 ## - "metadata" (Dictionary): Arbitrary contextual data for analytics or notifications.
+@warning_ignore("unused_signal")
 signal quest_state_changed(data: Dictionary)
 
 func _ready() -> void:
