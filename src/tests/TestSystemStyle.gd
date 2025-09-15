@@ -146,8 +146,8 @@ func _sanitize_line(line: String) -> String:
 func _contains_percent_shorthand(line: String) -> bool:
     var index := line.find("%")
     while index != -1:
-        var prev := index > 0 ? line.substr(index - 1, 1) : ""
-        var next := index + 1 < line.length() ? line.substr(index + 1, 1) : ""
+        var prev := line.substr(index - 1, 1) if index > 0 else ""
+        var next := line.substr(index + 1, 1) if index + 1 < line.length() else ""
         var prev_allows := index == 0 or prev in ["", " ", "\t", "(", "[", "{", "=", ":", ","]
         if prev_allows and _is_identifier_start(next):
             return true
