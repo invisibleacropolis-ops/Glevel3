@@ -82,7 +82,7 @@ func _create_signal_section(signal_name: StringName, contract: Dictionary) -> Di
     if not description.is_empty():
         var blurb := Label.new()
         blurb.text = description
-        blurb.autowrap_mode = Label.AUTOWRAP_WORD_SMART
+        blurb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
         blurb.theme_type_variation = "DescriptionLabel"
         section.add_child(blurb)
 
@@ -436,7 +436,7 @@ func replay_signals_from_json(records_json: Variant) -> void:
         return
 
     for index in range(entries.size()):
-        var entry := entries[index]
+        var entry: Variant = entries[index]
         if typeof(entry) != TYPE_DICTIONARY:
             _log_replay_message("Replay entry %d is not a dictionary; skipping." % (index + 1))
             continue
