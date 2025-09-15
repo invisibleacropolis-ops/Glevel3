@@ -4,6 +4,9 @@ extends Node
 ## Tests for ModuleRegistry functionality.
 ## Designed for Godot 4.4.1.
 
+# Instantiate ModuleRegistry manually to satisfy test dependencies.
+var ModuleRegistry = preload("res://src/globals/ModuleRegistry.gd").new()
+
 func run_test() -> Dictionary:
     var passed := true
     var total := 0
