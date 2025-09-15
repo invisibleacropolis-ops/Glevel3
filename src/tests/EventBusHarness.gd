@@ -13,115 +13,194 @@ const EVENT_BUS_NODE_NAME := "EventBus"
 @onready var _save_dialog: FileDialog = %SaveLogDialog
 @onready var _listener: Node = $TestListener
 @onready var _event_bus: EventBusSingleton = _resolve_event_bus()
+@onready var _signals_container: VBoxContainer = %SignalsContainer
 
 ## Mapping of EventBus signal names to their emit buttons and field editors.
-## Each entry includes metadata describing whether a field is optional and the
-## control responsible for collecting user input. The nodes referenced here are
-## marked as unique within the scene tree so they can be accessed through the
-## %NodeName shorthand.
-@onready var _signal_controls: Dictionary = {
-    &"debug_stats_reported": {
-        "button": %DebugStatsEmitButton,
-        "fields": {
-            "entity_id": {
-                "node": %DebugStatsEntityId,
-                "optional": false,
-            },
-            "stats": {
-                "node": %DebugStatsStats,
-                "optional": false,
-                "empty_value": {},
-            },
-            "timestamp": {
-                "node": %DebugStatsTimestamp,
-                "optional": true,
-            },
-        },
-    },
-    &"entity_killed": {
-        "button": %EntityKilledEmitButton,
-        "fields": {
-            "entity_id": {
-                "node": %EntityKilledEntityId,
-                "optional": false,
-            },
-            "killer_id": {
-                "node": %EntityKilledKillerId,
-                "optional": true,
-            },
-            "archetype_id": {
-                "node": %EntityKilledArchetypeId,
-                "optional": true,
-            },
-            "entity_type": {
-                "node": %EntityKilledEntityType,
-                "optional": true,
-                "type": TYPE_STRING_NAME,
-            },
-            "components": {
-                "node": %EntityKilledComponents,
-                "optional": true,
-            },
-        },
-    },
-    &"item_acquired": {
-        "button": %ItemAcquiredEmitButton,
-        "fields": {
-            "item_id": {
-                "node": %ItemAcquiredItemId,
-                "optional": false,
-            },
-            "quantity": {
-                "node": %ItemAcquiredQuantity,
-                "optional": false,
-            },
-            "owner_id": {
-                "node": %ItemAcquiredOwnerId,
-                "optional": true,
-            },
-            "source": {
-                "node": %ItemAcquiredSource,
-                "optional": true,
-                "type": TYPE_STRING_NAME,
-            },
-            "metadata": {
-                "node": %ItemAcquiredMetadata,
-                "optional": true,
-            },
-        },
-    },
-    &"quest_state_changed": {
-        "button": %QuestStateChangedEmitButton,
-        "fields": {
-            "quest_id": {
-                "node": %QuestStateChangedQuestId,
-                "optional": false,
-            },
-            "state": {
-                "node": %QuestStateChangedState,
-                "optional": false,
-                "type": TYPE_STRING_NAME,
-            },
-            "progress": {
-                "node": %QuestStateChangedProgress,
-                "optional": true,
-            },
-            "objectives": {
-                "node": %QuestStateChangedObjectives,
-                "optional": true,
-            },
-            "metadata": {
-                "node": %QuestStateChangedMetadata,
-                "optional": true,
-            },
-        },
-    },
-}
+## Entries are populated at runtime so the harness automatically tracks newly
+## documented contracts without requiring additional scene editing.
+var _signal_controls: Dictionary = {}
 
 func _ready() -> void:
     ## Wire the UI controls to the EventBus emitters once the scene tree is ready.
+    _build_signal_controls()
     _wire_signal_controls()
     _configure_listener()
+
+func _build_signal_controls() -> void:
+    ## Iterate over EventBus signal contracts and generate the harness UI on the fly
+    ## so future signals become testable without hand-authoring extra nodes.
+    if _signals_container == null:
+        push_warning("EventBusHarness is missing its SignalsContainer; UI cannot be generated.")
+        _signal_controls.clear()
+        return
+
+    for child in _signals_container.get_children():
+        child.queue_free()
+
+    _signal_controls.clear()
+
+    var contracts: Dictionary = EventBusSingleton.SIGNAL_CONTRACTS
+    var signal_names: Array[String] = []
+    for contract_name in contracts.keys():
+        signal_names.append(String(contract_name))
+    signal_names.sort()
+
+    var is_first_section := true
+    for signal_name_text in signal_names:
+        if not is_first_section:
+            _signals_container.add_child(HSeparator.new())
+        is_first_section = false
+
+        var signal_name: StringName = StringName(signal_name_text)
+        var contract: Dictionary = contracts.get(signal_name, null)
+        if contract == null:
+            contract = contracts.get(signal_name_text, {})
+        if contract == null:
+            contract = {}
+        var control_metadata: Dictionary = _create_signal_section(signal_name, contract)
+        _signal_controls[signal_name] = control_metadata
+
+func _create_signal_section(signal_name: StringName, contract: Dictionary) -> Dictionary:
+    ## Build a VBox container with labels, editors, and an emit button describing a
+    ## single EventBus signal contract. Returns metadata for the harness runtime.
+    var section := VBoxContainer.new()
+    section.name = "%sSection" % String(signal_name)
+    section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    _signals_container.add_child(section)
+
+    var title := Label.new()
+    title.text = String(signal_name)
+    section.add_child(title)
+
+    var description: String = contract.get("description", "")
+    if not description.is_empty():
+        var blurb := Label.new()
+        blurb.text = description
+        blurb.autowrap_mode = Label.AUTOWRAP_WORD_SMART
+        blurb.theme_type_variation = "DescriptionLabel"
+        section.add_child(blurb)
+
+    var fields_grid := GridContainer.new()
+    fields_grid.columns = 2
+    section.add_child(fields_grid)
+
+    var field_configs: Dictionary = {}
+    _populate_field_rows(fields_grid, contract.get("required_keys", {}), field_configs, false)
+    _populate_field_rows(fields_grid, contract.get("optional_keys", {}), field_configs, true)
+
+    var button := Button.new()
+    button.text = "Emit %s" % String(signal_name)
+    section.add_child(button)
+
+    return {
+        "button": button,
+        "fields": field_configs,
+    }
+
+func _populate_field_rows(
+    grid: GridContainer,
+    definitions: Dictionary,
+    field_configs: Dictionary,
+    is_optional: bool
+) -> void:
+    ## Instantiate the label/editor pairs for a set of payload keys and capture the
+    ## metadata the harness uses when serialising button presses into dictionaries.
+    if definitions.is_empty():
+        return
+
+    var normalized: Dictionary = {}
+    for raw_key in definitions.keys():
+        normalized[String(raw_key)] = definitions[raw_key]
+
+    var field_names: Array[String] = normalized.keys()
+    field_names.sort()
+
+    for field_name in field_names:
+        var type_hint: Variant = normalized[field_name]
+
+        var label := Label.new()
+        label.text = _format_field_label(field_name, is_optional)
+        label.tooltip_text = _describe_type_hint(type_hint)
+        grid.add_child(label)
+
+        var editor := LineEdit.new()
+        editor.placeholder_text = _build_field_placeholder(field_name, type_hint, is_optional)
+        editor.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+        grid.add_child(editor)
+
+        var config: Dictionary = {
+            "node": editor,
+            "optional": is_optional,
+        }
+        _apply_type_metadata(config, type_hint)
+        _apply_empty_value_metadata(config, type_hint, is_optional)
+        field_configs[field_name] = config
+
+func _format_field_label(field_name: String, is_optional: bool) -> String:
+    if is_optional:
+        return "%s (optional)" % field_name
+    return field_name
+
+func _build_field_placeholder(field_name: String, type_hint: Variant, is_optional: bool) -> String:
+    var example: String = _suggest_example_value(type_hint)
+    var prefix: String = field_name
+    if is_optional:
+        prefix += " (optional)"
+    if example.is_empty():
+        return prefix
+    return "%s – e.g. %s" % [prefix, example]
+
+func _describe_type_hint(type_hint: Variant) -> String:
+    var type_ids: Array[int] = _extract_type_ids(type_hint)
+    if type_ids.is_empty():
+        return ""
+    var descriptions: Array[String] = []
+    for type_id in type_ids:
+        descriptions.append(type_string(type_id))
+    descriptions.sort()
+    return ", ".join(descriptions)
+
+func _apply_type_metadata(config: Dictionary, type_hint: Variant) -> void:
+    var type_ids: Array[int] = _extract_type_ids(type_hint)
+    if type_ids.size() == 1 and type_ids[0] == TYPE_STRING_NAME:
+        config["type"] = TYPE_STRING_NAME
+
+func _apply_empty_value_metadata(config: Dictionary, type_hint: Variant, is_optional: bool) -> void:
+    if is_optional:
+        return
+    var type_ids: Array[int] = _extract_type_ids(type_hint)
+    if TYPE_DICTIONARY in type_ids:
+        config["empty_value"] = {}
+    elif TYPE_ARRAY in type_ids:
+        config["empty_value"] = []
+
+func _suggest_example_value(type_hint: Variant) -> String:
+    for type_id in _extract_type_ids(type_hint):
+        match type_id:
+            TYPE_BOOL:
+                return "true"
+            TYPE_INT:
+                return "1"
+            TYPE_FLOAT:
+                return "0.5"
+            TYPE_DICTIONARY:
+                return "{\"key\": \"value\"}"
+            TYPE_ARRAY:
+                return "[1, 2, 3]"
+            TYPE_STRING_NAME, TYPE_STRING:
+                return "value"
+    return ""
+
+func _extract_type_ids(type_hint: Variant) -> Array[int]:
+    var ids: Array[int] = []
+    match typeof(type_hint):
+        TYPE_INT:
+            ids.append(type_hint)
+        TYPE_ARRAY:
+            for element in type_hint:
+                if typeof(element) == TYPE_INT and not ids.has(element):
+                    ids.append(element)
+    return ids
 
 func _emit_signal(signal_name: StringName) -> void:
     ## Construct a payload dictionary from the configured LineEdits and emit the
