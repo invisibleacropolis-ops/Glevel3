@@ -1,4 +1,6 @@
-# src/tests/TestRunner.gd (Step 11: flaky test detection + retries)
+# src/tests/TestRunner.gd (Step 12: dependencies + blocked tests)
+# Headless test runner with manifest ordering, dependency resolution,
+# blocked test reporting, and flaky test retries.
 extends SceneTree
 
 var use_color := true
@@ -20,9 +22,14 @@ func _init() -> void:
     var global_total := 0
     var global_skipped := 0
     var global_flaky := 0
+    var global_blocked := 0
+    # Tracks outcome of each test by filename for dependency resolution
+    var test_outcomes := {}
     var results := {"tests": []}
 
     var test_scripts := _load_manifest("res://tests_manifest.json")
+    # Reorder tests so that dependencies run before dependents
+    test_scripts = _resolve_dependencies(test_scripts)
     if test_scripts.is_empty():
         push_error("No tests found in manifest. Ensure res://tests_manifest.json exists and is valid.")
         quit(1)
@@ -64,18 +71,22 @@ func _init() -> void:
             if tag_filters.size() > 0 and not _tags_match(tags, tag_filters):
                 _log("[color=yellow]SKIP[/color] %s — tag filter mismatch" % name)
                 global_skipped += 1
+                test_outcomes[name] = "skipped"
                 continue
             if skip_filters.size() > 0 and _tags_match(tags, skip_filters):
                 _log("[color=yellow]SKIP[/color] %s — skipped by tag" % name)
                 global_skipped += 1
+                test_outcomes[name] = "skipped"
                 continue
             if pri_filters.size() > 0 and not pri_filters.has(priority):
                 _log("[color=yellow]SKIP[/color] %s — priority filter mismatch" % name)
                 global_skipped += 1
+                test_outcomes[name] = "skipped"
                 continue
             if owner_filters.size() > 0 and not owner_filters.has(owner):
                 _log("[color=yellow]SKIP[/color] %s — owner filter mismatch" % name)
                 global_skipped += 1
+                test_outcomes[name] = "skipped"
                 continue
 
             var test_result := {
@@ -90,8 +101,38 @@ func _init() -> void:
                 "duration": 0,
                 "errors": [],
                 "flaky": false,
-                "retry_count": 0
+                "retry_count": 0,
+                "blocked": false,
+                "blocked_reason": ""
             }
+
+            var depends := typeof(entry) == TYPE_DICTIONARY and entry.has("depends_on") ? entry.depends_on : []
+            var blocked := false
+            var blocked_reason := ""
+            # Determine if any dependency failed or was skipped
+            for dep in depends:
+                if test_outcomes.has(dep):
+                    var dep_outcome := test_outcomes[dep]
+                    if dep_outcome != "passed":
+                        blocked = true
+                        blocked_reason = "dependency %s %s" % [dep, dep_outcome]
+                        break
+                else:
+                    blocked = true
+                    blocked_reason = "dependency %s not run" % dep
+                    break
+            if blocked:
+                _log("[color=yellow]SKIP[/color] %s — blocked (%s)" % [name, blocked_reason])
+                global_blocked += 1
+                test_result.blocked = true
+                test_result.blocked_reason = "Dependency %s" % blocked_reason.substr(11)
+                test_outcomes[name] = "blocked"
+                _update_group(by_priority, priority, test_result)
+                _update_group(by_owner, owner, test_result)
+                for t in tags:
+                    _update_group(by_tags, t, test_result)
+                results.tests.append(test_result)
+                continue
 
             var attempt := 0
             var final_passed := false
@@ -111,6 +152,7 @@ func _init() -> void:
                     _log("[color=yellow]SKIP[/color] %s — no run_test() method" % name)
                     test_result["passed"] = true
                     global_skipped += 1
+                    test_outcomes[name] = "skipped"
                     break
 
                 var start := Time.get_ticks_msec()
@@ -180,6 +222,9 @@ func _init() -> void:
                         batch_failed = true
                 break
 
+            if not test_outcomes.has(name):
+                test_outcomes[name] = test_result.passed ? "passed" : "failed"
+
             _log("   tags: %s" % ", ".join(tags))
             _log("   priority: %s" % priority)
             _log("   owner: %s" % owner)
@@ -206,13 +251,14 @@ func _init() -> void:
         "successes": global_successes,
         "total": global_total,
         "skipped": global_skipped,
+        "blocked_count": global_blocked,
         "flaky_count": global_flaky,
         "duration": suite_duration_ms
     }
 
     _log("")
     _log("[b]=== GLOBAL TEST SUMMARY ===[/b]")
-    _log("Total: %d/%d (%s%%) — %d ms, Skipped: %d, Flaky: %d" % [global_successes, global_total, global_pct_str, suite_duration_ms, global_skipped, global_flaky])
+    _log("Total: %d/%d (%s%%) — %d ms, Skipped: %d, Flaky: %d, Blocked: %d" % [global_successes, global_total, global_pct_str, suite_duration_ms, global_skipped, global_flaky, global_blocked])
 
     _print_group_summary("Priority", by_priority)
     _print_group_summary("Owner", by_owner)
@@ -239,7 +285,7 @@ func _init() -> void:
             file2.close()
             print("Results saved to %sresults.xml" % out_dir)
 
-    var summary_line := "::summary::%d/%d tests passed, %d failed, %d skipped, %d flaky in %d ms" % [global_successes, global_total, global_total - global_successes, global_skipped, global_flaky, suite_duration_ms]
+    var summary_line := "::summary::%d/%d tests passed, %d failed, %d skipped, %d flaky, %d blocked in %d ms" % [global_successes, global_total, global_total - global_successes, global_skipped, global_flaky, global_blocked, suite_duration_ms]
     print(summary_line)
 
     if all_passed:
@@ -308,6 +354,42 @@ func _load_manifest(path: String) -> Array:
                     scripts.append_array(_load_manifest(entry.path))
     return scripts
 
+# Orders tests so that dependencies declared via `depends_on`
+# run before their dependents while preserving manifest order
+# for tests without dependencies.
+func _resolve_dependencies(tests: Array) -> Array:
+    var name_to_entry := {}
+    for entry in tests:
+        var path := typeof(entry) == TYPE_DICTIONARY ? entry.path : entry
+        name_to_entry[path.get_file()] = entry
+
+    var ordered := []
+    var visiting := {}
+    var visited := {}
+
+    func visit(name):
+        if visited.has(name):
+            return
+        if visiting.has(name):
+            push_error("Circular dependency detected for %s" % name)
+            return
+        visiting[name] = true
+        var e = name_to_entry.get(name, null)
+        if e != null:
+            var deps := typeof(e) == TYPE_DICTIONARY and e.has("depends_on") ? e.depends_on : []
+            for d in deps:
+                if name_to_entry.has(d):
+                    visit(d)
+        visiting.erase(name)
+        visited[name] = true
+        ordered.append(e)
+
+    for entry in tests:
+        var path := typeof(entry) == TYPE_DICTIONARY ? entry.path : entry
+        visit(path.get_file())
+
+    return ordered
+
 func _build_junit_xml(results: Dictionary) -> String:
     var xml := "<testsuites>\n"
     var global := results.global
@@ -316,7 +398,7 @@ func _build_junit_xml(results: Dictionary) -> String:
     var failures := total - global.successes
     var time := str(float(global.duration) / 1000.0)
 
-    xml += "  <testsuite name=\"%s\" tests=\"%d\" failures=\"%d\" skipped=\"%d\" time=\"%s\">\n" % [suite_name, total, failures, global.skipped, time]
+    xml += "  <testsuite name=\"%s\" tests=\"%d\" failures=\"%d\" skipped=\"%d\" time=\"%s\">\n" % [suite_name, total, failures, global.skipped + global.get("blocked_count", 0), time]
 
     for t in results.tests:
         var case_name := t.name
@@ -329,7 +411,11 @@ func _build_junit_xml(results: Dictionary) -> String:
         xml += "        <property name=\"flaky\" value=\"%s\"/>\n" % (t.flaky ? "true" : "false")
         xml += "        <property name=\"retry_count\" value=\"%d\"/>\n" % t.retry_count
         xml += "      </properties>\n"
-        if not t.passed:
+        if t.get("blocked", false):
+            var dep_tokens := t.blocked_reason.split(" ")
+            var dep_name := dep_tokens.size() >= 2 ? dep_tokens[1] : t.blocked_reason
+            xml += "      <skipped message=\"Blocked by dependency %s\"/>\n" % dep_name
+        elif not t.passed:
             for err in t.errors:
                 var msg = typeof(err) == TYPE_DICTIONARY ? err.get("msg", str(err)) : str(err)
                 xml += "      <failure message=\"%s\">%s</failure>\n" % [msg, msg]
