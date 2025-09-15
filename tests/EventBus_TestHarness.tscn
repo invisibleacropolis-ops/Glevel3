@@ -34,6 +34,44 @@ autowrap_mode = 3
 
 [node name="Separator1" type="HSeparator" parent="Margin/VBox"]
 
+[node name="DebugStatsReportedSection" type="VBoxContainer" parent="Margin/VBox"]
+
+[node name="DebugStatsReportedLabel" type="Label" parent="Margin/VBox/DebugStatsReportedSection"]
+text = "debug_stats_reported"
+
+[node name="DebugStatsReportedFields" type="GridContainer" parent="Margin/VBox/DebugStatsReportedSection"]
+columns = 2
+
+[node name="DebugStatsEntityIdLabel" type="Label" parent="Margin/VBox/DebugStatsReportedSection/DebugStatsReportedFields"]
+text = "entity_id"
+
+[node name="DebugStatsEntityId" type="LineEdit" parent="Margin/VBox/DebugStatsReportedSection/DebugStatsReportedFields"]
+unique_name_in_owner = true
+size_flags_horizontal = 3
+placeholder_text = "entity_id"
+
+[node name="DebugStatsStatsLabel" type="Label" parent="Margin/VBox/DebugStatsReportedSection/DebugStatsReportedFields"]
+text = "stats"
+
+[node name="DebugStatsStats" type="LineEdit" parent="Margin/VBox/DebugStatsReportedSection/DebugStatsReportedFields"]
+unique_name_in_owner = true
+size_flags_horizontal = 3
+placeholder_text = "{\"health\": 100, \"action_points\": 10}"
+
+[node name="DebugStatsTimestampLabel" type="Label" parent="Margin/VBox/DebugStatsReportedSection/DebugStatsReportedFields"]
+text = "timestamp (optional)"
+
+[node name="DebugStatsTimestamp" type="LineEdit" parent="Margin/VBox/DebugStatsReportedSection/DebugStatsReportedFields"]
+unique_name_in_owner = true
+size_flags_horizontal = 3
+placeholder_text = "e.g. 1234.56"
+
+[node name="DebugStatsEmitButton" type="Button" parent="Margin/VBox/DebugStatsReportedSection"]
+unique_name_in_owner = true
+text = "Emit debug_stats_reported"
+
+[node name="SeparatorDebugStats" type="HSeparator" parent="Margin/VBox"]
+
 [node name="EntityKilledSection" type="VBoxContainer" parent="Margin/VBox"]
 
 [node name="EntityKilledLabel" type="Label" parent="Margin/VBox/EntityKilledSection"]
@@ -57,6 +95,30 @@ text = "killer_id"
 unique_name_in_owner = true
 size_flags_horizontal = 3
 placeholder_text = "killer_id"
+
+[node name="EntityKilledArchetypeIdLabel" type="Label" parent="Margin/VBox/EntityKilledSection/EntityKilledFields"]
+text = "archetype_id (optional)"
+
+[node name="EntityKilledArchetypeId" type="LineEdit" parent="Margin/VBox/EntityKilledSection/EntityKilledFields"]
+unique_name_in_owner = true
+size_flags_horizontal = 3
+placeholder_text = "archetype_id"
+
+[node name="EntityKilledEntityTypeLabel" type="Label" parent="Margin/VBox/EntityKilledSection/EntityKilledFields"]
+text = "entity_type (optional)"
+
+[node name="EntityKilledEntityType" type="LineEdit" parent="Margin/VBox/EntityKilledSection/EntityKilledFields"]
+unique_name_in_owner = true
+size_flags_horizontal = 3
+placeholder_text = "entity_type"
+
+[node name="EntityKilledComponentsLabel" type="Label" parent="Margin/VBox/EntityKilledSection/EntityKilledFields"]
+text = "components (optional)"
+
+[node name="EntityKilledComponents" type="LineEdit" parent="Margin/VBox/EntityKilledSection/EntityKilledFields"]
+unique_name_in_owner = true
+size_flags_horizontal = 3
+placeholder_text = "{\"stats\": {\"health\": 0}}"
 
 [node name="EntityKilledEmitButton" type="Button" parent="Margin/VBox/EntityKilledSection"]
 unique_name_in_owner = true
@@ -88,6 +150,30 @@ unique_name_in_owner = true
 size_flags_horizontal = 3
 placeholder_text = "quantity"
 
+[node name="ItemAcquiredOwnerIdLabel" type="Label" parent="Margin/VBox/ItemAcquiredSection/ItemAcquiredFields"]
+text = "owner_id (optional)"
+
+[node name="ItemAcquiredOwnerId" type="LineEdit" parent="Margin/VBox/ItemAcquiredSection/ItemAcquiredFields"]
+unique_name_in_owner = true
+size_flags_horizontal = 3
+placeholder_text = "owner_id"
+
+[node name="ItemAcquiredSourceLabel" type="Label" parent="Margin/VBox/ItemAcquiredSection/ItemAcquiredFields"]
+text = "source (optional)"
+
+[node name="ItemAcquiredSource" type="LineEdit" parent="Margin/VBox/ItemAcquiredSection/ItemAcquiredFields"]
+unique_name_in_owner = true
+size_flags_horizontal = 3
+placeholder_text = "source"
+
+[node name="ItemAcquiredMetadataLabel" type="Label" parent="Margin/VBox/ItemAcquiredSection/ItemAcquiredFields"]
+text = "metadata (optional)"
+
+[node name="ItemAcquiredMetadata" type="LineEdit" parent="Margin/VBox/ItemAcquiredSection/ItemAcquiredFields"]
+unique_name_in_owner = true
+size_flags_horizontal = 3
+placeholder_text = "{\"rarity\": \"rare\"}"
+
 [node name="ItemAcquiredEmitButton" type="Button" parent="Margin/VBox/ItemAcquiredSection"]
 unique_name_in_owner = true
 text = "Emit item_acquired"
@@ -117,6 +203,30 @@ text = "state"
 unique_name_in_owner = true
 size_flags_horizontal = 3
 placeholder_text = "state"
+
+[node name="QuestStateChangedProgressLabel" type="Label" parent="Margin/VBox/QuestStateChangedSection/QuestStateChangedFields"]
+text = "progress (optional)"
+
+[node name="QuestStateChangedProgress" type="LineEdit" parent="Margin/VBox/QuestStateChangedSection/QuestStateChangedFields"]
+unique_name_in_owner = true
+size_flags_horizontal = 3
+placeholder_text = "e.g. 0.5"
+
+[node name="QuestStateChangedObjectivesLabel" type="Label" parent="Margin/VBox/QuestStateChangedSection/QuestStateChangedFields"]
+text = "objectives (optional)"
+
+[node name="QuestStateChangedObjectives" type="LineEdit" parent="Margin/VBox/QuestStateChangedSection/QuestStateChangedFields"]
+unique_name_in_owner = true
+size_flags_horizontal = 3
+placeholder_text = "[{\"id\": \"slay\"}]"
+
+[node name="QuestStateChangedMetadataLabel" type="Label" parent="Margin/VBox/QuestStateChangedSection/QuestStateChangedFields"]
+text = "metadata (optional)"
+
+[node name="QuestStateChangedMetadata" type="LineEdit" parent="Margin/VBox/QuestStateChangedSection/QuestStateChangedFields"]
+unique_name_in_owner = true
+size_flags_horizontal = 3
+placeholder_text = "{\"xp\": 120}"
 
 [node name="QuestStateChangedEmitButton" type="Button" parent="Margin/VBox/QuestStateChangedSection"]
 unique_name_in_owner = true
