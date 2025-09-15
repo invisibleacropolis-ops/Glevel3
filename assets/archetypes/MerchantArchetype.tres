@@ -1,0 +1,14 @@
+[gd_resource type="Resource" load_steps=5 format=3]
+[ext_resource path="res://src/systems/Archetype.gd" type="Script" id=1]
+[ext_resource path="res://assets/traits/MerchantTrait.tres" type="Resource" id=2]
+[ext_resource path="res://assets/traits/CowardlyTrait.tres" type="Resource" id=3]
+[ext_resource path="res://assets/traits/FireAttunedTrait.tres" type="Resource" id=4]
+
+[resource]
+script = ExtResource(1)
+archetype_id = "merchant"
+display_name = "Merchant"
+description = "A savvy trader archetype that prioritizes negotiation over combat."
+base_stats = {"health": 60, "action_points": 3}
+required_traits = [ExtResource(2)]
+trait_pool = [ExtResource(3), ExtResource(4)]
