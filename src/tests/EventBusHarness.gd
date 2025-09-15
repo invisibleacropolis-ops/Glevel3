@@ -8,6 +8,9 @@ const EVENT_BUS_NODE_NAME := "EventBus"
 ## self-contained harness for validating the global event bus in isolation.
 
 @onready var _log_label: RichTextLabel = %Log
+@onready var _clear_log_button: Button = %ClearLogButton
+@onready var _save_log_button: Button = %SaveLogButton
+@onready var _save_dialog: FileDialog = %SaveLogDialog
 @onready var _listener: Node = $TestListener
 @onready var _event_bus: EventBusSingleton = _resolve_event_bus()
 
@@ -194,8 +197,38 @@ func append_log(signal_name: String, payload: Dictionary) -> void:
     _log_label.scroll_to_line(last_line)
 
 func clear_log() -> void:
-    ## Intentionally exposed for future automation or UI additions.
+    ## Clear every rendered entry from the signal log and reset the scroll
+    ## position so subsequent appends start at the top of the viewport.
     _log_label.clear()
+    _log_label.scroll_to_line(0)
+
+func export_log(path: String) -> Error:
+    ## Persist the current log contents to disk. Returns OK on success so
+    ## callers can provide user feedback or retry on failure.
+    var destination: String = path.strip_edges()
+    if destination.is_empty():
+        push_warning("Cannot export signal log: destination path is empty.")
+        return ERR_INVALID_PARAMETER
+
+    var directory: String = destination.get_base_dir()
+    if not directory.is_empty():
+        var resolved_directory: String = ProjectSettings.globalize_path(directory)
+        if not DirAccess.dir_exists_absolute(resolved_directory):
+            var mkdir_error: Error = DirAccess.make_dir_recursive_absolute(resolved_directory)
+            if mkdir_error != OK:
+                push_error("Failed to prepare export directory %s (error %s)." % [directory, mkdir_error])
+                return mkdir_error
+
+    var file := FileAccess.open(destination, FileAccess.WRITE)
+    if file == null:
+        var open_error: Error = FileAccess.get_open_error()
+        push_error("Failed to export signal log to %s (error %s)." % [destination, open_error])
+        return open_error
+
+    file.store_string(_log_label.get_parsed_text())
+    file.close()
+    print("Signal log exported to %s" % destination)
+    return OK
 
 func _wire_signal_controls() -> void:
     ## Connect each emit button to its corresponding signal callback so the harness UI
@@ -207,6 +240,17 @@ func _wire_signal_controls() -> void:
             button.pressed.connect(func() -> void:
                 _emit_signal(signal_to_emit)
             )
+
+    if _clear_log_button:
+        _clear_log_button.pressed.connect(clear_log)
+
+    if _save_log_button:
+        _save_log_button.pressed.connect(_on_save_log_button_pressed)
+
+    if _save_dialog:
+        _save_dialog.file_selected.connect(func(selected_path: String) -> void:
+            export_log(selected_path)
+        )
 
 func _configure_listener() -> void:
     ## Lazily propagate the resolved EventBus reference to the sibling listener so
@@ -243,3 +287,30 @@ func _resolve_event_bus() -> EventBusSingleton:
         # mentioned in the runtime warning.
         root.call_deferred("add_child", event_bus)
     return event_bus
+
+func _on_save_log_button_pressed() -> void:
+    ## Present a save dialog populated with a timestamped filename so engineers can
+    ## export harness runs without leaving the editor.
+    if _save_dialog:
+        _save_dialog.current_file = _build_default_log_filename()
+        if _save_dialog.get_current_dir().is_empty():
+            _save_dialog.current_dir = _default_log_directory()
+        _save_dialog.popup_centered_ratio()
+        return
+
+    var fallback_path: String = _default_log_directory().path_join(_build_default_log_filename())
+    export_log(fallback_path)
+
+func _build_default_log_filename() -> String:
+    var now: Dictionary = Time.get_datetime_dict_from_system()
+    return "event_bus_log_%04d-%02d-%02d_%02d-%02d-%02d.log" % [
+        int(now.get("year", 0)),
+        int(now.get("month", 0)),
+        int(now.get("day", 0)),
+        int(now.get("hour", 0)),
+        int(now.get("minute", 0)),
+        int(now.get("second", 0)),
+    ]
+
+func _default_log_directory() -> String:
+    return OS.get_user_data_dir()
