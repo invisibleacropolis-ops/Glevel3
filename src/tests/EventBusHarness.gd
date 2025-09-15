@@ -9,7 +9,7 @@ const EVENT_BUS_NODE_NAME := "EventBus"
 
 @onready var _log_label: RichTextLabel = %Log
 @onready var _listener: Node = $TestListener
-@onready var _event_bus: Node = _resolve_event_bus()
+@onready var _event_bus: EventBus = _resolve_event_bus()
 
 ## Mapping of EventBus signal names to their emit buttons and field editors.
 ## Each entry includes metadata describing whether a field is optional and the
@@ -214,7 +214,7 @@ func _configure_listener() -> void:
     if _listener and _listener.has_method("set_event_bus"):
         _listener.call_deferred("set_event_bus", _event_bus)
 
-func _resolve_event_bus() -> Node:
+func _resolve_event_bus() -> EventBus:
     ## Locate the shared EventBus singleton in the active SceneTree or spawn a
     ## private instance when running the harness in isolation. The private
     ## instance mirrors the autoload configuration used in production builds.
@@ -230,9 +230,16 @@ func _resolve_event_bus() -> Node:
 
     var existing := root.get_node_or_null(EVENT_BUS_NODE_NAME)
     if existing:
-        return existing
+        return existing as EventBus
 
-    var event_bus := EVENT_BUS_SCENE.new()
+    var event_bus := EVENT_BUS_SCENE.new() as EventBus
     event_bus.name = EVENT_BUS_NODE_NAME
-    root.add_child(event_bus)
+    if root.is_node_ready():
+        root.add_child(event_bus)
+    else:
+        # When scenes are still being instanced the SceneTree forbids immediate
+        # structural mutations. Defer the add_child() call so the harness can
+        # spawn an isolated EventBus without tripping the engine safeguard
+        # mentioned in the runtime warning.
+        root.call_deferred("add_child", event_bus)
     return event_bus
