@@ -4,7 +4,9 @@ class_name AssetRegistrySingleton
 ## Registry responsible for loading and providing game assets.
 ## Designed for Godot 4.4.1.
 
-var assets := {}
+## Maps asset identifiers (file names) to the loaded `Resource` objects.
+## Using a typed dictionary makes intent explicit for engineers integrating new loaders.
+var assets: Dictionary[String, Resource] = {}
 
 func _ready() -> void:
     # Preload default item assets on startup.
@@ -29,5 +31,8 @@ func _scan_and_load_assets(path: String) -> void:
         push_error("Failed to open directory: %s" % path)
 
 ## Retrieves a previously loaded asset by file name.
-func get_asset(name: String) -> Resource:
-    return assets.get(name, null)
+##
+## @param asset_name Human-readable key, typically the `.tres` file name.
+## @return The registered resource, or `null` when the asset has not been scanned yet.
+func get_asset(asset_name: String) -> Resource:
+    return assets.get(asset_name, null)
