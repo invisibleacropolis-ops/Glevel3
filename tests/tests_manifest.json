@@ -4,6 +4,9 @@
     "res://src/tests/TestEventBus.gd",
     "res://src/tests/TestDebugSystem.gd",
     "res://src/tests/TestModuleRegistry.gd",
+    "res://src/tests/TestComponent.gd",
+    "res://src/tests/TestEntityData.gd",
+    "res://src/tests/TestStatsComponent.gd",
     "res://src/tests/TestSystemStyle.gd"
   ]
 }
