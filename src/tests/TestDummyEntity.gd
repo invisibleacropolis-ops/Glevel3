@@ -1,6 +1,8 @@
 extends Node
 class_name TestDummyEntity
 
+const EntityData = preload("res://src/core/EntityData.gd")
+
 ## Test harness node that exposes entity data for validation scenes.
 ## Designed for Godot 4.4.1.
 

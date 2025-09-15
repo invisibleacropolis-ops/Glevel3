@@ -1,5 +1,8 @@
-extends System
+extends "res://src/systems/System.gd"
 class_name DebugSystem
+
+const EntityData = preload("res://src/core/EntityData.gd")
+const StatsComponent = preload("res://src/systems/StatsComponent.gd")
 
 ## Simple system that prints entity statistics to the console each physics frame.
 ## Designed for Godot 4.4.1.
