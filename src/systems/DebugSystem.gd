@@ -114,5 +114,6 @@ func _on_entity_killed(payload: Dictionary) -> void:
     if not payload.has("entity_id"):
         return
 
-    var entity_id := payload["entity_id"]
+    # Coerce the identifier to a String so downstream tooling receives a stable type.
+    var entity_id: String = str(payload["entity_id"])
     print("DebugSystem observed entity_killed for %s" % str(entity_id))
