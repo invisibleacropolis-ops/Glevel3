@@ -361,42 +361,28 @@ A robust and clearly defined save/load architecture is essential for a game with
 MetaState dictionary will be saved alongside it in the same file using store_var().
 This clear architectural separation of the run state from the meta state is paramount. It prevents data corruption by isolating the high-frequency, potentially volatile run-save from the low-frequency, critical meta-save. This design also clarifies the game's logic. The meta_save.dat is loaded into global singletons at startup and persists for the entire session, while a run_save.dat is only loaded when the player explicitly continues a game in progress. The logic for "ending a run" becomes a critical transaction: the system reads the final state of the run, processes its outcomes to update the in-memory MetaState and PlayerAccount singletons, and then securely writes those updated objects to the meta_save.dat file.
 
-Section 7: Automated Testing and Continuous Integration
-
-Project Chimera's modular architecture only remains reliable if its regression suite is executed consistently. The automated tests validate the integrity of the EventBus, registries, system scaffolding, and component contracts that underpin the gameplay framework. This section explains how those tests are organized and how to run them from a clean command-line environment.
-
-7.1 Test Layout and Manifest
-
-All unit tests live under `res://src/tests/`, and the harness is controlled by the manifest at `res://tests/tests_manifest.json`. The manifest enumerates the scripts that should run in every regression pass, such as `TestEventBus.gd`, `TestModuleRegistry.gd`, and `TestStatsComponent.gd`, and ensures consistent coverage of the project's core abstractions. Supplemental test data is stored in `res://tests/test_assets/` so that cases exercising resource loading or serialization have deterministic fixtures to work with.
-
-7.2 Prerequisites
-
-Running the suite requires the command-line Godot binary with unit-testing support enabled. Official release builds do not ship with that flag, so engineers must either compile Godot from source with `tests=yes` in the SCons build invocation or download a tests-enabled artifact from the continuous-integration builds published by the engine team. The binary should target the same feature set advertised by `project.godot` (Godot 4.4 Forward+ in the current branch) to avoid API mismatches during parsing. No windowing system is required because all tests run headless, but the `godot` executable must be available on the PATH or invoked via an absolute path.
-
-7.3 Running the Suite Locally
-
-From the repository root, execute the test runner in headless mode so that `res://` resolves to the current project directory:
-
-* `godot --headless --path . --run-tests --test junit --output tests/results.xml`
-* `godot --headless --path . --run-tests --test json --output tests/results.json`
-
-The first command produces a JUnit report that most CI servers can ingest, and the second captures a machine-readable summary that mirrors the structure of the in-editor Test Runner panel. Both commands can be chained in the same session if you need parallel artifacts; each invocation overwrites the previous contents of the corresponding file in `tests/`.
-
-7.4 Interpreting the Output
-
-On success, the CLI prints a short summary indicating that all registered scripts completed without failures and exits with code `0`. The generated `tests/results.xml` file reports a `<testsuite>` node whose `tests` attribute lists the number of executed assertions (currently twenty-two) and whose `failures` attribute remains `0`. The JSON companion exposes the same signal via the `global` object: `"passed"` evaluates to `true`, `"successes"` matches `"total"`, and each entry in the `tests` array shows `"errors": []`. If a regression occurs, the process exits with a non-zero status, `global.passed` flips to `false`, and the failing script's entry in the JSON payload will contain descriptive error text for triage. Treat those artifacts as the canonical source of truth when gating merges in CI.
 
 Conclusion and Recommendations
 
 The architectural blueprint detailed in this document provides a comprehensive and technically sound foundation for the development of Project Chimera in Godot 4.5. The design is ambitious, but by adhering to the core pillars of modularity, data-oriented design, and procedural generation, the project's goals of creating a deeply replayable and emergent Turn-Based Strategy RPG are achievable.
 Key Architectural Recommendations:
+
 1. Embrace the Hybrid ECS-Resource Model: The proposed hybrid architecture is the single most important technical decision. It provides a clear and scalable separation of data and logic while leveraging the unique strengths of the Godot engine. Strict adherence to this pattern—using Custom Resources for data components and Node-based Systems for logic—will be essential for managing the project's complexity.
+
 2. Prioritize the Universal Entity and Event Bus: The EntityData resource and the EventBus singleton are the two primary enablers of emergent gameplay. All gameplay systems must be designed to operate on the generic EntityData interface and communicate exclusively through the EventBus. This discipline will prevent the creation of hard-coded special cases and allow for the free interaction of modular systems.
+
 3. Develop in Layers: The procedural generation systems should be developed in distinct, independent layers: first, the structural graph generation of the world map; second, the intelligent population of that map by the Narrative Designer; and third, the generation of granular content like characters and items. This layered approach allows for independent iteration and testing, and is key to creating procedural content that feels purposeful rather than random.
+
 4. Constrain the LLM's Role: The integration of a local LLM for dialogue enhancement should be approached with caution. The "smart pipe" architecture, where the game engine provides a highly constrained, data-rich prompt to the LLM for purely cosmetic text generation, is the recommended path. This harnesses the LLM's strength in natural language generation while preventing it from interfering with critical game logic.
+
 5. Separate Run State from Meta State: The save game architecture must maintain a strict separation between the temporary state of a single "World Run" and the permanent state of the player's meta-progression and narrative history. This two-file system is critical for data integrity and reflects the game's dual-loop progression structure.
+
+
 Final Assessment:
-The successful implementation of this design will require a development team that is not only proficient in Godot and GDScript but also deeply understands the principles of data-oriented design and procedural content generation. The most significant challenges will lie not in the implementation of any single system, but in the disciplined orchestration of all systems to work together through abstract, data-driven interfaces. The "Narrative Designer" and "Quest Planner" modules, in particular, represent significant AI and content design challenges that will require substantial iteration and balancing.
+The successful implementation of this design will require a development team that is not only proficient in Godot and GDScript but also deeply understands the principles of data-oriented design and procedural content generation. 
+
+The most significant challenges will lie not in the implementation of any single system, but in the disciplined orchestration of all systems to work together through abstract, data-driven interfaces. The "Narrative Designer" and "Quest Planner" modules, in particular, represent significant AI and content design challenges that will require substantial iteration and balancing.
+
 By following this blueprint, the development team can build a robust and flexible foundation capable of supporting a truly unique and emergent gameplay experience that fulfills the ambitious vision of Project Chimera.
 
 
@@ -436,5 +422,6 @@ Works cited
 31. Saving/loading data :: Godot 4 Recipes - KidsCanCode, accessed September 13, 2025, https://kidscancode.org/godot_recipes/4.x/basics/file_io/index.html(https://kidscancode.org/godot_recipes/4.x/basics/file_io/index.html)
 32. Saving games — Godot Engine (stable) documentation in English, accessed September 13, 2025, https://docs.godotengine.org/en/stable/tutorials/io/saving_games.html(https://docs.godotengine.org/en/stable/tutorials/io/saving_games.html)
 33. Save & Load in Godot 4.4 | Ultimate Guide - YouTube, accessed September 13, 2025, https://www.youtube.com/watch?v=xG2GGniUa5o(https://www.youtube.com/watch?v=xG2GGniUa5o)
+
 
 
