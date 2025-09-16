@@ -18,7 +18,7 @@ func _on_debug_stats_reported(data: Dictionary) -> void:
     signal_received = true
     received_payload = data
 
-func _build_test_entity() -> Node:
+func _build_test_entity() -> Dictionary:
     var entity := Node.new()
     entity.name = "DebugEntity"
     entity.add_to_group("entities")
@@ -35,7 +35,10 @@ func _build_test_entity() -> Node:
     data.add_component(ULTEnums.ComponentKeys.STATS, stats)
     entity.set("entity_data", data)
 
-    return entity
+    return {
+        "entity": entity,
+        "stats": stats,
+    }
 
 func run_test() -> Dictionary:
     var passed := true
@@ -52,7 +55,9 @@ func run_test() -> Dictionary:
     var debug_system := DebugSystem.new()
     debug_system.event_bus = event_bus
 
-    var entity := _build_test_entity()
+    var setup := _build_test_entity()
+    var entity: Node = setup["entity"]
+    var stats: StatsComponent = setup["stats"]
 
     add_child(event_bus)
     add_child(debug_system)
@@ -67,24 +72,7 @@ func run_test() -> Dictionary:
         push_error("FAIL: DebugSystem did not emit debug_stats_reported.")
         passed = false
     else:
-        var expected_stats := {
-            "health": 15,
-            "max_health": 15,
-            "energy": 0,
-            "max_energy": 0,
-            "armor_rating": 0,
-            "action_points": 4,
-            "max_action_points": 4,
-            "strength": 0,
-            "agility": 0,
-            "speed": 0,
-            "intelligence": 0,
-            "wisdom": 0,
-            "charisma": 0,
-            "resistances": {},
-            "vulnerabilities": {},
-            "traits": [],
-        }
+        var expected_stats := stats.to_dictionary()
         if received_payload.get("entity_id", "") != "entity_debug_001":
             push_error("FAIL: debug_stats_reported entity_id mismatch.")
             passed = false
