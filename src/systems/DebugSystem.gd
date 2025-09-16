@@ -5,6 +5,9 @@ const EVENT_BUS_SCRIPT := preload("res://src/globals/EventBus.gd")
 const DEBUG_LOG_REDIRECTOR_SCRIPT := preload("res://src/globals/DebugLogRedirector.gd")
 
 const DEFAULT_LOG_DIRECTORY := "user://logs"
+const MASTER_ERROR_LOG_DIRECTORY := "res://"
+const MASTER_ERROR_LOG_EXTENSION := ".txt"
+const ERROR_SEVERITY_THRESHOLD := 3
 const LOG_LEVEL_FALLBACK_LABELS := {
     0: "DEBUG",
     1: "INFO",
@@ -29,13 +32,18 @@ var log_directory_path: String = DEFAULT_LOG_DIRECTORY
 ## Resolved file path for the most recent log capture.
 var log_file_path: String = ""
 
+## Absolute path for the most recent master error log capture.
+var master_error_log_path: String = ""
+
 var _logging_active := false
 var _log_file: FileAccess = null
+var _master_error_log_file: FileAccess = null
 var _captured_log_entries: Array = []
 var _log_scene_name := ""
 var _log_session_id := ""
 var _log_redirector_registered := false
 var _log_level_labels: Dictionary = {}
+var _master_error_log_run_index := 0
 
 ## Simple system that prints entity statistics to the console each physics frame
 ## and captures Godot logger output for diagnostic review. Designed for Godot
@@ -78,31 +86,36 @@ func _initialize_log_capture() -> void:
     _captured_log_entries.clear()
     _initialize_log_level_labels()
 
-    var directory := _prepare_log_directory()
-    if directory == "":
-        return
-
     _log_scene_name = _resolve_scene_name()
-    _log_session_id = _generate_timestamp_id()
+    var datetime_components := Time.get_datetime_dict_from_system()
+    _log_session_id = _generate_timestamp_id(datetime_components)
 
-    var sanitized_scene := _sanitize_scene_name(_log_scene_name)
-    var file_name := "%s_%s.txt" % [sanitized_scene, _log_session_id]
-    log_file_path = _join_paths(directory, file_name)
+    var master_date_stamp := _generate_master_error_log_date_stamp(datetime_components)
+    _initialize_master_error_log(master_date_stamp)
 
-    _log_file = FileAccess.open(log_file_path, FileAccess.WRITE)
-    if _log_file == null:
-        var open_error := FileAccess.get_open_error()
-        push_error(
-            "DebugSystem failed to open log file at %s (error %d)." % [log_file_path, open_error]
-        )
+    var directory := _prepare_log_directory()
+    if directory != "":
+        var sanitized_scene := _sanitize_scene_name(_log_scene_name)
+        var file_name := "%s_%s.txt" % [sanitized_scene, _log_session_id]
+        log_file_path = _join_paths(directory, file_name)
+
+        _log_file = FileAccess.open(log_file_path, FileAccess.WRITE)
+        if _log_file == null:
+            var open_error := FileAccess.get_open_error()
+            push_error(
+                "DebugSystem failed to open log file at %s (error %d)." % [log_file_path, open_error]
+            )
+            log_file_path = ""
+        else:
+            _log_file.store_line("=== Log started for scene: %s ===" % _log_scene_name)
+            _log_file.flush()
+    else:
         log_file_path = ""
-        return
+        _log_file = null
 
-    _log_file.store_line("=== Log started for scene: %s ===" % _log_scene_name)
-    _log_file.flush()
-
-    _logging_active = true
-    _register_with_log_redirector()
+    _logging_active = _log_file != null or _master_error_log_file != null
+    if _logging_active:
+        _register_with_log_redirector()
 
 ## Closes the active log file and unregisters from the DebugLogRedirector so the
 ## logger callback stops targeting this system once the scene exits.
@@ -114,6 +127,8 @@ func _finalize_log_capture() -> void:
         _log_file.flush()
         _log_file.close()
         _log_file = null
+
+    _close_master_error_log()
 
     _logging_active = false
 
@@ -204,19 +219,41 @@ func _sanitize_scene_name(scene_name: String) -> String:
     return builder
 
 ## Generates a timestamp identifier suitable for filenames and log headers.
-func _generate_timestamp_id() -> String:
-    var components := Time.get_datetime_dict_from_system()
-    if components.has("year"):
-        return "%04d%02d%02d_%02d%02d%02d" % [
-            components["year"],
-            components["month"],
-            components["day"],
-            components["hour"],
-            components["minute"],
-            components["second"],
-        ]
+func _generate_timestamp_id(components: Dictionary = {}) -> String:
+    var resolved := components
+    if resolved.is_empty():
+        resolved = Time.get_datetime_dict_from_system()
+
+    if resolved.has("year"):
+        var year := int(resolved.get("year", 0))
+        var month := int(resolved.get("month", 0))
+        var day := int(resolved.get("day", 0))
+        var hour := int(resolved.get("hour", 0))
+        var minute := int(resolved.get("minute", 0))
+        var second := int(resolved.get("second", 0))
+        return "%04d%02d%02d_%02d%02d%02d" % [year, month, day, hour, minute, second]
 
     return str(Time.get_unix_time_from_system())
+
+## Formats the system clock into the DATE-X-X-XX segment required by the master
+## error log filename contract. Falls back to "00-00-00" when calendar fields are
+## unavailable on the current platform.
+func _generate_master_error_log_date_stamp(components: Dictionary) -> String:
+    var month := int(components.get("month", 0))
+    var day := int(components.get("day", 0))
+    var year := int(components.get("year", 0))
+
+    if month == 0 or day == 0 or year == 0:
+        var fallback := Time.get_datetime_dict_from_unix_time(Time.get_unix_time_from_system())
+        month = int(fallback.get("month", 0))
+        day = int(fallback.get("day", 0))
+        year = int(fallback.get("year", 0))
+
+    if month == 0 or day == 0 or year == 0:
+        return "00-00-00"
+
+    var short_year := year % 100
+    return "%02d-%02d-%02d" % [month, day, short_year]
 
 ## Initialises a lookup table translating Godot logger level integers into
 ## human-readable severity labels.
@@ -306,6 +343,7 @@ func capture_log_message(message: String, level: int, category: String, timestam
     var entry := _build_log_entry(message, level, category, timestamp)
     _captured_log_entries.append(entry)
     _write_log_entry(entry)
+    _write_master_error_entry(entry)
 
 ## Constructs a structured representation of a log entry for storage and export.
 func _build_log_entry(message: String, level: int, category: String, timestamp: String) -> Dictionary:
@@ -339,6 +377,11 @@ func get_captured_log_entries() -> Array:
 ## empty string when log capture failed to initialise.
 func get_log_file_path() -> String:
     return log_file_path
+
+## Exposes the resolved path to the master error log written to the project root.
+## Returns an empty string when the file could not be created.
+func get_master_error_log_path() -> String:
+    return master_error_log_path
 
 ## Returns the timestamp-derived identifier associated with the current logging
 ## session. Useful for correlating file exports with in-memory summaries during
@@ -429,3 +472,125 @@ func _on_entity_killed(payload: Dictionary) -> void:
     # Coerce the identifier to a String so downstream tooling receives a stable type.
     var entity_id: String = str(payload["entity_id"])
     print("DebugSystem observed entity_killed for %s" % str(entity_id))
+
+## Creates the master error log file in the repository root and writes the session
+## header. The helper tolerates missing filesystem permissions so tests can still
+## exercise DebugSystem behaviour without touching disk.
+func _initialize_master_error_log(date_stamp: String) -> void:
+    _close_master_error_log()
+
+    _master_error_log_run_index = _resolve_next_master_error_run_index(date_stamp)
+
+    var file_name := _build_master_error_log_filename(date_stamp, _master_error_log_run_index)
+    master_error_log_path = _join_paths(MASTER_ERROR_LOG_DIRECTORY, file_name)
+
+    _master_error_log_file = FileAccess.open(master_error_log_path, FileAccess.WRITE)
+    if _master_error_log_file == null:
+        var open_error := FileAccess.get_open_error()
+        push_error(
+            "DebugSystem failed to open master error log at %s (error %d)." % [
+                master_error_log_path,
+                open_error,
+            ]
+        )
+        master_error_log_path = ""
+        _master_error_log_run_index = 0
+        return
+
+    var header := _build_master_error_log_header(date_stamp, _master_error_log_run_index)
+    _master_error_log_file.store_line(header)
+    _master_error_log_file.flush()
+
+## Flushes and closes the master error log file so follow-up scenes can start a
+## fresh capture.
+func _close_master_error_log() -> void:
+    if _master_error_log_file:
+        _master_error_log_file.store_line("=== Master Error Log Closed ===")
+        _master_error_log_file.flush()
+        _master_error_log_file.close()
+        _master_error_log_file = null
+
+## Serialises error-class log entries into the master log file.
+func _write_master_error_entry(entry: Dictionary) -> void:
+    if _master_error_log_file == null:
+        return
+
+    var level := int(entry.get("level", 0))
+    if not _is_error_level(level):
+        return
+
+    var formatted := entry.get("formatted", "")
+    if formatted == "":
+        formatted = "[%s] [L%d %s] (%s) %s" % [
+            entry.get("timestamp", ""),
+            level,
+            entry.get("severity", "ERROR"),
+            entry.get("category", ""),
+            entry.get("message", ""),
+        ]
+
+    _master_error_log_file.store_line(formatted)
+    _master_error_log_file.flush()
+
+## Determines whether the provided logger level should be treated as an error for
+## the purposes of the master error log export.
+func _is_error_level(level: int) -> bool:
+    return level >= ERROR_SEVERITY_THRESHOLD
+
+## Resolves the next RUN-X index for the master error log by scanning the
+## repository root. The implementation preserves gaps instead of compacting
+## previous runs so historical captures remain untouched.
+func _resolve_next_master_error_run_index(date_stamp: String) -> int:
+    var directory := DirAccess.open(MASTER_ERROR_LOG_DIRECTORY)
+    if directory == null:
+        return 1
+
+    var prefix := "Master-Error-Log-DATE-%s-RUN-" % date_stamp
+    var max_run := 0
+
+    var begin_error := directory.list_dir_begin()
+    if begin_error != OK:
+        return 1
+
+    while true:
+        var file_name := directory.get_next()
+        if file_name == "":
+            break
+
+        if file_name == "." or file_name == "..":
+            continue
+
+        if directory.current_is_dir():
+            continue
+
+        if not file_name.ends_with(MASTER_ERROR_LOG_EXTENSION):
+            continue
+
+        if not file_name.begins_with(prefix):
+            continue
+
+        var suffix := file_name.substr(prefix.length())
+        if suffix.ends_with(MASTER_ERROR_LOG_EXTENSION):
+            suffix = suffix.substr(0, suffix.length() - MASTER_ERROR_LOG_EXTENSION.length())
+
+        if suffix.is_valid_int():
+            var parsed := int(suffix)
+            if parsed > max_run:
+                max_run = parsed
+
+    directory.list_dir_end()
+    return max_run + 1
+
+## Builds the canonical filename for the master error log contract.
+func _build_master_error_log_filename(date_stamp: String, run_index: int) -> String:
+    return "Master-Error-Log-DATE-%s-RUN-%d%s" % [date_stamp, run_index, MASTER_ERROR_LOG_EXTENSION]
+
+## Generates a descriptive header for the master error log so engineers can
+## correlate the export with in-memory captures.
+func _build_master_error_log_header(date_stamp: String, run_index: int) -> String:
+    return "=== Master Error Log | Date: %s | Run: %d | Scene: %s | Session: %s ===" % [
+        date_stamp,
+        run_index,
+        _log_scene_name,
+        _log_session_id,
+    ]
