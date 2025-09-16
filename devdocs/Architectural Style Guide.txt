@@ -85,6 +85,8 @@ extends Resource
 
 The components dictionary is the lynchpin of the entire architecture. While its flexibility is a key feature, the use of plain string keys (e.g., "stats", "inventory") introduces a potential source of runtime errors from typos. To mitigate this, this guide establishes a strict convention: all dictionary keys used to store and retrieve components must be defined as constants in a global ULTEnums.gd script. This provides the flexibility of a dictionary while adding a layer of safety and code-completion support, preventing a common class of errors.
 
+2025 implementation update: the production script now normalizes every component key into a `StringName` and mirrors the entry under that canonical key. Backwards-compatibility shims still accept legacy string keys so existing `.tres` assets remain valid, but new content must store and query values via `ULTEnums.ComponentKeys` and the helper methods exposed on `EntityData`. Always call `add_component()` / `remove_component()` when mutating manifests and `get_component()` / `has_component()` for lookups so the validation guard `ULTEnums.is_valid_component_key()` can reject unknown keys at the boundary.【F:src/core/EntityData.gd†L24-L74】【F:src/globals/ULTEnums.gd†L31-L92】 Use `list_components()` when systems need a defensive snapshot for iteration—the method returns a `StringName` keyed dictionary safe for read-only inspection.【F:src/core/EntityData.gd†L64-L74】
+
 2.2 The Component: The Atomic Unit of Data (extends Resource)
 
 A Component is a script whose sole purpose is to hold data. It is the atomic, modular data block that defines a specific domain of an entity's attributes, such as its stats, inventory, or skills.1
@@ -128,6 +130,8 @@ extends Component
 @export var health: int = 0
 @export var action_points: int = 0
 #... other stats such as strength, dexterity, etc. would be defined here.
+
+In practice the production component contains more than forty exported fields covering job metadata, vital pools, resistances, attribute budgets, proficiencies, and equipment snapshots, plus helper methods for common runtime adjustments.【F:src/components/StatsComponent.gd†L1-L308】 Consult the [Stats Component Manual](Designers/StatsComponentManual.md) for the authoritative property breakdown, expected ranges, and authoring guidance shared with systems engineers and content designers.
 
 The use of Godot's Resource system for components is a powerful choice that comes with significant risks that must be proactively managed. For a detailed protocol on managing and refactoring Component resources to prevent data loss and version control issues, refer to Section 5.1 of this guide.
 
