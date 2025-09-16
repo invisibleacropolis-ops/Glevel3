@@ -115,5 +115,135 @@ func run_test() -> Dictionary:
         push_error("FAIL: reset_for_new_run did not refresh runtime stats correctly.")
         passed = false
 
+    # Test 5: to_dictionary captures all exported fields and returns defensive copies.
+    total += 1
+    var snapshot_component := StatsComponentScript.new()
+    snapshot_component.job_id = StringName("merchant")
+    snapshot_component.job_title = "Merchant"
+    snapshot_component.job_pool_tags = [StringName("core_pool")]
+    snapshot_component.health = 12
+    snapshot_component.max_health = 18
+    snapshot_component.energy = 3
+    snapshot_component.max_energy = 5
+    snapshot_component.armor_rating = 2
+    snapshot_component.action_points = 3
+    snapshot_component.max_action_points = 5
+    snapshot_component.short_term_statuses = [StringName("poisoned")]
+    snapshot_component.long_term_statuses = [StringName("cursed")]
+    snapshot_component.resistances = {StringName("fire"): 0.5}
+    snapshot_component.vulnerabilities = {StringName("cold"): 1.5}
+    snapshot_component.experience_points = 42
+    snapshot_component.level = 7
+    snapshot_component.level_title = "Veteran"
+    snapshot_component.traits = [StringName("brave")]
+    snapshot_component.body_pool_fixed = 2
+    snapshot_component.body_pool_relative = 3
+    snapshot_component.mind_pool_fixed = 4
+    snapshot_component.mind_pool_relative = 5
+    snapshot_component.strength = 6
+    snapshot_component.agility = 5
+    snapshot_component.speed = 4
+    snapshot_component.intelligence = 7
+    snapshot_component.wisdom = 8
+    snapshot_component.charisma = 9
+    snapshot_component.athletics = 2
+    snapshot_component.combat_training = 3
+    snapshot_component.thievery = 1
+    snapshot_component.diplomacy = 4
+    snapshot_component.lore = 6
+    snapshot_component.technical = 5
+    snapshot_component.advanced_training = {StringName("pilot"): 2}
+    snapshot_component.skill_levels = {StringName("piloting"): 3}
+    snapshot_component.skill_options = {StringName("piloting"): [StringName("loop_the_loop")]}
+    snapshot_component.equipped_items = {StringName("weapon"): StringName("cutlass")}
+    snapshot_component.inventory_items = [StringName("potion")]
+
+    var snapshot := snapshot_component.to_dictionary()
+    var expected_keys := [
+        "job_id",
+        "job_title",
+        "job_pool_tags",
+        "health",
+        "max_health",
+        "energy",
+        "max_energy",
+        "armor_rating",
+        "action_points",
+        "max_action_points",
+        "short_term_statuses",
+        "long_term_statuses",
+        "resistances",
+        "vulnerabilities",
+        "experience_points",
+        "level",
+        "level_title",
+        "traits",
+        "body_pool_fixed",
+        "body_pool_relative",
+        "mind_pool_fixed",
+        "mind_pool_relative",
+        "strength",
+        "agility",
+        "speed",
+        "intelligence",
+        "wisdom",
+        "charisma",
+        "athletics",
+        "combat_training",
+        "thievery",
+        "diplomacy",
+        "lore",
+        "technical",
+        "advanced_training",
+        "skill_levels",
+        "skill_options",
+        "equipped_items",
+        "inventory_items",
+    ]
+
+    var snapshot_valid := snapshot.keys().size() == expected_keys.size()
+    for key in expected_keys:
+        if not snapshot.has(key):
+            snapshot_valid = false
+            break
+        var component_value := snapshot_component.get(key)
+        if snapshot[key] != component_value:
+            snapshot_valid = false
+            break
+
+    if snapshot_valid:
+        (snapshot["job_pool_tags"] as Array).append(StringName("extra_pool"))
+        snapshot_valid = snapshot_valid and snapshot_component.job_pool_tags.size() == 1
+
+        (snapshot["short_term_statuses"] as Array).append(StringName("frozen"))
+        snapshot_valid = snapshot_valid and not snapshot_component.short_term_statuses.has(StringName("frozen"))
+
+        var resistances_snapshot: Dictionary = snapshot["resistances"]
+        resistances_snapshot[StringName("acid")] = 0.1
+        snapshot_valid = snapshot_valid and not snapshot_component.resistances.has(StringName("acid"))
+
+        var advanced_snapshot: Dictionary = snapshot["advanced_training"]
+        advanced_snapshot[StringName("navigator")] = 1
+        snapshot_valid = snapshot_valid and not snapshot_component.advanced_training.has(StringName("navigator"))
+
+        var skill_levels_snapshot: Dictionary = snapshot["skill_levels"]
+        skill_levels_snapshot[StringName("piloting")] = 4
+        snapshot_valid = snapshot_valid and snapshot_component.skill_levels[StringName("piloting")] == 3
+
+        var skill_options_snapshot: Dictionary = snapshot["skill_options"]
+        (skill_options_snapshot[StringName("piloting")] as Array).append(StringName("immelmann_turn"))
+        snapshot_valid = snapshot_valid and snapshot_component.skill_options[StringName("piloting")].size() == 1
+
+        var inventory_snapshot: Array = snapshot["inventory_items"]
+        inventory_snapshot.append(StringName("tonic"))
+        snapshot_valid = snapshot_valid and snapshot_component.inventory_items.size() == 1
+
+    if snapshot_valid:
+        print("PASS: to_dictionary exposes a full, defensive snapshot of the StatsComponent state.")
+        successes += 1
+    else:
+        push_error("FAIL: to_dictionary did not include all fields or returned live references.")
+        passed = false
+
     print("Summary: %d/%d tests passed." % [successes, total])
     return {"passed": passed, "successes": successes, "total": total}

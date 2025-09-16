@@ -133,6 +133,51 @@ class_name StatsComponent
 @export var inventory_items: Array[StringName] = []
 
 
+func to_dictionary() -> Dictionary:
+    """Returns a defensive snapshot of every exported stat value."""
+    return {
+        "job_id": job_id,
+        "job_title": job_title,
+        "job_pool_tags": job_pool_tags.duplicate(),
+        "health": health,
+        "max_health": max_health,
+        "energy": energy,
+        "max_energy": max_energy,
+        "armor_rating": armor_rating,
+        "action_points": action_points,
+        "max_action_points": max_action_points,
+        "short_term_statuses": short_term_statuses.duplicate(),
+        "long_term_statuses": long_term_statuses.duplicate(),
+        "resistances": resistances.duplicate(true),
+        "vulnerabilities": vulnerabilities.duplicate(true),
+        "experience_points": experience_points,
+        "level": level,
+        "level_title": level_title,
+        "traits": traits.duplicate(),
+        "body_pool_fixed": body_pool_fixed,
+        "body_pool_relative": body_pool_relative,
+        "mind_pool_fixed": mind_pool_fixed,
+        "mind_pool_relative": mind_pool_relative,
+        "strength": strength,
+        "agility": agility,
+        "speed": speed,
+        "intelligence": intelligence,
+        "wisdom": wisdom,
+        "charisma": charisma,
+        "athletics": athletics,
+        "combat_training": combat_training,
+        "thievery": thievery,
+        "diplomacy": diplomacy,
+        "lore": lore,
+        "technical": technical,
+        "advanced_training": advanced_training.duplicate(true),
+        "skill_levels": skill_levels.duplicate(true),
+        "skill_options": skill_options.duplicate(true),
+        "equipped_items": equipped_items.duplicate(true),
+        "inventory_items": inventory_items.duplicate(),
+    }
+
+
 func apply_damage(amount: int) -> void:
     """Reduces health by the supplied damage amount, clamped to zero."""
     if amount <= 0:

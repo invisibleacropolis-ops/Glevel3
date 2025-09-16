@@ -23,13 +23,14 @@ const ULTEnums := preload("res://src/globals/ULTEnums.gd")
 @export var archetype_id: String = ""
 
 ## The core of the compositional design. This dictionary holds references to
-## all attached Component Resources, keyed by a string identifier (e.g., "stats").
+## all attached Component Resources, keyed by a canonical StringName identifier
+## (e.g., ComponentKeys.STATS).
 ## Keys MUST correspond to the constants defined in ULTEnums.gd (e.g., ComponentKeys.STATS).
 @export var components: Dictionary = {}
 
 ## Registers or replaces a component using a canonical ComponentKeys identifier.
 ## Converts arbitrary string inputs to StringName before storage to ensure stable lookups.
-func add_component(key: String, component: Component) -> void:
+func add_component(key: Variant, component: Component) -> void:
     assert(component != null, "EntityData.add_component requires a Component instance.")
     var normalized_key := _normalize_component_key(key)
     assert(
@@ -43,7 +44,7 @@ func add_component(key: String, component: Component) -> void:
 
 ## Retrieves a component reference by its canonical key.
 ## Returns null if the key is not registered on this entity.
-func get_component(key: String) -> Component:
+func get_component(key: Variant) -> Component:
     var normalized_key := _normalize_component_key(key)
     var component := components.get(normalized_key, null)
     if component == null:
@@ -51,13 +52,13 @@ func get_component(key: String) -> Component:
     return component as Component
 
 ## Reports whether a component has been assigned for the given canonical key.
-func has_component(key: String) -> bool:
+func has_component(key: Variant) -> bool:
     var normalized_key := _normalize_component_key(key)
     return components.has(normalized_key) or components.has(String(normalized_key))
 
 ## Removes a component from the manifest and returns the detached resource.
 ## Returns null when no component was registered for the provided key.
-func remove_component(key: String) -> Component:
+func remove_component(key: Variant) -> Component:
     var normalized_key := _normalize_component_key(key)
     if components.has(normalized_key):
         var removed: Component = components.get(normalized_key)

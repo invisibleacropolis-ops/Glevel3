@@ -6,6 +6,7 @@ extends Node
 
 const EntityDataScript := preload("res://src/core/EntityData.gd")
 const ComponentScript := preload("res://src/core/Component.gd")
+const StatsComponent := preload("res://src/components/StatsComponent.gd")
 const ULTEnums := preload("res://src/globals/ULTEnums.gd")
 
 func run_test() -> Dictionary:
@@ -18,8 +19,8 @@ func run_test() -> Dictionary:
 
     # Test 1: add_component stores and returns the same instance while normalising the key.
     total += 1
-    var stats_component := ComponentScript.new()
-    entity.add_component("stats", stats_component)
+    var stats_component := StatsComponent.new()
+    entity.add_component(ULTEnums.ComponentKeys.STATS, stats_component)
     var retrieved := entity.get_component(ULTEnums.ComponentKeys.STATS)
     if retrieved == stats_component:
         print("PASS: add_component stored and retrieved the Component instance using a canonical key.")
@@ -40,7 +41,8 @@ func run_test() -> Dictionary:
 
     # Test 3: has_component reflects registration state.
     total += 1
-    if entity.has_component("stats") and not entity.has_component("inventory"):
+    if entity.has_component(ULTEnums.ComponentKeys.STATS) \
+        and not entity.has_component(ULTEnums.ComponentKeys.INVENTORY):
         print("PASS: has_component accurately reports component presence.")
         successes += 1
     else:
@@ -49,9 +51,9 @@ func run_test() -> Dictionary:
 
     # Test 4: add_component replaces an existing entry.
     total += 1
-    var replacement := ComponentScript.new()
-    entity.add_component("stats", replacement)
-    if entity.get_component("stats") == replacement:
+    var replacement := StatsComponent.new()
+    entity.add_component(ULTEnums.ComponentKeys.STATS, replacement)
+    if entity.get_component(ULTEnums.ComponentKeys.STATS) == replacement:
         print("PASS: add_component replaced the existing Component entry.")
         successes += 1
     else:
@@ -60,8 +62,8 @@ func run_test() -> Dictionary:
 
     # Test 5: remove_component detaches the stored component.
     total += 1
-    var removed := entity.remove_component("stats")
-    if removed == replacement and not entity.has_component("stats"):
+    var removed := entity.remove_component(ULTEnums.ComponentKeys.STATS)
+    if removed == replacement and not entity.has_component(ULTEnums.ComponentKeys.STATS):
         print("PASS: remove_component returned and removed the expected Component instance.")
         successes += 1
     else:
@@ -70,10 +72,10 @@ func run_test() -> Dictionary:
 
     # Test 6: list_components provides a shallow copy that can be iterated safely.
     total += 1
-    entity.add_component("stats", ComponentScript.new())
+    entity.add_component(ULTEnums.ComponentKeys.STATS, ComponentScript.new())
     var manifest := entity.list_components()
     manifest.clear()
-    if entity.has_component("stats"):
+    if entity.has_component(ULTEnums.ComponentKeys.STATS):
         print("PASS: list_components returns a defensive copy of the manifest.")
         successes += 1
     else:

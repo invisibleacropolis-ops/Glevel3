@@ -9,5 +9,5 @@ display_name = "Test Dummy"
 entity_type = 0
 archetype_id = "test_dummy"
 components = {
-    "stats": ExtResource(2)
+    &"stats": ExtResource(2)
 }
