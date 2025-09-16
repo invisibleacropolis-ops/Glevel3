@@ -56,8 +56,16 @@ func run_test() -> Dictionary:
     var failure_recorded := not AssetRegistry.has_asset(CORRUPTED_ASSET_KEY) and failed_assets.has(CORRUPTED_ASSET_KEY)
     assert(failure_recorded, "Corrupted asset '%s' should be tracked as a failure." % CORRUPTED_ASSET_KEY)
     if failure_recorded:
-        print("PASS: AssetRegistry recorded corrupted asset failure without caching it.")
-        successes += 1
+        var recorded_path := String(failed_assets[CORRUPTED_ASSET_KEY])
+        var expected_failure_path := TEST_DIRECTORY + CORRUPTED_ASSET_KEY
+        var path_matches := recorded_path == expected_failure_path
+        assert(path_matches, "Failed asset path mismatch: expected %s, got %s." % [expected_failure_path, recorded_path])
+        if path_matches:
+            print("PASS: AssetRegistry recorded corrupted asset failure without caching it.")
+            successes += 1
+        else:
+            push_error("FAIL: Corrupted asset path mismatch for '%s'." % CORRUPTED_ASSET_KEY)
+            passed = false
     else:
         push_error("FAIL: Corrupted asset '%s' not tracked correctly." % CORRUPTED_ASSET_KEY)
         passed = false
