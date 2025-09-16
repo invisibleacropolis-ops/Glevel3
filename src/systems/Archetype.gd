@@ -11,14 +11,17 @@ class_name Archetype
 @export var display_name: String = ""
 @export_multiline var description: String = ""
 @export var base_stats: Dictionary = {}
-@export var required_traits: Array[Trait] = []
-@export var trait_pool: Array[Trait] = []
+## Arrays accept ``Trait`` resources; they are typed as ``Resource`` so the
+## parser tolerates load-order issues when custom classes are still being
+## registered by the editor.
+@export var required_traits: Array[Resource] = []
+@export var trait_pool: Array[Resource] = []
 
 ## Returns all traits that the archetype explicitly allows. Required traits are
 ## always positioned ahead of optional entries while duplicates (matched by
 ## ``trait_id``) are removed to keep the payload stable for downstream systems.
-func get_all_traits() -> Array[Trait]:
-    var combined: Array[Trait] = []
+func get_all_traits() -> Array:
+    var combined: Array = []
     var seen_ids: Dictionary = {}
     _append_unique_traits(combined, required_traits, seen_ids)
     _append_unique_traits(combined, trait_pool, seen_ids)
@@ -27,13 +30,18 @@ func get_all_traits() -> Array[Trait]:
 ## Determines if a specific trait resource is compatible with the archetype.
 ## Invalid inputs (``null`` or missing identifiers) are rejected before
 ## searching the combined list to avoid nil dereferences in consuming systems.
-func is_trait_allowed(trait: Trait) -> bool:
+func is_trait_allowed(trait) -> bool:
     if not _is_trait_resource_valid(trait):
         return false
-    var allowed_traits: Array[Trait] = get_all_traits()
+    var trait_id := _get_trait_id(trait)
+    if trait_id == "":
+        return false
+
+    var allowed_traits: Array = get_all_traits()
     var index := 0
     while index < allowed_traits.size():
-        if allowed_traits[index].trait_id == trait.trait_id:
+        var allowed_id := _get_trait_id(allowed_traits[index])
+        if allowed_id != "" and allowed_id == trait_id:
             return true
         index += 1
     return false
@@ -42,29 +50,37 @@ func is_trait_allowed(trait: Trait) -> bool:
 ## component must expose all required trait identifiers and may not advertise
 ## traits outside of the archetype's combined pool. Any null or malformed
 ## entries are rejected to maintain the integrity of entity data resources.
-func validate_component(component: TraitComponent) -> bool:
+func validate_component(component) -> bool:
     if component == null:
         return false
 
-    var allowed_traits: Array[Trait] = get_all_traits()
+    if not component.has_method("has_trait_id"):
+        return false
+
+    var raw_component_traits = component.get("traits")
+    if typeof(raw_component_traits) != TYPE_ARRAY:
+        return false
+    var component_traits: Array = raw_component_traits
+
+    var allowed_traits: Array = get_all_traits()
     var allowed_trait_ids: Dictionary = _collect_trait_id_lookup(allowed_traits)
 
     var index := 0
     while index < required_traits.size():
-        var required_trait: Trait = required_traits[index]
-        if _is_trait_resource_valid(required_trait):
-            if not component.has_trait_id(required_trait.trait_id):
-                return false
-        else:
+        var required_trait_id := _get_trait_id(required_traits[index])
+        if required_trait_id == "":
+            return false
+        if not component.has_trait_id(required_trait_id):
             return false
         index += 1
 
     index = 0
-    while index < component.traits.size():
-        var trait: Trait = component.traits[index]
-        if not _is_trait_resource_valid(trait):
+    while index < component_traits.size():
+        var trait_resource = component_traits[index]
+        var trait_id := _get_trait_id(trait_resource)
+        if trait_id == "":
             return false
-        if not allowed_trait_ids.has(trait.trait_id):
+        if not allowed_trait_ids.has(trait_id):
             return false
         index += 1
 
@@ -74,27 +90,54 @@ func validate_component(component: TraitComponent) -> bool:
 ## ``target`` while preserving order. ``seen_ids`` tracks identifiers already
 ## appended to the target array so optional traits do not overwrite required
 ## selections.
-func _append_unique_traits(target: Array[Trait], source: Array[Trait], seen_ids: Dictionary) -> void:
+func _append_unique_traits(target: Array, source: Array, seen_ids: Dictionary) -> void:
     var index := 0
     while index < source.size():
-        var trait: Trait = source[index]
-        if _is_trait_resource_valid(trait):
-            var trait_id := trait.trait_id
-            if not seen_ids.has(trait_id):
-                target.append(trait)
+        var trait_resource = source[index]
+        if _is_trait_resource_valid(trait_resource):
+            var trait_id := _get_trait_id(trait_resource)
+            if trait_id != "" and not seen_ids.has(trait_id):
+                target.append(trait_resource)
                 seen_ids[trait_id] = true
         index += 1
 
 ## Builds a dictionary keyed by ``trait_id`` for fast membership checks against
 ## the archetype's combined trait list.
-func _collect_trait_id_lookup(traits: Array[Trait]) -> Dictionary:
+func _collect_trait_id_lookup(traits: Array) -> Dictionary:
     var lookup: Dictionary = {}
     var index := 0
     while index < traits.size():
-        lookup[traits[index].trait_id] = true
+        var trait_id := _get_trait_id(traits[index])
+        if trait_id != "":
+            lookup[trait_id] = true
         index += 1
     return lookup
 
+## Extracts a non-empty identifier from a trait resource or returns an
+## empty string when the input is invalid. The helper relies on the
+## ``trait_id`` export defined by ``Trait.gd`` but falls back safely if the
+## property is missing or stored as a ``StringName``.
+func _get_trait_id(trait) -> String:
+    if trait == null or not (trait is Object):
+        return ""
+
+    var raw_id = trait.get("trait_id")
+    if raw_id == null:
+        return ""
+
+    var id_type := typeof(raw_id)
+    if id_type == TYPE_STRING or id_type == TYPE_STRING_NAME:
+        var id_string := String(raw_id)
+        if id_string.is_empty():
+            return ""
+        return id_string
+
+    return ""
+
 ## Returns ``true`` when the provided resource is a valid trait definition.
-func _is_trait_resource_valid(trait: Trait) -> bool:
-    return trait != null and trait.trait_id != ""
+func _is_trait_resource_valid(trait) -> bool:
+    if trait == null or not (trait is Resource):
+        return false
+    if not trait.is_class("Trait"):
+        return false
+    return _get_trait_id(trait) != ""
