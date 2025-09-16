@@ -83,6 +83,32 @@ func run_test() -> Dictionary:
             print("PASS: DebugSystem emitted debug_stats_reported with expected payload.")
             successes += 1
 
+    total += 1
+    debug_system._captured_log_entries.clear()
+    debug_system._logging_active = true
+    debug_system._log_scene_name = "UnitTestScene"
+    debug_system._log_session_id = "session_001"
+    debug_system._log_file = null
+    debug_system.capture_log_message("Synthetic log entry", 1, "UnitTest", "2024-01-01T00:00:00Z")
+
+    var log_entries := debug_system.get_captured_log_entries()
+    if log_entries.is_empty():
+        push_error("FAIL: DebugSystem did not record captured log entries.")
+        passed = false
+    else:
+        var latest := log_entries.back()
+        if latest.get("message", "") != "Synthetic log entry":
+            push_error("FAIL: DebugSystem stored incorrect log message metadata.")
+            passed = false
+        elif latest.get("category", "") != "UnitTest":
+            push_error("FAIL: DebugSystem stored incorrect log category metadata.")
+            passed = false
+        else:
+            print("PASS: DebugSystem captured redirected logger output.")
+            successes += 1
+
+    debug_system._logging_active = false
+
     print("Summary: %d/%d tests passed." % [successes, total])
 
     debug_system.queue_free()
