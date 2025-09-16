@@ -8,7 +8,8 @@
 3. **Lifecycle management:** When the registry is about to be discarded (for example, in tests), clear any stored modules and free the instance to avoid leaking references.
 
 ## Registration Methods
-- `register_module(name: String, node: Node)` stores the supplied node under the provided name. Re-registering an existing name overwrites the previous value, which is helpful for replacing modules during hot-reload workflows.
+- `register_module(name: StringName, node: Node)` stores the supplied node under the provided identifier. Re-registering an existing name overwrites the previous value, which is helpful for replacing modules during hot-reload workflows.
+- `unregister_module(name: StringName)` removes an entry explicitly. Call this when a module is being freed manually or replaced by a different implementation mid-session.
 - You can register any node type, including systems, services, or UI managers. Keep module names consistent by defining them as constants (for example, in an `Enums.gd` file) to avoid typos.
 
 ### Example: registering from a module's `_ready`
@@ -31,6 +32,7 @@ else:
 ```
 
 ## Common Workflows
-- **Hot swapping modules:** Call `register_module` again with a replacement node. The latest registration always wins, as validated by the test coverage.
+- **Hot swapping modules:** Call `register_module` again with a replacement node. The latest registration always wins, as validated by the test coverage (`res://src/tests/TestModuleRegistry.gd`).
+- **Automatic cleanup:** The singleton listens for each module's `tree_exiting` signal and removes the entry automatically, ensuring the registry never exposes freed nodes to other systems.
 - **Optional dependencies:** Use `has_module` to detect whether optional subsystems (such as analytics or debugging tools) are active before invoking them.
-- **Tear-down:** Explicitly unregister modules (`modules.erase(name)`) or call `modules.clear()` when unloading a game mode to avoid stale references in subsequent runs.
+- **Tear-down:** Explicitly call `unregister_module` when unloading a game mode to avoid stale references in subsequent runs; the helper pairs nicely with `_exit_tree()` implementations.

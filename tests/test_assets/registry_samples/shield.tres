@@ -1,0 +1,8 @@
+[gd_resource type="Resource" format=3]
+
+[resource]
+resource_name = "UnitTestShield"
+unit_test_stats = {
+    "defense": 18,
+    "value": 75,
+}
