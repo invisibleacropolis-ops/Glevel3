@@ -9,7 +9,8 @@ class_name AssetRegistrySingleton
 ## referenced throughout the design bible and can be customized through the
 ## exported `directories_to_scan` property.
 const DEFAULT_SCAN_DIRECTORIES: Array[String] = [
-    "res://assets/",
+    "res://assets/archetypes/",
+    "res://assets/traits/",
 ]
 
 ## File extension the registry indexes. Keeping this in a constant makes future
@@ -46,7 +47,20 @@ func _scan_and_load_assets(path: String) -> void:
         push_warning("AssetRegistry: Unable to open directory '%s'." % normalized_path)
         return
 
-    dir.list_dir_begin(true, true)
+    ## Godot 4.4 made `list_dir_begin()` parameterless and instead relies on
+    ## the `include_hidden` and `include_navigational` flags, so mirror the
+    ## previous skip behaviour explicitly before starting the iteration.
+    dir.include_navigational = false
+    dir.include_hidden = false
+    var begin_error := dir.list_dir_begin()
+    if begin_error != OK:
+        push_error(
+            "AssetRegistry: Unable to iterate directory '%s'. Error %s." % [
+                normalized_path,
+                error_string(begin_error),
+            ]
+        )
+        return
     var file_name := dir.get_next()
     while file_name != "":
         var entry_path := normalized_path + file_name
