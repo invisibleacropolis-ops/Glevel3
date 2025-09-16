@@ -1,7 +1,7 @@
 extends Resource
 class_name EntityData
 
-const Enums := preload("res://src/globals/Enums.gd")
+const ULTEnums := preload("res://src/globals/ULTEnums.gd")
 
 ## The digital DNA of every object in the game world. This Resource acts as a
 ## manifest, linking an entity's identity to its modular data Components.
@@ -15,8 +15,8 @@ const Enums := preload("res://src/globals/Enums.gd")
 @export var display_name: String = ""
 
 ## A broad category classification for high-level system filtering.
-## See Enums.gd for possible values (e.g., EntityType.MONSTER).
-@export var entity_type: Enums.EntityType = Enums.EntityType.NPC
+## See ULTEnums.gd for possible values (e.g., EntityType.MONSTER).
+@export var entity_type: ULTEnums.EntityType = ULTEnums.EntityType.NPC
 
 ## The unique ID that links to the base archetype resource used for this entity's generation.
 ## Crucial for informing AI behavior and other procedural systems.
@@ -24,7 +24,7 @@ const Enums := preload("res://src/globals/Enums.gd")
 
 ## The core of the compositional design. This dictionary holds references to
 ## all attached Component Resources, keyed by a string identifier (e.g., "stats").
-## Keys MUST correspond to the constants defined in Enums.gd (e.g., ComponentKeys.STATS).
+## Keys MUST correspond to the constants defined in ULTEnums.gd (e.g., ComponentKeys.STATS).
 @export var components: Dictionary = {}
 
 ## Registers or replaces a component using a canonical ComponentKeys identifier.
@@ -33,8 +33,8 @@ func add_component(key: String, component: Component) -> void:
     assert(component != null, "EntityData.add_component requires a Component instance.")
     var normalized_key := _normalize_component_key(key)
     assert(
-        Enums.is_valid_component_key(normalized_key),
-        "Component key '%s' is not registered in Enums.ComponentKeys." % normalized_key,
+        ULTEnums.is_valid_component_key(normalized_key),
+        "Component key '%s' is not registered in ULTEnums.ComponentKeys." % normalized_key,
     )
     var legacy_key := String(normalized_key)
     if components.has(legacy_key):

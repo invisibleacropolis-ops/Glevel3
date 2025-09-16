@@ -89,7 +89,7 @@ signal debug_stats_reported(data: Dictionary)
 ## Optional payload keys:
 ## - "killer_id" (String or StringName): Identifier of the killer, if known.
 ## - "archetype_id" (String or StringName): Source archetype for postmortem analytics.
-## - "entity_type" (StringName): High-level taxonomy from ComponentKeys/Enums.
+## - "entity_type" (StringName): High-level taxonomy from ComponentKeys/ULTEnums.
 ## - "components" (Dictionary): Snapshot of relevant Components for downstream systems.
 @warning_ignore("unused_signal")
 signal entity_killed(data: Dictionary)

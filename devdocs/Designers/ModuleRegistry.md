@@ -10,7 +10,7 @@
 ## Registration Methods
 - `register_module(name: StringName, node: Node)` stores the supplied node under the provided identifier. Re-registering an existing name overwrites the previous value, which is helpful for replacing modules during hot-reload workflows.
 - `unregister_module(name: StringName)` removes an entry explicitly. Call this when a module is being freed manually or replaced by a different implementation mid-session.
-- You can register any node type, including systems, services, or UI managers. Keep module names consistent by defining them as constants (for example, in an `Enums.gd` file) to avoid typos.
+- You can register any node type, including systems, services, or UI managers. Keep module names consistent by defining them as constants (for example, in an `ULTEnums.gd` file) to avoid typos.
 
 ### Example: registering from a module's `_ready`
 ```gdscript

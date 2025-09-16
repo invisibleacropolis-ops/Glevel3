@@ -5,7 +5,7 @@ const EVENT_BUS_SCRIPT := preload("res://src/globals/EventBus.gd")
 
 const EntityData = preload("res://src/core/EntityData.gd")
 const StatsComponent = preload("res://src/components/StatsComponent.gd")
-const Enums = preload("res://src/globals/Enums.gd")
+const ULTEnums = preload("res://src/globals/ULTEnums.gd")
 
 ## Optional EventBus reference to allow dependency injection in tests.
 var event_bus: EventBusSingleton = null
@@ -19,8 +19,8 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
     for entity in get_tree().get_nodes_in_group("entities"):
         var data: EntityData = entity.get("entity_data")
-        if data and data.has_component(Enums.ComponentKeys.STATS):
-            var stats: StatsComponent = data.get_component(Enums.ComponentKeys.STATS)
+        if data and data.has_component(ULTEnums.ComponentKeys.STATS):
+            var stats: StatsComponent = data.get_component(ULTEnums.ComponentKeys.STATS)
             print("%s HP: %d" % [entity.name, stats.health])
             var bus := _get_event_bus()
             if bus:
