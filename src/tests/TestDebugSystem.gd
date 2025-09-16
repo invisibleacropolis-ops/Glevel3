@@ -70,16 +70,20 @@ func run_test() -> Dictionary:
         var expected_stats := {
             "health": 15,
             "max_health": 15,
+            "energy": 0,
+            "max_energy": 0,
+            "armor_rating": 0,
             "action_points": 4,
             "max_action_points": 4,
             "strength": 0,
-            "dexterity": 0,
-            "constitution": 0,
+            "agility": 0,
+            "speed": 0,
             "intelligence": 0,
-            "willpower": 0,
-            "speed": 0.0,
+            "wisdom": 0,
+            "charisma": 0,
             "resistances": {},
             "vulnerabilities": {},
+            "traits": [],
         }
         if received_payload.get("entity_id", "") != "entity_debug_001":
             push_error("FAIL: debug_stats_reported entity_id mismatch.")
