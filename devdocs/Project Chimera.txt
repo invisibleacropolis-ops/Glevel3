@@ -121,19 +121,22 @@ Following the hybrid ECS-Resource architecture, Components are the modular data 
 
 The following core components will form the basis of most entities in the game:
 
-* StatsComponent.tres: This is the most fundamental component, holding all primary combat and utility statistics. This includes attributes like Health Points (HP), Action Points (AP), Strength, Dexterity, Intelligence, Speed, as well as arrays or dictionaries for resistances and vulnerabilities to various damage types.
+*  StatsComponent.tres: This is the most fundamental component, holding all primary combat and utility statistics. This includes attributes like Health Points (HP), Action Points (AP), Strength, Dexterity, Intelligence, Speed, as well as arrays or dictionaries for resistances and vulnerabilities to various damage types.
 
-* SkillComponent.tres: This component contains an array of references to Skill.tres resources. Each Skill.tres is another resource that defines a single usable ability, including its AP cost, targeting rules, effects, and animations. This component effectively defines what an entity can do.
+* StatusComponent.tres: This component holds an array of short and long term status effects, such as “poisoned” or “scarred”. There is a large variety, and often characters will have numerous timed effects at once, so there is an independent system for tracking and operating the timing for these conditions. Every StatusFX.tres is a passive or active modifier or passive or active trigger, for any event.
 
-* TraitComponent.tres: This component holds an array of references to Trait.tres resources. Traits are passive modifiers that affect an entity's stats, grant special abilities, or provide flags for the AI and narrative systems. Examples include "Cowardly" (which the AI system would use to favor fleeing behavior), "Fire-Attuned" (which the combat system might use to grant a bonus to fire damage), or "Merchant" (which the dialogue system would use to open a trade interface).
 
-* InventoryComponent.tres: This component manages a collection of item resources. For player characters, this is their backpack. For NPCs, this can represent their shop inventory or personal belongings. For monsters, this component can define their potential loot drops, which the LootSystem will use upon their defeat.
+*  SkillComponent.tres: This component contains an array of references to Skill.tres resources. Each Skill.tres is another resource that defines a single usable ability, including its AP cost, targeting rules, effects, and animations. This component effectively defines what an entity can do.
 
-* AIBehaviorComponent.tres: This crucial component dictates an entity's behavior when not controlled by the player. It will contain a reference to a specific behavior script or a pre-configured Behavior Tree resource, allowing for a wide range of AI personalities from simple "attack-on-sight" logic to complex, goal-oriented plans.
+*  TraitComponent.tres: This component holds an array of references to Trait.tres resources. Traits are passive modifiers that affect an entity's stats, grant special abilities, or provide flags for the AI and narrative systems. Examples include "Cowardly" (which the AI system would use to favor fleeing behavior), "Fire-Attuned" (which the combat system might use to grant a bonus to fire damage), or "Merchant" (which the dialogue system would use to open a trade interface).
 
-* FactionComponent.tres: This defines the entity's allegiance. It will hold an ID for its primary faction and a dictionary of reputation scores with all other major factions in the world. This data is critical for determining social interactions and enemy targeting.
+*  InventoryComponent.tres: This component manages a collection of item resources. For player characters, this is their backpack. For NPCs, this can represent their shop inventory or personal belongings. For monsters, this component can define their potential loot drops, which the LootSystem will use upon their defeat.
 
-* QuestStateComponent.tres: This component acts as an entity's personal quest log. For NPCs, it tracks the status of quests they can offer the player (e.g., AVAILABLE, IN_PROGRESS, COMPLETED). For any entity, it can track their specific role in any active quests (e.g., QUEST_TARGET, QUEST_ESCORT_VIP).
+*  AIBehaviorComponent.tres: This crucial component dictates an entity's behavior when not controlled by the player. It will contain a reference to a specific behavior script or a pre-configured Behavior Tree resource, allowing for a wide range of AI personalities from simple "attack-on-sight" logic to complex, goal-oriented plans.
+
+*  FactionComponent.tres: This defines the entity's allegiance. It will hold an ID for its primary faction and a dictionary of reputation scores with all other major factions in the world. This data is critical for determining social interactions and enemy targeting.
+
+*  QuestStateComponent.tres: This component acts as an entity's personal quest log. For NPCs, it tracks the status of quests they can offer the player (e.g., AVAILABLE, IN_PROGRESS, COMPLETED). For any entity, it can track their specific role in any active quests (e.g., QUEST_TARGET, QUEST_ESCORT_VIP).
 
 2.3 Procedural Character Generation
 
@@ -159,13 +162,13 @@ A "World Run" constitutes a single, self-contained gameplay session. Each run fe
 
 Before a run begins, the player can adjust its generation using a set of parameters, many of which are unlocked through meta-progression. This gives the player a degree of agency over their experience and serves as a core reward mechanism. These parameters include:
 
-* World Seed: A string of text or numbers that serves as the initial value for the random number generator. The same seed will always produce the exact same World Run, allowing players to replay, master, or share specific world layouts.
+*  World Seed: A string of text or numbers that serves as the initial value for the random number generator. The same seed will always produce the exact same World Run, allowing players to replay, master, or share specific world layouts.
 
-* Map Modifiers: High-level parameters that control the physical structure of the world map. Examples include Size (Small, Medium, Large), which affects the number of nodes; Density (Sparse, Dense), which affects the number of connections between nodes; and Shape (e.g., Archipelago, Single Continent, Mountainous), which influences the application of biome layers.
+*  Map Modifiers: High-level parameters that control the physical structure of the world map. Examples include Size (Small, Medium, Large), which affects the number of nodes; Density (Sparse, Dense), which affects the number of connections between nodes; and Shape (e.g., Archipelago, Single Continent, Mountainous), which influences the application of biome layers.
 
-* Faction Modifiers: Parameters that influence the socio-political landscape of the world. Examples include "Warring Factions," which increases the number of hostile encounters and faction-based quests, or "Trade Boom," which increases the number of merchant nodes and the availability of rare items.
+*  Faction Modifiers: Parameters that influence the socio-political landscape of the world. Examples include "Warring Factions," which increases the number of hostile encounters and faction-based quests, or "Trade Boom," which increases the number of merchant nodes and the availability of rare items.
 
-* Constraint Modifiers: Rules that define the run's difficulty and limitations. This includes the Turn Limit (the total number of moves the player can make on the world map), the Save Limit (the number of times the player can save their progress during the run), and the starting Team Size.
+*  Constraint Modifiers: Rules that define the run's difficulty and limitations. This includes the Turn Limit (the total number of moves the player can make on the world map), the Save Limit (the number of times the player can save their progress during the run), and the starting Team Size.
 
 The output of this generation phase is a master WorldState resource. This object is the central state container for the entire run, storing the initial seed, all selected parameters, and the fully generated map graph. It serves as the single source of truth for the duration of the gameplay session.
 
@@ -183,9 +186,9 @@ The world map generation will follow a layered, multi-stage pipeline:
 
 4. Attribute Layering: Once the final graph structure is established, the system applies several layers of coherent noise (such as Perlin or Simplex noise) across the map to assign geographical and environmental attributes to the nodes.
 
-	* An Elevation Layer can be used to assign tags like Mountain, Plains, or Coastline to nodes.
+*  An Elevation Layer can be used to assign tags like Mountain, Plains, or Coastline to nodes.
 
-	* Temperature and Humidity Layers can be generated and combined to determine a biome for each node or region, resulting in tags like Desert, Forest, Tundra, or Swamp.
+*  Temperature and Humidity Layers can be generated and combined to determine a biome for each node or region, resulting in tags like Desert, Forest, Tundra, or Swamp.
 
 
 These attributes are not merely cosmetic; they are critical data points that will be used by the Narrative Designer module to determine the types of encounters, resources, environmental hazards, and quests that can appear at each node.
@@ -222,19 +225,19 @@ To achieve true procedural quest generation, quests must be broken down into the
 
 A library of Task resource types will be created, each with its own specific data and a corresponding logic handler in the QuestSystem to check for its completion. The core Task types will include:
 
-* GoTo_Task.tres: Contains a target map node ID. The task is complete when the player enters that node.
+*  GoTo_Task.tres: Contains a target map node ID. The task is complete when the player enters that node.
 
-* Kill_Task.tres: Contains a target entity_id (for a specific character) or an entity_archetype_id (for a type of monster). The task is completed when the QuestSystem receives an entity_killed event from the EventBus that matches the target.
+*  Kill_Task.tres: Contains a target entity_id (for a specific character) or an entity_archetype_id (for a type of monster). The task is completed when the QuestSystem receives an entity_killed event from the EventBus that matches the target.
 
-* Fetch_Task.tres: Contains a target item_id. The task is complete when an item with the matching ID is present in the player's InventoryComponent.
+*  Fetch_Task.tres: Contains a target item_id. The task is complete when an item with the matching ID is present in the player's InventoryComponent.
 
-* GiveItem_Task.tres: Contains a target NPC_id and a target item_id. The task is completed when the player initiates a dialogue with the target NPC and chooses the "give item" option with the correct item.
+*  GiveItem_Task.tres: Contains a target NPC_id and a target item_id. The task is completed when the player initiates a dialogue with the target NPC and chooses the "give item" option with the correct item.
 
-* TalkTo_Task.tres: Contains a target NPC_id. The task is complete upon initiating a dialogue with that NPC.
+*  TalkTo_Task.tres: Contains a target NPC_id. The task is complete upon initiating a dialogue with that NPC.
 
-* Interact_Task.tres: Contains an ID for a specific interactive object within a scene/node. The task is completed when the player interacts with that object.
+*  Interact_Task.tres: Contains an ID for a specific interactive object within a scene/node. The task is completed when the player interacts with that object.
 
-* Composite_Task.tres: This is a special container task that holds an array of other Task resources. It also has a logical operator (AND or OR). For an AND task, all sub-tasks must be completed. For an OR task, completing any one of the sub-tasks is sufficient. This composite primitive is the key to creating branching questlines and offering player choice.
+*  Composite_Task.tres: This is a special container task that holds an array of other Task resources. It also has a logical operator (AND or OR). For an AND task, all sub-tasks must be completed. For an OR task, completing any one of the sub-tasks is sufficient. This composite primitive is the key to creating branching questlines and offering player choice.
 
 4.2 Hierarchical Quest Generation: The QuestPlanner
 
@@ -261,20 +264,20 @@ This is achieved through a persistent save object, the MetaState, which is store
 
 The MetaState object will contain:
 
-* World Facts: A list of major, world-altering events that have occurred across all runs. These are stored as simple, declarative strings, such as ``.
+*  World Facts: A list of major, world-altering events that have occurred across all runs. These are stored as simple, declarative strings, such as ``.
 
-* Character Fates: A dictionary tracking the status of all persistent, named characters. For example: {"Astra": "Alive, Level 10", "Boris": "Deceased, Run 4"}.
+*  Character Fates: A dictionary tracking the status of all persistent, named characters. For example: {"Astra": "Alive, Level 10", "Boris": "Deceased, Run 4"}.
 
-* Player Legacy: Global statistics or reputation scores that reflect the player's overall playstyle (e.g., "Honorable," "Ruthless").
+*  Player Legacy: Global statistics or reputation scores that reflect the player's overall playstyle (e.g., "Honorable," "Ruthless").
 
-* Unlocked Content: A list of all content the player has unlocked for meta-progression, which is used by the World Run Generation Framework.
-This MetaState object directly influences the generation of new World Runs. During the map population phase, the NarrativeDesigner and QuestPlanner will query the MetaState to add context and continuity to the new world:
+*  Unlocked Content: A list of all content the player has unlocked for meta-progression, which is used by the World Run Generation Framework.
+This MetaState object directly influences the generation of new World 	Runs. During the map population phase, the NarrativeDesigner and 	QuestPlanner will query the MetaState to add context and continuity to 	the new world:
 
-* Continuity Example: If the MetaState contains the fact Warlord_Krox_Defeated_In_Run_4, the NarrativeDesigner's rules will prevent it from placing Warlord Krox in the new world. Instead, a different rule might be triggered to spawn a "Cult of Krox" faction seeking revenge, or place Krox's "legendary axe" as a discoverable artifact.
+*  Continuity Example: If the MetaState contains the fact Warlord_Krox_Defeated_In_Run_4, the NarrativeDesigner's rules will prevent it from placing Warlord Krox in the new world. Instead, a different rule might be triggered to spawn a "Cult of Krox" faction seeking revenge, or place Krox's "legendary axe" as a discoverable artifact.
 
-* Responsive Narrative Example: If the MetaState shows that the player has repeatedly failed runs due to poison-based enemies, the MetaNarrativeEngine can flag this pattern. In the next run, it can instruct the QuestPlanner to generate a special, high-priority quest chain to "Find the Legendary Serpent's Fang Antidote," directly responding to the player's personal struggles.
+*  Responsive Narrative Example: If the MetaState shows that the player has repeatedly failed runs due to poison-based enemies, the MetaNarrativeEngine can flag this pattern. In the next run, it can instruct the QuestPlanner to generate a special, high-priority quest chain to "Find the Legendary Serpent's Fang Antidote," directly responding to the player's personal struggles.
 
-* Dialogue Context Example: An NPC's dialogue generation can be informed by the MetaState. A blacksmith might have a line of dialogue that only triggers if the Warlord_Krox_Defeated fact is present: "I heard about your victory over Krox in the last cycle. The whole realm owes you a debt."
+*  Dialogue Context Example: An NPC's dialogue generation can be informed by the MetaState. A blacksmith might have a line of dialogue that only triggers if the Warlord_Krox_Defeated fact is present: "I heard about your victory over Krox in the last cycle. The whole realm owes you a debt."
 
 This creates a powerful feedback loop: Player actions in a run lead to a specific outcome, which updates the MetaState. The MetaState then influences the generation of the next run, which presents the player with a new set of challenges and narrative threads based on their own history. This loop is the procedural meta-narrative. It is not a pre-written story but a system that generates a continuous, personalized history that is unique to each player's journey.
 
@@ -286,42 +289,56 @@ This section details the design of the moment-to-moment gameplay systems that ar
 
 To maintain modularity and avoid code duplication, a single, unified system will be responsible for managing all turn-based encounters. Whether the player is engaged in tactical combat, a complex dialogue negotiation with multiple parties, or a timed environmental puzzle, the core turn-based logic will be handled by the Interaction Manager.
 The heart of this manager will be a Finite State Machine (FSM), a well-established pattern for managing discrete states in game development.26 The primary states of the FSM will include:
-* START_ENCOUNTER: Initializes the encounter, gathers all participating entities, and prepares the turn queue.
-* CALCULATE_TURN_ORDER: Sorts the list of participants to create the turn queue. By default, this is based on each entity's Speed statistic, from highest to lowest.26
-* AWAITING_INPUT: The state for the active entity's turn. For player characters, it waits for player commands. For AI entities, it triggers their behavior logic.
-* PROCESS_ACTION: An action has been selected. This state is responsible for resolving the action's effects (e.g., calculating damage, applying status effects, updating quest states).
-* END_TURN: The current entity's turn is over. The manager advances to the next entity in the queue. If the queue is empty, it transitions back to CALCULATE_TURN_ORDER for the next round.
-* CHECK_END_CONDITIONS: After each action or turn, this state checks if the encounter's end conditions (e.g., all enemies defeated, dialogue goal reached, puzzle solved) have been met.
-* END_ENCOUNTER: The encounter is over. This state handles cleanup, reward distribution, and transitioning the game back to the world map view.
+
+*  START_ENCOUNTER: Initializes the encounter, gathers all participating entities, and prepares the turn queue.
+*  CALCULATE_TURN_ORDER: Sorts the list of participants to create the turn queue. By default, this is based on each entity's Speed statistic, from highest to lowest.26
+*  AWAITING_INPUT: The state for the active entity's turn. For player characters, it waits for player commands. For AI entities, it triggers their behavior logic.
+*  PROCESS_ACTION: An action has been selected. This state is responsible for resolving the action's effects (e.g., calculating damage, applying status effects, updating quest states).
+*  END_TURN: The current entity's turn is over. The manager advances to the next entity in the queue. If the queue is empty, it transitions back to CALCULATE_TURN_ORDER for the next round.
+*  CHECK_END_CONDITIONS: After each action or turn, this state checks if the encounter's end conditions (e.g., all enemies defeated, dialogue goal reached, puzzle solved) have been met.
+*  END_ENCOUNTER: The encounter is over. This state handles cleanup, reward distribution, and transitioning the game back to the world map view.
+* 
 All actions within this system are governed by Action Points (AP). At the start of its turn, each entity receives a number of AP determined by its StatsComponent. Every action, from moving one grid space to using a complex skill, has a defined AP cost. An entity can perform multiple actions in its turn as long as it has sufficient AP.
-A critical architectural detail is that actions are not resolved instantly by the entity that performs them. When a player or AI chooses an action (e.g., "Cast Fireball at Target X"), it creates an Action data object and submits it to the Interaction Manager's queue. The PROCESS_ACTION state is then responsible for executing this action, calculating all its consequences, and updating the state of all affected entities. This centralized, asynchronous handling is crucial for managing complex interactions, such as an attack that chains to multiple targets or an effect that triggers a series of counter-attacks. The system will rely heavily on Godot's signals to manage the timing of animations, visual effects, and sound, ensuring that the game waits for an animation to complete before processing the next step in the turn order.28
+
+A critical architectural detail is that actions are not resolved instantly by the entity that performs them. When a player or AI chooses an action (e.g., "Cast Fireball at Target X"), it creates an Action data object and submits it to the Interaction Manager's queue. The PROCESS_ACTION state is then responsible for executing this action, calculating all its consequences, and updating the state of all affected entities. 
+
+This centralized, asynchronous handling is crucial for managing complex interactions, such as an attack that chains to multiple targets or an effect that triggers a series of counter-attacks. The system will rely heavily on Godot's signals to manage the timing of animations, visual effects, and sound, ensuring that the game waits for an animation to complete before processing the next step in the turn order.28
 
 5.2 Procedural Item and Artifact Generation
 
 The generation of loot and rewards is a core driver of player progression in an RPG. To ensure variety and replayability, Project Chimera will employ a sophisticated, rule-based randomized algorithm for item generation, based on established practices in the genre.29 This system will be capable of creating a near-infinite variety of equipment by combining base items with a vast library of magical affixes.
+
 The item generation process, managed by the LootSystem, follows these steps:
 1. Base Item Selection: The process begins by selecting a base item template from the AssetRegistry. These templates (e.g., IronSword.tres, LeatherArmor.tres) are handcrafted Resource files that define the item's fundamental properties: its type (weapon, armor, etc.), equipment slot, base damage or defense values, and visual appearance.
 2. Quality Roll: The system then determines the item's quality tier (e.g., Common, Magic, Rare, Unique). This is a weighted random roll, with probabilities that can be modified by the player character's "Quality Find" statistic. The formulas for this will incorporate diminishing returns to prevent the stat from becoming overpowered.29
 3. Affix/Modifier Application: Based on the rolled quality, the item is assigned a number of magical affixes. These affixes are themselves small Affix.tres resources that define a specific bonus (e.g., "+ Strength," "Adds Fire Damage," "Resists Poison").
-	* Magic quality items might receive 1-2 affixes.
-	* Rare quality items might receive 3-4 affixes.
-	* Unique quality items are special. They may have 5-6 affixes and are often assigned a unique, handcrafted Trait resource that grants a special, game-altering ability not available through normal affixes.
+
+*  Magic quality items might receive 1-2 affixes.
+*  Rare quality items might receive 3-4 affixes.
+*  Unique quality items are special. They may have 5-6 affixes and are often assigned a unique, handcrafted Trait resource that grants a special, game-altering ability not available through normal affixes.
+
 4. Stat Value Calculation: The numerical values of the applied affixes (e.g., the "X" in "+X Strength") are randomly rolled. The range of this roll is determined by the item's level, which is typically based on the level of the monster that dropped it or the difficulty of the area in which it was found. This ensures that loot scales appropriately with the player's progress.29
 5. Finalization and Instantiation: The system assembles all of this generated data to create a new, unique item resource in memory. This new resource, with its base type, quality, affixes, and rolled stat values, is then added to the player's InventoryComponent or spawned as loot in the game world.
 
 5.3 The LLM Dialogue Enhancer
 
-The integration of a Large Language Model (LLM) is intended to add dynamic, context-aware flavor and personality to in-game text, particularly dialogue and descriptions. The architectural approach is critical: the LLM will be used as a powerful text-enhancement tool, but it will never be responsible for critical game logic, quest information, or branching choices. This ensures that the game remains deterministic, performant, and free from the risk of LLM "hallucinations" breaking the gameplay experience.
-The technical implementation will leverage the godot-llm Godot addon, which provides the necessary nodes and API for interacting with locally run LLMs in the GGUF format.30 The
-GDLlama node will be used for asynchronous text generation to prevent the game from freezing while waiting for the LLM's response.
+The integration of a Large Language Model (LLM) is intended to add dynamic, context-aware flavor and personality to in-game text, particularly dialogue and descriptions. The architectural approach is critical: the LLM will be used as a powerful text-enhancement tool, but it will never be responsible for critical game logic, quest information, or branching choices. 
+
+This ensures that the game remains deterministic, performant, and free from the risk of LLM "hallucinations" breaking the gameplay experience.
+The technical implementation will leverage the godot-llm Godot addon, which provides the necessary nodes and API for interacting with locally run LLMs in the GGUF format.
+
+The GDLlama node will be used for asynchronous text generation to prevent the game from freezing while waiting for the LLM's response.
 The core of this system is the Data-to-Prompt Pipeline, which translates the game's structured state into a carefully engineered prompt for the LLM:
 1. Structured Data Skeleton: All dialogue and descriptions are first defined by a "skeleton" of structured data. This is the source of truth. For an NPC dialogue interaction, this might be a Resource containing fields like:
-	* speaker_id: "npc_boris_the_blacksmith"
-	* speaker_traits: ["grumpy", "proud_of_work"]
-	* player_faction_reputation: 75 (Friendly)
-	* active_quest_state: "incomplete"
-	* core_dialogue: "You need your sword sharpened? Fine. It'll cost you 20 gold." (This is the critical, handcrafted text containing gameplay information).
+
+*  speaker_id: "npc_boris_the_blacksmith"
+*  speaker_traits: ["grumpy", "proud_of_work"]
+*  player_faction_reputation: 75 (Friendly)
+*  active_quest_state: "incomplete"
+*  core_dialogue: "You need your sword sharpened? Fine. It'll cost you 20 gold." (This is the critical, handcrafted text containing gameplay information).
+
 2. Prompt Engineering: A dedicated PromptEngineering module takes this structured data and assembles a detailed prompt for the LLM. This prompt provides the LLM with the necessary context and constraints to generate appropriate text.
+
 	* Example Prompt: "You are a game character. Your name is Boris and you are a blacksmith. Your personality is grumpy but you are proud of your work. You are speaking to the player, with whom you have a friendly relationship. The player has not yet completed a quest you gave them. Your essential message is: 'You need your sword sharpened? Fine. It'll cost you 20 gold.' Add one or two sentences of flavorful commentary before this essential message that reflects your personality and the current situation."
 3. Asynchronous LLM Generation: The engineered prompt is sent to the local GDLlama node using its run_generate_text function. The game continues to run without interruption while the LLM processes the request in a background thread.30
 4. Text Integration: When the GDLlama node emits its generate_text_finished signal, the system receives the generated flavor text (e.g., "Hmph. Back again. I see you're still running around with a dull blade instead of finding that rare ore for me."). The game's UI then combines this with the core dialogue to present the full text to the player.
@@ -422,6 +439,8 @@ Works cited
 31. Saving/loading data :: Godot 4 Recipes - KidsCanCode, accessed September 13, 2025, https://kidscancode.org/godot_recipes/4.x/basics/file_io/index.html(https://kidscancode.org/godot_recipes/4.x/basics/file_io/index.html)
 32. Saving games — Godot Engine (stable) documentation in English, accessed September 13, 2025, https://docs.godotengine.org/en/stable/tutorials/io/saving_games.html(https://docs.godotengine.org/en/stable/tutorials/io/saving_games.html)
 33. Save & Load in Godot 4.4 | Ultimate Guide - YouTube, accessed September 13, 2025, https://www.youtube.com/watch?v=xG2GGniUa5o(https://www.youtube.com/watch?v=xG2GGniUa5o)
+
+
 
 
 
