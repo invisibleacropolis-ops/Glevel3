@@ -6,7 +6,7 @@ extends Node
 
 const EntityDataScript := preload("res://src/core/EntityData.gd")
 const ComponentScript := preload("res://src/core/Component.gd")
-const Enums := preload("res://src/globals/Enums.gd")
+const ULTEnums := preload("res://src/globals/ULTEnums.gd")
 
 func run_test() -> Dictionary:
     var passed := true
@@ -20,7 +20,7 @@ func run_test() -> Dictionary:
     total += 1
     var stats_component := ComponentScript.new()
     entity.add_component("stats", stats_component)
-    var retrieved := entity.get_component(Enums.ComponentKeys.STATS)
+    var retrieved := entity.get_component(ULTEnums.ComponentKeys.STATS)
     if retrieved == stats_component:
         print("PASS: add_component stored and retrieved the Component instance using a canonical key.")
         successes += 1

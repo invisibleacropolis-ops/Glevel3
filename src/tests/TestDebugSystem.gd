@@ -7,7 +7,7 @@ extends Node
 const DebugSystem = preload("res://src/systems/DebugSystem.gd")
 const EntityData = preload("res://src/core/EntityData.gd")
 const StatsComponent = preload("res://src/components/StatsComponent.gd")
-const Enums = preload("res://src/globals/Enums.gd")
+const ULTEnums = preload("res://src/globals/ULTEnums.gd")
 const EventBusScene = preload("res://src/globals/EventBus.gd")
 
 var event_bus: Node
@@ -32,7 +32,7 @@ func _build_test_entity() -> Node:
     stats.action_points = 4
     stats.max_action_points = 4
 
-    data.add_component(Enums.ComponentKeys.STATS, stats)
+    data.add_component(ULTEnums.ComponentKeys.STATS, stats)
     entity.set("entity_data", data)
 
     return entity
