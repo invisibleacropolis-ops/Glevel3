@@ -16,6 +16,10 @@ The `AssetRegistry` is a lightweight loader responsible for discovering `.tres` 
 - `has_asset(name: String) -> bool` offers a cheap existence check when you need to branch logic without paying the cost of retrieving the underlying resource.
 - When querying from gameplay code, prefer using constants or enumerations for the keys to reduce typographical errors.
 
+## Diagnostics & Failure Handling
+- The registry maintains a `failed_assets` dictionary mirroring the keys stored in `assets`. When a `.tres` file fails to load—because of malformed syntax, missing dependencies, or permission issues—the singleton records the resource path in this dictionary and surfaces a `push_error` message so the problem is visible in-editor and in headless test logs.
+- Call `get_failed_assets() -> Dictionary` to obtain a duplicate of the current failure map. Automated tests (see `res://src/tests/TestAssetRegistry.gd`) leverage this to ensure corrupted files do not crash the loader and that the registry advertises which resources require attention before shipping.
+
 ## Common Use Cases
 ```gdscript
 # Example: retrieving a preloaded asset from the singleton registry.
