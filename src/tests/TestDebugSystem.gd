@@ -18,6 +18,20 @@ func _on_debug_stats_reported(data: Dictionary) -> void:
     signal_received = true
     received_payload = data
 
+func _remove_file_if_exists(path: String) -> void:
+    if path == "":
+        return
+
+    if not FileAccess.file_exists(path):
+        return
+
+    var absolute_path := ProjectSettings.globalize_path(path)
+    var error := DirAccess.remove_absolute(absolute_path)
+    if error != OK:
+        push_warning(
+            "TestDebugSystem could not remove temporary log file %s (error %d)." % [path, error]
+        )
+
 func _build_test_entity() -> Dictionary:
     var entity := Node.new()
     entity.name = "DebugEntity"
@@ -83,6 +97,12 @@ func run_test() -> Dictionary:
             print("PASS: DebugSystem emitted debug_stats_reported with expected payload.")
             successes += 1
 
+    var first_master_path := debug_system.get_master_error_log_path()
+    var first_log_path := debug_system.get_log_file_path()
+    debug_system._finalize_log_capture()
+    _remove_file_if_exists(first_master_path)
+    _remove_file_if_exists(first_log_path)
+
     total += 1
     debug_system._captured_log_entries.clear()
     debug_system._logging_active = true
@@ -108,6 +128,46 @@ func run_test() -> Dictionary:
             successes += 1
 
     debug_system._logging_active = false
+
+    total += 1
+    debug_system._initialize_log_capture()
+    var master_path := debug_system.get_master_error_log_path()
+    var session_log_path := debug_system.get_log_file_path()
+
+    debug_system.capture_log_message("Non-error heartbeat", 1, "UnitTest", "2024-01-01T00:00:00Z")
+    debug_system.capture_log_message("Critical failure flagged", 3, "UnitTest", "2024-01-01T00:00:01Z")
+    debug_system.capture_log_message("Fatal meltdown", 4, "UnitTest", "2024-01-01T00:00:02Z")
+    debug_system._finalize_log_capture()
+
+    if master_path == "":
+        push_error("FAIL: DebugSystem did not report a master error log path.")
+        passed = false
+    elif not FileAccess.file_exists(master_path):
+        push_error("FAIL: Master error log file missing at %s." % master_path)
+        passed = false
+    else:
+        var master_file := FileAccess.open(master_path, FileAccess.READ)
+        if master_file == null:
+            push_error("FAIL: Unable to read master error log at %s." % master_path)
+            passed = false
+        else:
+            var contents := master_file.get_as_text()
+            master_file.close()
+            if contents.find("Critical failure flagged") == -1:
+                push_error("FAIL: Master error log did not capture error-level entries.")
+                passed = false
+            elif contents.find("Fatal meltdown") == -1:
+                push_error("FAIL: Master error log did not capture fatal entries.")
+                passed = false
+            elif contents.find("Non-error heartbeat") != -1:
+                push_error("FAIL: Master error log included non-error messages.")
+                passed = false
+            else:
+                print("PASS: Master error log captured only error-class messages in the project root.")
+                successes += 1
+
+    _remove_file_if_exists(master_path)
+    _remove_file_if_exists(session_log_path)
 
     print("Summary: %d/%d tests passed." % [successes, total])
 
