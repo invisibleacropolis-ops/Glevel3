@@ -22,6 +22,12 @@ relationships.
 
 ![Entity composition diagram](devdocs/diagrams/entity_composition_component.svg)
 
+### Core data contract status
+
+- `EntityData` continues to anchor every entity manifest and now normalizes component keys to `StringName` values while still tolerating legacy string data for compatibility. The helper methods (`add_component()`, `get_component()`, `has_component()`, `remove_component()`, and `list_components()`) enforce registration through `ULTEnums.is_valid_component_key()` so malformed manifests fail fast.【F:src/core/EntityData.gd†L1-L74】
+- Always reference components through `ULTEnums.ComponentKeys` constants instead of raw strings when reading or writing the manifest. The enums module exposes canonical `StringName` keys plus metadata describing the expected resource for each slot so systems, tools, and archetype authoring stay in sync.【F:src/globals/ULTEnums.gd†L31-L92】【F:src/globals/ULTEnums.gd†L129-L174】
+- `StatsComponent` is the current reference payload for combatants and recruits. It exposes exported fields for job identity, vital resources, attribute pools, training proficiencies, and equipment snapshots, along with runtime helpers for damage, healing, and stat deltas.【F:src/components/StatsComponent.gd†L1-L204】 A dedicated [Stats Component Manual](devdocs/Designers/StatsComponentManual.md) captures designer-friendly descriptions and balancing ranges for every property.
+
 ## Event Flow Through the Global Event Bus
 
 All gameplay systems extend the `System` base class, which centralizes helper methods for publishing and subscribing to the
