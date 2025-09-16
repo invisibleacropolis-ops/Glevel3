@@ -46,7 +46,12 @@ func _scan_and_load_assets(path: String) -> void:
         push_warning("AssetRegistry: Unable to open directory '%s'." % normalized_path)
         return
 
-    dir.list_dir_begin(true, true)
+    ## Godot 4.4 made `list_dir_begin()` parameterless and instead relies on
+    ## the `include_hidden` and `include_navigational` flags, so mirror the
+    ## previous skip behaviour explicitly before starting the iteration.
+    dir.include_navigational = false
+    dir.include_hidden = false
+    dir.list_dir_begin()
     var file_name := dir.get_next()
     while file_name != "":
         var entry_path := normalized_path + file_name
