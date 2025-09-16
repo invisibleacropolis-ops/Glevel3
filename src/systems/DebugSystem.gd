@@ -4,7 +4,8 @@ class_name DebugSystem
 const EVENT_BUS_SCRIPT := preload("res://src/globals/EventBus.gd")
 
 const EntityData = preload("res://src/core/EntityData.gd")
-const StatsComponent = preload("res://src/systems/StatsComponent.gd")
+const StatsComponent = preload("res://src/components/StatsComponent.gd")
+const Enums = preload("res://src/globals/Enums.gd")
 
 ## Optional EventBus reference to allow dependency injection in tests.
 var event_bus: EventBusSingleton = null
@@ -18,8 +19,8 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
     for entity in get_tree().get_nodes_in_group("entities"):
         var data: EntityData = entity.get("entity_data")
-        if data and data.components.has("stats"):
-            var stats: StatsComponent = data.components["stats"]
+        if data and data.has_component(Enums.ComponentKeys.STATS):
+            var stats: StatsComponent = data.get_component(Enums.ComponentKeys.STATS)
             print("%s HP: %d" % [entity.name, stats.health])
             var bus := _get_event_bus()
             if bus:
@@ -105,7 +106,17 @@ func _resolve_entity_id(entity: Node, data: EntityData) -> String:
 func _snapshot_stats(stats: StatsComponent) -> Dictionary:
     return {
         "health": stats.health,
+        "max_health": stats.max_health,
         "action_points": stats.action_points,
+        "max_action_points": stats.max_action_points,
+        "strength": stats.strength,
+        "dexterity": stats.dexterity,
+        "constitution": stats.constitution,
+        "intelligence": stats.intelligence,
+        "willpower": stats.willpower,
+        "speed": stats.speed,
+        "resistances": stats.resistances.duplicate(),
+        "vulnerabilities": stats.vulnerabilities.duplicate(),
     }
 
 ## Receives notifications when other systems broadcast entity_killed.

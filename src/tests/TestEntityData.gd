@@ -6,6 +6,7 @@ extends Node
 
 const EntityDataScript := preload("res://src/core/EntityData.gd")
 const ComponentScript := preload("res://src/core/Component.gd")
+const Enums := preload("res://src/globals/Enums.gd")
 
 func run_test() -> Dictionary:
     var passed := true
@@ -15,13 +16,13 @@ func run_test() -> Dictionary:
 
     var entity := EntityDataScript.new()
 
-    # Test 1: add_component stores and returns the same instance.
+    # Test 1: add_component stores and returns the same instance while normalising the key.
     total += 1
     var stats_component := ComponentScript.new()
     entity.add_component("stats", stats_component)
-    var retrieved := entity.get_component("stats")
+    var retrieved := entity.get_component(Enums.ComponentKeys.STATS)
     if retrieved == stats_component:
-        print("PASS: add_component stored and retrieved the Component instance.")
+        print("PASS: add_component stored and retrieved the Component instance using a canonical key.")
         successes += 1
     else:
         push_error("FAIL: add_component did not return the stored Component instance.")
@@ -37,7 +38,16 @@ func run_test() -> Dictionary:
         push_error("FAIL: get_component should return null for a missing key.")
         passed = false
 
-    # Test 3: add_component replaces an existing entry.
+    # Test 3: has_component reflects registration state.
+    total += 1
+    if entity.has_component("stats") and not entity.has_component("inventory"):
+        print("PASS: has_component accurately reports component presence.")
+        successes += 1
+    else:
+        push_error("FAIL: has_component produced incorrect results.")
+        passed = false
+
+    # Test 4: add_component replaces an existing entry.
     total += 1
     var replacement := ComponentScript.new()
     entity.add_component("stats", replacement)
@@ -46,6 +56,28 @@ func run_test() -> Dictionary:
         successes += 1
     else:
         push_error("FAIL: add_component did not replace the existing entry.")
+        passed = false
+
+    # Test 5: remove_component detaches the stored component.
+    total += 1
+    var removed := entity.remove_component("stats")
+    if removed == replacement and not entity.has_component("stats"):
+        print("PASS: remove_component returned and removed the expected Component instance.")
+        successes += 1
+    else:
+        push_error("FAIL: remove_component failed to return or purge the Component instance.")
+        passed = false
+
+    # Test 6: list_components provides a shallow copy that can be iterated safely.
+    total += 1
+    entity.add_component("stats", ComponentScript.new())
+    var manifest := entity.list_components()
+    manifest.clear()
+    if entity.has_component("stats"):
+        print("PASS: list_components returns a defensive copy of the manifest.")
+        successes += 1
+    else:
+        push_error("FAIL: list_components should not expose the internal manifest directly.")
         passed = false
 
     entity.components.clear()

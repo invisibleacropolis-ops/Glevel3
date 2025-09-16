@@ -6,7 +6,8 @@ extends Node
 
 const DebugSystem = preload("res://src/systems/DebugSystem.gd")
 const EntityData = preload("res://src/core/EntityData.gd")
-const StatsComponent = preload("res://src/systems/StatsComponent.gd")
+const StatsComponent = preload("res://src/components/StatsComponent.gd")
+const Enums = preload("res://src/globals/Enums.gd")
 const EventBusScene = preload("res://src/globals/EventBus.gd")
 
 var event_bus: Node
@@ -27,9 +28,11 @@ func _build_test_entity() -> Node:
 
     var stats := StatsComponent.new()
     stats.health = 15
+    stats.max_health = 15
     stats.action_points = 4
+    stats.max_action_points = 4
 
-    data.components["stats"] = stats
+    data.add_component(Enums.ComponentKeys.STATS, stats)
     entity.set("entity_data", data)
 
     return entity
@@ -66,7 +69,17 @@ func run_test() -> Dictionary:
     else:
         var expected_stats := {
             "health": 15,
+            "max_health": 15,
             "action_points": 4,
+            "max_action_points": 4,
+            "strength": 0,
+            "dexterity": 0,
+            "constitution": 0,
+            "intelligence": 0,
+            "willpower": 0,
+            "speed": 0.0,
+            "resistances": {},
+            "vulnerabilities": {},
         }
         if received_payload.get("entity_id", "") != "entity_debug_001":
             push_error("FAIL: debug_stats_reported entity_id mismatch.")
