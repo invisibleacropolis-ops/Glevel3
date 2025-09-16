@@ -20,12 +20,18 @@ const RESOURCE_EXTENSION := ".tres"
 ## Using a typed dictionary makes intent explicit for engineers integrating new loaders.
 var assets: Dictionary[String, Resource] = {}
 
+## Records resources that failed to load so automated tests and diagnostics can
+## confirm error handling. Keys mirror the asset dictionary while the value is
+## the absolute resource path that triggered the failure.
+var failed_assets: Dictionary[String, String] = {}
+
 ## Directories recursively scanned for resources when the singleton becomes ready.
 @export var directories_to_scan: Array[String] = DEFAULT_SCAN_DIRECTORIES.duplicate()
 
 func _ready() -> void:
     ## Reset the cache in case the singleton is reloaded during hot-swap testing.
     assets.clear()
+    failed_assets.clear()
 
     for directory_path in directories_to_scan:
         _scan_and_load_assets(directory_path)
@@ -62,10 +68,13 @@ func _ensure_directory_suffix(path: String) -> String:
 
 ## Loads a resource and records it under the provided key if successful.
 func _ingest_resource(resource_path: String, asset_key: String) -> void:
-    var resource := ResourceLoader.load(resource_path)
+    var resource := load(resource_path)
     if resource == null:
         push_error("AssetRegistry: Failed to load resource at '%s'." % resource_path)
+        failed_assets[asset_key] = resource_path
         return
+
+    failed_assets.erase(asset_key)
 
     if assets.has(asset_key):
         push_warning("AssetRegistry: Duplicate asset key '%s' encountered. Replacing existing entry." % asset_key)
@@ -82,3 +91,9 @@ func get_asset(asset_name: String) -> Resource:
 ## Checks whether an asset key exists inside the registry cache.
 func has_asset(asset_name: String) -> bool:
     return assets.has(asset_name)
+
+## Returns a shallow copy of all failed asset paths recorded during the most
+## recent scan. Callers receive a duplicate so the registry's bookkeeping cannot
+## be mutated from the outside.
+func get_failed_assets() -> Dictionary:
+    return failed_assets.duplicate()
