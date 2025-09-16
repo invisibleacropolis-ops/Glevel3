@@ -30,10 +30,10 @@ func get_all_traits() -> Array:
 ## Determines if a specific trait resource is compatible with the archetype.
 ## Invalid inputs (``null`` or missing identifiers) are rejected before
 ## searching the combined list to avoid nil dereferences in consuming systems.
-func is_trait_allowed(trait) -> bool:
-    if not _is_trait_resource_valid(trait):
+func is_trait_allowed(trait_resource: Resource) -> bool:
+    if not _is_trait_resource_valid(trait_resource):
         return false
-    var trait_id := _get_trait_id(trait)
+    var trait_id := _get_trait_id(trait_resource)
     if trait_id == "":
         return false
 
@@ -117,11 +117,11 @@ func _collect_trait_id_lookup(traits: Array) -> Dictionary:
 ## empty string when the input is invalid. The helper relies on the
 ## ``trait_id`` export defined by ``Trait.gd`` but falls back safely if the
 ## property is missing or stored as a ``StringName``.
-func _get_trait_id(trait) -> String:
-    if trait == null or not (trait is Object):
+func _get_trait_id(trait_resource: Object) -> String:
+    if trait_resource == null or not (trait_resource is Object):
         return ""
 
-    var raw_id = trait.get("trait_id")
+    var raw_id = trait_resource.get("trait_id")
     if raw_id == null:
         return ""
 
@@ -135,9 +135,9 @@ func _get_trait_id(trait) -> String:
     return ""
 
 ## Returns ``true`` when the provided resource is a valid trait definition.
-func _is_trait_resource_valid(trait) -> bool:
-    if trait == null or not (trait is Resource):
+func _is_trait_resource_valid(trait_resource: Resource) -> bool:
+    if trait_resource == null or not (trait_resource is Resource):
         return false
-    if not trait.is_class("Trait"):
+    if not trait_resource.is_class("Trait"):
         return false
-    return _get_trait_id(trait) != ""
+    return _get_trait_id(trait_resource) != ""
