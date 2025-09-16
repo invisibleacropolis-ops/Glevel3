@@ -119,7 +119,9 @@ func _populate_field_rows(
     for raw_key in definitions.keys():
         normalized[String(raw_key)] = definitions[raw_key]
 
-    var field_names: Array[String] = normalized.keys()
+    var field_names: Array[String] = []
+    for raw_field_name in normalized.keys():
+        field_names.append(String(raw_field_name))
     field_names.sort()
 
     for field_name in field_names:
