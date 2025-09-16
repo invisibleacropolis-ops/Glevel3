@@ -1,5 +1,9 @@
 extends Object
-class_name ULTEnums
+
+## NOTE: The script is exposed as the `ULTEnums` autoload singleton via
+## `project.godot`. We intentionally omit a `class_name` declaration to avoid
+## Godot warnings about a global class hiding that singleton while keeping the
+## API available through `preload()` constants and the autoload instance.
 
 ## Ultimate enumeration registry that merges the streamlined constants from the
 ## lightweight Enums helper with the diagnostic tooling of OldEnums.
@@ -179,12 +183,12 @@ static func assert_valid_component_key(key: Variant) -> bool:
 ## entry records whether the key is recognised, the value type, and any issues
 ## detected so debug overlays can surface actionable feedback to engineers.
 static func inspect_component_dictionary(components: Dictionary) -> Dictionary:
-    var report := {}
+    var report: Dictionary = {}
     for raw_key in components.keys():
         var normalized := _normalize_component_key(raw_key)
-        var metadata := COMPONENT_KEY_METADATA.get(normalized, {})
-        var value := components[raw_key]
-        var entry := {
+        var metadata: Dictionary = COMPONENT_KEY_METADATA.get(normalized, {})
+        var value: Variant = components.get(raw_key)
+        var entry: Dictionary = {
             "normalized_key": String(normalized),
             "recognized": not metadata.is_empty(),
             "value_type": type_string(typeof(value)),
