@@ -107,16 +107,20 @@ func _snapshot_stats(stats: StatsComponent) -> Dictionary:
     return {
         "health": stats.health,
         "max_health": stats.max_health,
+        "energy": stats.energy,
+        "max_energy": stats.max_energy,
+        "armor_rating": stats.armor_rating,
         "action_points": stats.action_points,
         "max_action_points": stats.max_action_points,
         "strength": stats.strength,
-        "dexterity": stats.dexterity,
-        "constitution": stats.constitution,
-        "intelligence": stats.intelligence,
-        "willpower": stats.willpower,
+        "agility": stats.agility,
         "speed": stats.speed,
+        "intelligence": stats.intelligence,
+        "wisdom": stats.wisdom,
+        "charisma": stats.charisma,
         "resistances": stats.resistances.duplicate(),
         "vulnerabilities": stats.vulnerabilities.duplicate(),
+        "traits": stats.traits.duplicate(),
     }
 
 ## Receives notifications when other systems broadcast entity_killed.
