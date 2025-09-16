@@ -1,7 +1,7 @@
 # Autoload Debugger Implementation Plan
 
 ## Purpose and Guiding Principles
-- Provide a unified, always-on diagnostics layer for all autoload singletons (`EventBus`, `AssetRegistry`, `ModuleRegistry`, and `Enums`).
+- Provide a unified, always-on diagnostics layer for all autoload singletons (`EventBus`, `AssetRegistry`, `ModuleRegistry`, and `ULTEnums`).
 - Record high-signal error and warning events with enough structured metadata that engineers can triage issues without reproducing them locally.
 - Preserve the low-friction workflow established in the design docs: singletons remain lightweight and decoupled, while the debugger observes their behaviour without introducing circular dependencies.
 - Ship editor-friendly tooling (a dockable panel and exported reports) so designers can view validation output when authoring resources.
@@ -32,7 +32,7 @@
   - Any rejected registration attempts (empty name, invalid node).
 - Metadata to include: module name (`StringName`), node path, validity flags, and whether the event was manual or automatic.
 
-### Enums (`res://src/globals/Enums.gd`)
+### ULTEnums (`res://src/globals/ULTEnums.gd`)
 - Defines entity taxonomy and `ComponentKeys` metadata plus validation helpers (`assert_valid_*`, `inspect_component_dictionary`, etc.).
 - **Hook Plan:**
   - Instrument `assert_valid_entity_type` and `assert_valid_component_key` so both log to the debugger in addition to `push_error` when a check fails.
@@ -83,7 +83,7 @@
    - Provide export button writing JSON to `res://tests/results/` for inclusion in CI artifacts.
 4. **Advanced Analytics (Stretch):**
    - Correlate repeated errors (e.g., same asset failing to load multiple times) and surface aggregated counts.
-   - Integrate with `Enums.inspect_component_dictionary()` to annotate entries with missing component keys vs. null references.
+  - Integrate with `ULTEnums.inspect_component_dictionary()` to annotate entries with missing component keys vs. null references.
 
 ## Testing and Maintenance Plan
 - Extend automated regression scenes (`EventBus_TestHarness.tscn`, `Sprint1_Validation.tscn`) with scripts that intentionally trigger errors and then assert the debugger recorded them.
