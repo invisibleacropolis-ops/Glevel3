@@ -1,16 +1,20 @@
-extends Node
-class_name Enums
+extends Object
+class_name ULTEnums
 
-## Central catalogue of enumerations and string keys shared across gameplay systems.
+## Ultimate enumeration registry that merges the streamlined constants from the
+## lightweight Enums helper with the diagnostic tooling of OldEnums.
 ##
-## Godot autoloads this script as `Enums` so engineers and designers can reference
-## typo-safe constants such as `Enums.EntityType.MONSTER` or
-## `Enums.ComponentKeys.STATS`. Centralizing the identifiers ensures that
-## dictionaries used by `EntityData` remain consistent across procedural tools,
-## authored resources, and runtime systems. The helper methods in this singleton
-## expose diagnostic utilities for validating data payloads whenever the project
-## surfaces mysterious dictionary state.
+## The registry underpins the data-first architecture documented in the design
+## docs by exposing canonical identifiers for entity taxonomies and component
+## dictionaries. Systems such as the InteractionManager rely on
+## `EntityType` to branch their encounter state machines—e.g. a
+## PROCESS_ACTION phase can prioritise PLAYER entities while queueing MONSTER
+## counter-attacks—without spelunking through component payloads first.
+## Component key helpers keep EntityData manifests typo-safe so procedurally
+## assembled archetypes interoperate with debugging tools and validation suites.
 
+## High-level entity classifications consumed by filtering utilities and
+## encounter state machines.
 enum EntityType {
     PLAYER,
     NPC,
@@ -19,8 +23,7 @@ enum EntityType {
     OBJECT,
 }
 
-## Maps entity type IDs back to their symbolic labels so debug panels and log
-## statements can present human-readable information.
+## Maps entity type IDs back to symbolic labels for telemetry, debugging, and UI.
 const _ENTITY_TYPE_NAMES := {
     EntityType.PLAYER: &"PLAYER",
     EntityType.NPC: &"NPC",
@@ -29,33 +32,39 @@ const _ENTITY_TYPE_NAMES := {
     EntityType.OBJECT: &"OBJECT",
 }
 
-## Namespace of canonical dictionary keys used throughout EntityData.
-## All keys are declared as `StringName` values so runtime lookups remain fast
-## while still saving as readable strings inside `.tres` resources.
+## Namespace of canonical dictionary keys used throughout EntityData manifests.
+## Keys are stored as `StringName` to keep lookups fast while remaining human
+## readable inside `.tres` files. Both array (`values`) and PackedStringArray
+## (`all`) helpers are retained for compatibility with existing tooling.
 class ComponentKeys:
-    const STATS := &"stats"
-    const TRAITS := &"traits"
-    const STATUS := &"status"
-    const SKILLS := &"skills"
-    const INVENTORY := &"inventory"
-    const AI_BEHAVIOR := &"ai_behavior"
-    const FACTION := &"faction"
-    const QUEST_STATE := &"quest_state"
+    const STATS := StringName("stats")
+    const TRAITS := StringName("traits")
+    const STATUS := StringName("status")
+    const SKILLS := StringName("skills")
+    const INVENTORY := StringName("inventory")
+    const AI_BEHAVIOR := StringName("ai_behavior")
+    const FACTION := StringName("faction")
+    const QUEST_STATE := StringName("quest_state")
 
-    ## Returns a PackedStringArray containing every registered key. Useful for
-    ## building editor drop-downs or for quick iteration in validation scripts.
+    ## Returns the registered component keys as StringName values so systems can
+    ## iterate without incurring temporary allocations.
+    static func values() -> Array[StringName]:
+        return [
+            STATS,
+            TRAITS,
+            STATUS,
+            SKILLS,
+            INVENTORY,
+            AI_BEHAVIOR,
+            FACTION,
+            QUEST_STATE,
+        ]
+
+    ## Returns the component keys as strings for editor drop-downs and UI lists.
     static func all() -> PackedStringArray:
         var keys := PackedStringArray()
-        keys.append_array([
-            String(STATS),
-            String(TRAITS),
-            String(STATUS),
-            String(SKILLS),
-            String(INVENTORY),
-            String(AI_BEHAVIOR),
-            String(FACTION),
-            String(QUEST_STATE),
-        ])
+        for key in values():
+            keys.append(String(key))
         return keys
 
 ## Descriptive metadata for each component key so debug tooling can surface the
@@ -101,10 +110,12 @@ const COMPONENT_KEY_METADATA := {
 static func get_entity_type_name(entity_type: int) -> StringName:
     return _ENTITY_TYPE_NAMES.get(entity_type, &"UNKNOWN_ENTITY_TYPE")
 
-## Enumerates every declared EntityType value. Downstream systems can iterate the
-## array when building UI dropdowns or validation reports.
+## Enumerates every declared EntityType value for dropdown construction or tests.
 static func list_entity_types() -> Array[int]:
-    return _ENTITY_TYPE_NAMES.keys()
+    var ids: Array[int] = []
+    for id in _ENTITY_TYPE_NAMES.keys():
+        ids.append(int(id))
+    return ids
 
 ## Returns true when the provided integer maps to a declared EntityType.
 static func is_valid_entity_type(entity_type: int) -> bool:
@@ -115,7 +126,7 @@ static func is_valid_entity_type(entity_type: int) -> bool:
 static func assert_valid_entity_type(entity_type: int) -> bool:
     if not is_valid_entity_type(entity_type):
         push_error(
-            "Enums: Unknown EntityType id %s. Expected one of: %s." % [
+            "ULTEnums: Unknown EntityType id %s. Expected one of: %s." % [
                 entity_type,
                 ", ".join(_ENTITY_TYPE_NAMES.values().map(func(name: StringName) -> String: return String(name))),
             ]
@@ -139,7 +150,10 @@ static func describe_all_components() -> Dictionary:
 
 ## Enumerates all registered component keys as `StringName` values.
 static func list_component_keys() -> Array[StringName]:
-    return COMPONENT_KEY_METADATA.keys()
+    var keys: Array[StringName] = []
+    for key in ComponentKeys.values():
+        keys.append(key)
+    return keys
 
 ## Returns true when the provided key is recognised and non-empty.
 static func is_valid_component_key(key: Variant) -> bool:
@@ -153,7 +167,7 @@ static func assert_valid_component_key(key: Variant) -> bool:
     var normalized := _normalize_component_key(key)
     if not COMPONENT_KEY_METADATA.has(normalized):
         push_error(
-            "Enums: Unknown component key '%s'. Registered keys: %s." % [
+            "ULTEnums: Unknown component key '%s'. Registered keys: %s." % [
                 key,
                 ", ".join(ComponentKeys.all()),
             ]

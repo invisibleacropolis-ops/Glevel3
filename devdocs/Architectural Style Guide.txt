@@ -71,7 +71,7 @@ extends Resource
 @export var display_name: String = ""
 
 ## A broad category classification for high-level system filtering.
-## See Enums.gd for possible values (e.g., EntityType.MONSTER).
+## See ULTEnums.gd for possible values (e.g., EntityType.MONSTER).
 @export var entity_type: int # Enum: EntityType
 
 ## The unique ID that links to the base archetype resource used for this entity's generation.
@@ -80,10 +80,10 @@ extends Resource
 
 ## The core of the compositional design. This dictionary holds references to
 ## all attached Component Resources, keyed by a string identifier (e.g., "stats").
-## Keys MUST correspond to the constants defined in Enums.gd (e.g., ComponentKeys.STATS).
+## Keys MUST correspond to the constants defined in ULTEnums.gd (e.g., ComponentKeys.STATS).
 @export var components: Dictionary = {}
 
-The components dictionary is the lynchpin of the entire architecture. While its flexibility is a key feature, the use of plain string keys (e.g., "stats", "inventory") introduces a potential source of runtime errors from typos. To mitigate this, this guide establishes a strict convention: all dictionary keys used to store and retrieve components must be defined as constants in a global Enums.gd script. This provides the flexibility of a dictionary while adding a layer of safety and code-completion support, preventing a common class of errors.
+The components dictionary is the lynchpin of the entire architecture. While its flexibility is a key feature, the use of plain string keys (e.g., "stats", "inventory") introduces a potential source of runtime errors from typos. To mitigate this, this guide establishes a strict convention: all dictionary keys used to store and retrieve components must be defined as constants in a global ULTEnums.gd script. This provides the flexibility of a dictionary while adding a layer of safety and code-completion support, preventing a common class of errors.
 
 2.2 The Component: The Atomic Unit of Data (extends Resource)
 
