@@ -15,7 +15,7 @@ config/features=PackedStringArray("4.4", "Forward Plus")
 config/icon="res://icon.svg"
 [autoload]
 DebugLogRedirector="*res://src/globals/DebugLogRedirector.gd"
-ULTEnums="*res://src/globals/ULTEnums.gd"
+ULTEnums="res://src/globals/ULTEnums.gd"
 EventBus="*res://src/globals/EventBus.gd"
 AssetRegistry="*res://src/globals/AssetRegistry.gd"
 ModuleRegistry="*res://src/globals/ModuleRegistry.gd"
