@@ -1,7 +1,6 @@
 extends "res://src/systems/System.gd"
 class_name DebugSystem
 
-const EVENT_BUS_SCRIPT := preload("res://src/globals/EventBus.gd")
 const DEBUG_LOG_REDIRECTOR_SCRIPT := preload("res://src/globals/DebugLogRedirector.gd")
 
 const DEFAULT_LOG_DIRECTORY := "user://logs"
@@ -207,7 +206,7 @@ func _sanitize_scene_name(scene_name: String) -> String:
 
     var builder := ""
     for character in trimmed:
-        if character.is_ascii_alphanumeric():
+        if _is_ascii_alphanumeric(character):
             builder += character
         elif character == "_" or character == "-":
             builder += character
@@ -217,6 +216,19 @@ func _sanitize_scene_name(scene_name: String) -> String:
             builder += "_"
 
     return builder
+
+## Returns true when the provided single-character string is an ASCII letter or digit.
+## Godot 4.4.1 does not expose `String.is_ascii_alphanumeric()`, so we provide a local helper
+## to keep `_sanitize_scene_name()` self-contained for engineers working outside the editor.
+func _is_ascii_alphanumeric(character: String) -> bool:
+    if character.length() != 1:
+        return false
+
+    var code_point := character.unicode_at(0)
+    var is_digit := code_point >= 48 and code_point <= 57
+    var is_upper := code_point >= 65 and code_point <= 90
+    var is_lower := code_point >= 97 and code_point <= 122
+    return is_digit or is_upper or is_lower
 
 ## Generates a timestamp identifier suitable for filenames and log headers.
 func _generate_timestamp_id(components: Dictionary = {}) -> String:
@@ -280,8 +292,9 @@ func _initialize_log_level_labels() -> void:
 
     for constant_name in remap.keys():
         if has_constant.call("Logger", constant_name):
-            var value := get_constant.call("Logger", constant_name)
-            if typeof(value) == TYPE_INT:
+            var value_variant: Variant = get_constant.call("Logger", constant_name)
+            if typeof(value_variant) == TYPE_INT:
+                var value: int = value_variant
                 _log_level_labels[value] = remap[constant_name]
 
 ## Resolves the display label for a logger severity integer.
@@ -519,7 +532,7 @@ func _write_master_error_entry(entry: Dictionary) -> void:
     if not _is_error_level(level):
         return
 
-    var formatted := entry.get("formatted", "")
+    var formatted: String = str(entry.get("formatted", ""))
     if formatted == "":
         formatted = "[%s] [L%d %s] (%s) %s" % [
             entry.get("timestamp", ""),

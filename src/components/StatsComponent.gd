@@ -123,7 +123,9 @@ class_name StatsComponent
 @export var skill_levels: Dictionary[StringName, int] = {}
 
 ## Mapping of skill identifiers to unlocked option identifiers within each skill tree.
-@export var skill_options: Dictionary[StringName, Array[StringName]] = {}
+## Godot 4.4.1 does not support nested generic type hints (Dictionary[StringName, Array[StringName]]),
+## so we export a Dictionary[StringName, Array] and document that each Array should contain StringName values.
+@export var skill_options: Dictionary[StringName, Array] = {}
 
 ## ---- Equipment Snapshot ----
 ## Mapping of equipment slot identifiers (e.g., "weapon", "armor") to equipped item IDs.
