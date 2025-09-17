@@ -2,6 +2,10 @@ extends Resource
 class_name EntityData
 
 const ULTEnums := preload("res://src/globals/ULTEnums.gd")
+const ComponentClass := preload("res://src/core/Component.gd")
+## Tracks manifest keys that have already reported invalid component payloads so we
+## do not spam logs when the same corrupted entry is queried repeatedly.
+var _invalid_component_warnings: Dictionary[String, bool] = {}
 
 ## The digital DNA of every object in the game world. This Resource acts as a
 ## manifest, linking an entity's identity to its modular data Components.
@@ -30,45 +34,66 @@ const ULTEnums := preload("res://src/globals/ULTEnums.gd")
 
 ## Registers or replaces a component using a canonical ComponentKeys identifier.
 ## Converts arbitrary string inputs to StringName before storage to ensure stable lookups.
-func add_component(key: Variant, component: Component) -> void:
+func add_component(key: Variant, component: Resource) -> void:
     assert(component != null, "EntityData.add_component requires a Component instance.")
-    var normalized_key := _normalize_component_key(key)
+    assert(
+        component is ComponentClass,
+        "EntityData.add_component only accepts resources derived from Component.",
+    )
+    var normalized_key: StringName = _normalize_component_key(key)
     assert(
         ULTEnums.is_valid_component_key(normalized_key),
         "Component key '%s' is not registered in ULTEnums.ComponentKeys." % normalized_key,
     )
+    components.erase(normalized_key)
     var legacy_key := String(normalized_key)
     if components.has(legacy_key):
         components.erase(legacy_key)
     components[normalized_key] = component
+    _invalid_component_warnings.erase(legacy_key)
 
 ## Retrieves a component reference by its canonical key.
 ## Returns null if the key is not registered on this entity.
-func get_component(key: Variant) -> Component:
-    var normalized_key := _normalize_component_key(key)
-    var component := components.get(normalized_key, null)
+func get_component(key: Variant) -> Resource:
+    var normalized_key: StringName = _normalize_component_key(key)
+    if not ULTEnums.is_valid_component_key(normalized_key):
+        return null
+    var lookup := _locate_component_entry(normalized_key)
+    var component = lookup.get("component")
     if component == null:
-        component = components.get(String(normalized_key), null)
-    return component as Component
+        return null
+    if component is ComponentClass:
+        return component
+    _report_invalid_component_type(normalized_key, component)
+    return null
 
 ## Reports whether a component has been assigned for the given canonical key.
 func has_component(key: Variant) -> bool:
-    var normalized_key := _normalize_component_key(key)
-    return components.has(normalized_key) or components.has(String(normalized_key))
+    var normalized_key: StringName = _normalize_component_key(key)
+    if not ULTEnums.is_valid_component_key(normalized_key):
+        return false
+    var lookup := _locate_component_entry(normalized_key)
+    var component = lookup.get("component")
+    if component == null:
+        return false
+    if component is ComponentClass:
+        return true
+    _report_invalid_component_type(normalized_key, component)
+    return false
 
 ## Removes a component from the manifest and returns the detached resource.
 ## Returns null when no component was registered for the provided key.
-func remove_component(key: Variant) -> Component:
-    var normalized_key := _normalize_component_key(key)
-    if components.has(normalized_key):
-        var removed: Component = components.get(normalized_key)
-        components.erase(normalized_key)
-        return removed
-    var legacy_key := String(normalized_key)
-    if components.has(legacy_key):
-        var removed_legacy: Component = components.get(legacy_key)
-        components.erase(legacy_key)
-        return removed_legacy
+func remove_component(key: Variant) -> Resource:
+    var normalized_key: StringName = _normalize_component_key(key)
+    if not ULTEnums.is_valid_component_key(normalized_key):
+        return null
+    var lookup := _locate_component_entry(normalized_key)
+    if lookup.get("component") == null:
+        return null
+    components.erase(lookup.get("key"))
+    if lookup.get("component") is ComponentClass:
+        return lookup.get("component")
+    _report_invalid_component_type(normalized_key, lookup.get("component"))
     return null
 
 ## Produces a shallow copy of the component manifest for safe iteration.
@@ -76,11 +101,48 @@ func remove_component(key: Variant) -> Component:
 func list_components() -> Dictionary:
     var manifest: Dictionary = {}
     for key in components.keys():
-        var normalized := _normalize_component_key(key)
-        manifest[normalized] = components[key]
+        var normalized: StringName = _normalize_component_key(key)
+        if not ULTEnums.is_valid_component_key(normalized):
+            continue
+        var lookup := _locate_component_entry(normalized)
+        var component = lookup.get("component")
+        if component is ComponentClass:
+            manifest[normalized] = component
+        elif component != null:
+            _report_invalid_component_type(normalized, component)
     return manifest
 
 func _normalize_component_key(raw_key: Variant) -> StringName:
     if raw_key is StringName:
         return raw_key
     return StringName(str(raw_key))
+
+func _locate_component_entry(normalized_key: StringName) -> Dictionary:
+    var entry: Dictionary = {
+        "component": null,
+        "key": null,
+    }
+    if components.has(normalized_key):
+        entry["component"] = components.get(normalized_key)
+        entry["key"] = normalized_key
+        return entry
+    var legacy_key := String(normalized_key)
+    if components.has(legacy_key):
+        entry["component"] = components.get(legacy_key)
+        entry["key"] = legacy_key
+    return entry
+
+func _report_invalid_component_type(normalized_key: StringName, value: Variant) -> void:
+    var key_string := String(normalized_key)
+    if _invalid_component_warnings.get(key_string, false):
+        return
+    _invalid_component_warnings[key_string] = true
+    var value_description := "null"
+    if value != null:
+        value_description = type_string(typeof(value))
+    push_error(
+        "EntityData manifest entry '%s' stores %s instead of a Component resource." % [
+            key_string,
+            value_description,
+        ]
+    )
