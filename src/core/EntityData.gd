@@ -2,6 +2,7 @@ extends Resource
 class_name EntityData
 
 const ULTEnums := preload("res://src/globals/ULTEnums.gd")
+const ComponentScript := preload("res://src/core/Component.gd")
 
 ## The digital DNA of every object in the game world. This Resource acts as a
 ## manifest, linking an entity's identity to its modular data Components.
@@ -30,9 +31,9 @@ const ULTEnums := preload("res://src/globals/ULTEnums.gd")
 
 ## Registers or replaces a component using a canonical ComponentKeys identifier.
 ## Converts arbitrary string inputs to StringName before storage to ensure stable lookups.
-func add_component(key: Variant, component: Component) -> void:
+func add_component(key: Variant, component: Resource) -> void:
     assert(component != null, "EntityData.add_component requires a Component instance.")
-    var normalized_key := _normalize_component_key(key)
+    var normalized_key: StringName = _normalize_component_key(key)
     assert(
         ULTEnums.is_valid_component_key(normalized_key),
         "Component key '%s' is not registered in ULTEnums.ComponentKeys." % normalized_key,
@@ -44,29 +45,29 @@ func add_component(key: Variant, component: Component) -> void:
 
 ## Retrieves a component reference by its canonical key.
 ## Returns null if the key is not registered on this entity.
-func get_component(key: Variant) -> Component:
-    var normalized_key := _normalize_component_key(key)
-    var component := components.get(normalized_key, null)
+func get_component(key: Variant) -> Resource:
+    var normalized_key: StringName = _normalize_component_key(key)
+    var component: Variant = components.get(normalized_key, null)
     if component == null:
         component = components.get(String(normalized_key), null)
-    return component as Component
+    return component as Resource
 
 ## Reports whether a component has been assigned for the given canonical key.
 func has_component(key: Variant) -> bool:
-    var normalized_key := _normalize_component_key(key)
+    var normalized_key: StringName = _normalize_component_key(key)
     return components.has(normalized_key) or components.has(String(normalized_key))
 
 ## Removes a component from the manifest and returns the detached resource.
 ## Returns null when no component was registered for the provided key.
-func remove_component(key: Variant) -> Component:
-    var normalized_key := _normalize_component_key(key)
+func remove_component(key: Variant) -> Resource:
+    var normalized_key: StringName = _normalize_component_key(key)
     if components.has(normalized_key):
-        var removed: Component = components.get(normalized_key)
+        var removed: Resource = components.get(normalized_key)
         components.erase(normalized_key)
         return removed
     var legacy_key := String(normalized_key)
     if components.has(legacy_key):
-        var removed_legacy: Component = components.get(legacy_key)
+        var removed_legacy: Resource = components.get(legacy_key)
         components.erase(legacy_key)
         return removed_legacy
     return null
@@ -76,7 +77,7 @@ func remove_component(key: Variant) -> Component:
 func list_components() -> Dictionary:
     var manifest: Dictionary = {}
     for key in components.keys():
-        var normalized := _normalize_component_key(key)
+        var normalized: StringName = _normalize_component_key(key)
         manifest[normalized] = components[key]
     return manifest
 

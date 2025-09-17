@@ -1,9 +1,9 @@
-extends Object
+extends Node
 
 ## NOTE: The script is exposed as the `ULTEnums` autoload singleton via
-## `project.godot`. Because the type extends `Object`, register it as a
-## **script** autoload (no leading `*` in the Project Settings entry) so Godot
-## does not attempt to instantiate it as a scene tree node. We intentionally
+## `project.godot`. It now inherits from Node so Godot can instantiate the
+## singleton without warnings in headless test runners while still allowing the
+## API to be accessed through preloads and the autoload instance. We continue to
 ## omit a `class_name` declaration to avoid Godot warnings about a global class
 ## hiding that singleton while keeping the API available through `preload()`
 ## constants and the autoload instance.
