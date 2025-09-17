@@ -135,9 +135,11 @@ func _get_trait_id(trait_resource: Object) -> String:
     return ""
 
 ## Returns ``true`` when the provided resource is a valid trait definition.
-func _is_trait_resource_valid(trait_resource: Resource) -> bool:
-    if trait_resource == null or not (trait_resource is Resource):
+func _is_trait_resource_valid(trait_resource) -> bool:
+    if trait_resource == null:
         return false
-    if not trait_resource.is_class("Trait"):
+    if not (trait_resource is Resource):
+        return false
+    if not trait_resource.has_method("get"):
         return false
     return _get_trait_id(trait_resource) != ""
