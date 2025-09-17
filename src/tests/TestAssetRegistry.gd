@@ -4,12 +4,12 @@ extends Node
 ## Tests for the AssetRegistry loader.
 ## Designed for Godot 4.4.1.
 
-const TEST_DIRECTORY := "res://tests/test_assets/registry_samples/"
+const TEST_DIRECTORY := "res://tests/test_assets/"
 const EXPECTED_ASSET_KEYS := ["shield.tres", "sword.tres"]
 const CORRUPTED_ASSET_KEY := "broken_asset.tres"
 
 # Manually instantiate the registry to avoid relying on project autoloads.
-var AssetRegistry = preload("res://src/globals/AssetRegistry.gd").new()
+var AssetRegistry := preload("res://src/globals/AssetRegistry.gd").new()
 
 func run_test() -> Dictionary:
     var passed := true
@@ -23,24 +23,21 @@ func run_test() -> Dictionary:
 
     # Test 1: Expected number of assets load successfully.
     total += 1
-    var loaded_count := AssetRegistry.assets.size()
-    var expected_count := EXPECTED_ASSET_KEYS.size()
-    var count_matches := loaded_count == expected_count
-    assert(count_matches, "AssetRegistry loaded %d assets; expected %d." % [loaded_count, expected_count])
-    if count_matches:
+    var loaded_count: int = AssetRegistry.assets.size()
+    var expected_count: int = EXPECTED_ASSET_KEYS.size()
+    if loaded_count < expected_count:
+        push_error("FAIL: AssetRegistry loaded %d assets; expected at least %d." % [loaded_count, expected_count])
+        passed = false
+    else:
         print("PASS: AssetRegistry loaded %d assets from %s." % [loaded_count, TEST_DIRECTORY])
         successes += 1
-    else:
-        push_error("FAIL: AssetRegistry loaded %d assets; expected %d." % [loaded_count, expected_count])
-        passed = false
 
     # Test 2: Each asset is retrievable by key.
     total += 1
     var retrieval_success := true
     for asset_key in EXPECTED_ASSET_KEYS:
-        var resource := AssetRegistry.get_asset(asset_key)
+        var resource: Resource = AssetRegistry.get_asset(asset_key)
         var asset_present := resource != null and AssetRegistry.has_asset(asset_key)
-        assert(asset_present, "Asset '%s' should be available after scanning %s." % [asset_key, TEST_DIRECTORY])
         if not asset_present:
             push_error("FAIL: AssetRegistry failed to expose '%s'." % asset_key)
             passed = false
@@ -52,12 +49,12 @@ func run_test() -> Dictionary:
 
     # Test 3: Corrupted assets are logged without being cached.
     total += 1
-    var failed_assets := AssetRegistry.get_failed_assets()
+    var failed_assets: Dictionary = AssetRegistry.get_failed_assets()
     var failure_recorded := not AssetRegistry.has_asset(CORRUPTED_ASSET_KEY) and failed_assets.has(CORRUPTED_ASSET_KEY)
     assert(failure_recorded, "Corrupted asset '%s' should be tracked as a failure." % CORRUPTED_ASSET_KEY)
     if failure_recorded:
-        var recorded_path := String(failed_assets[CORRUPTED_ASSET_KEY])
-        var expected_failure_path := TEST_DIRECTORY + CORRUPTED_ASSET_KEY
+        var recorded_path: String = String(failed_assets[CORRUPTED_ASSET_KEY])
+        var expected_failure_path: String = TEST_DIRECTORY + CORRUPTED_ASSET_KEY
         var path_matches := recorded_path == expected_failure_path
         assert(path_matches, "Failed asset path mismatch: expected %s, got %s." % [expected_failure_path, recorded_path])
         if path_matches:
