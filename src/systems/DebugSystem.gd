@@ -58,20 +58,32 @@ func _exit_tree() -> void:
     _finalize_log_capture()
 
 func _physics_process(delta: float) -> void:
-    for entity in get_tree().get_nodes_in_group("entities"):
-        var data: EntityData = entity.get("entity_data")
-        if data and data.has_component(ULTEnums.ComponentKeys.STATS):
-            var stats: StatsComponent = data.get_component(ULTEnums.ComponentKeys.STATS)
-            print("%s HP: %d" % [entity.name, stats.health])
-            var bus := _get_event_bus()
-            if bus:
-                bus.emit_signal(
-                    "debug_stats_reported",
-                    {
-                        "entity_id": _resolve_entity_id(entity, data),
-                        "stats": _snapshot_stats(stats),
-                    }
-                )
+    var tree := get_tree()
+    if tree == null:
+        return
+
+    for entity in tree.get_nodes_in_group("entities"):
+        var data: EntityData = _extract_entity_data(entity)
+        if data == null:
+            continue
+
+        if not data.has_component(ULTEnums.ComponentKeys.STATS):
+            continue
+
+        var stats: StatsComponent = data.get_component(ULTEnums.ComponentKeys.STATS)
+        if stats == null:
+            continue
+
+        print("%s HP: %d" % [entity.name, stats.health])
+        var bus := _get_event_bus()
+        if bus:
+            bus.emit_signal(
+                "debug_stats_reported",
+                {
+                    "entity_id": _resolve_entity_id(entity, data),
+                    "stats": _snapshot_stats(stats),
+                }
+            )
 
 ## Opens the scene-specific log file, registers the DebugSystem with the
 ## DebugLogRedirector, and prepares in-memory storage for captured log entries.
@@ -471,6 +483,26 @@ func _resolve_entity_id(entity: Node, data: EntityData) -> String:
     if data.entity_id != "":
         return data.entity_id
     return entity.name
+
+## Resolves the EntityData payload associated with the supplied entity node.
+## Handles components exposed as properties, metadata, or helper methods so tests
+## and gameplay scenes can use whichever wiring is most convenient.
+func _extract_entity_data(entity: Node) -> EntityData:
+    if entity == null:
+        return null
+
+    var data: Variant = entity.get("entity_data")
+
+    if data == null and entity.has_method("get_entity_data"):
+        data = entity.call("get_entity_data")
+
+    if data == null and entity.has_meta("entity_data"):
+        data = entity.get_meta("entity_data")
+
+    if data is EntityData:
+        return data
+
+    return null
 
 ## Produces a serializable snapshot of the stats component for signal payloads.
 func _snapshot_stats(stats: StatsComponent) -> Dictionary:
