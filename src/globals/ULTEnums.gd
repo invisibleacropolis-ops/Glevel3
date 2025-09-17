@@ -1,9 +1,12 @@
 extends Object
 
 ## NOTE: The script is exposed as the `ULTEnums` autoload singleton via
-## `project.godot`. We intentionally omit a `class_name` declaration to avoid
-## Godot warnings about a global class hiding that singleton while keeping the
-## API available through `preload()` constants and the autoload instance.
+## `project.godot`. Because the type extends `Object`, register it as a
+## **script** autoload (no leading `*` in the Project Settings entry) so Godot
+## does not attempt to instantiate it as a scene tree node. We intentionally
+## omit a `class_name` declaration to avoid Godot warnings about a global class
+## hiding that singleton while keeping the API available through `preload()`
+## constants and the autoload instance.
 
 ## Ultimate enumeration registry that merges the streamlined constants from the
 ## lightweight Enums helper with the diagnostic tooling of OldEnums.
