@@ -1,7 +1,9 @@
 extends Node
 class_name TestDummyEntity
 
-const EntityData = preload("res://src/core/EntityData.gd")
+## Preload guarantees EntityData is registered for the exported property when
+## the scene loads in headless test environments.
+const ENTITY_DATA_SCRIPT := preload("res://src/core/EntityData.gd")
 
 ## Test harness node that exposes entity data for validation scenes.
 ## Designed for Godot 4.4.1.
