@@ -48,6 +48,7 @@ func _build_test_entity() -> Dictionary:
 
     data.add_component(ULTEnums.ComponentKeys.STATS, stats)
     entity.set("entity_data", data)
+    entity.set_meta("entity_data", data)
 
     return {
         "entity": entity,

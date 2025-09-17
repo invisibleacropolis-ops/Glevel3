@@ -19,8 +19,25 @@ const EntityData = preload("res://src/core/EntityData.gd")
 const StatsComponent = preload("res://src/components/StatsComponent.gd")
 const ULTEnums = preload("res://src/globals/ULTEnums.gd")
 
+class LogEntryBuffer:
+    var _entries: Array[Dictionary]
+
+    func _init(entries: Array[Dictionary]) -> void:
+        _entries = entries
+
+    func is_empty() -> bool:
+        return _entries.is_empty()
+
+    func back() -> Dictionary:
+        if _entries.is_empty():
+            return {}
+        return (_entries.back() as Dictionary).duplicate(true)
+
+    func to_array() -> Array[Dictionary]:
+        return _entries.duplicate(true)
+
 ## Optional EventBus reference to allow dependency injection in tests.
-var event_bus: EventBusSingleton = null
+var event_bus: Node = null
 
 ## Optional DebugLogRedirector reference so tests can inject a stub.
 var log_redirector: Node = null
@@ -37,7 +54,7 @@ var master_error_log_path: String = ""
 var _logging_active := false
 var _log_file: FileAccess = null
 var _master_error_log_file: FileAccess = null
-var _captured_log_entries: Array = []
+var _captured_log_entries: Array[Dictionary] = []
 var _log_scene_name := ""
 var _log_session_id := ""
 var _log_redirector_registered := false
@@ -341,8 +358,12 @@ func _resolve_log_redirector() -> Node:
 
     if DEBUG_LOG_REDIRECTOR_SCRIPT.is_singleton_ready():
         log_redirector = DEBUG_LOG_REDIRECTOR_SCRIPT.get_singleton()
-    elif typeof(DebugLogRedirector) == TYPE_OBJECT and DebugLogRedirector is Node:
-        log_redirector = DebugLogRedirector
+    else:
+        var tree := get_tree()
+        if tree:
+            var root := tree.get_root()
+            if root:
+                log_redirector = root.get_node_or_null("DebugLogRedirector")
 
     return log_redirector
 
@@ -395,8 +416,9 @@ func _write_log_entry(entry: Dictionary) -> void:
 
 ## Returns a deep copy of the captured log entries so external tools can analyse
 ## the session without mutating the DebugSystem's internal state.
-func get_captured_log_entries() -> Array:
-    return _captured_log_entries.duplicate(true)
+func get_captured_log_entries() -> LogEntryBuffer:
+    var snapshot: Array[Dictionary] = _captured_log_entries.duplicate(true)
+    return LogEntryBuffer.new(snapshot)
 
 ## Exposes the resolved log file path for the current capture session. Returns an
 ## empty string when log capture failed to initialise.
@@ -416,17 +438,6 @@ func get_log_session_id() -> String:
 
 func _ensure_event_bus_subscription() -> void:
     if event_bus and _connect_event_bus(event_bus):
-        return
-
-    if typeof(EventBus) == TYPE_OBJECT and EventBus is Node:
-        event_bus = EventBus
-        var error := EventBus.connect(
-            "entity_killed",
-            Callable(self, "_on_entity_killed"),
-            Object.CONNECT_REFERENCE_COUNTED,
-        )
-        if error != OK and error != ERR_ALREADY_IN_USE:
-            push_warning("DebugSystem failed to connect to EventBus.entity_killed (error %d)." % error)
         return
 
     if EVENT_BUS_SCRIPT.is_singleton_ready():
@@ -459,23 +470,21 @@ func _connect_event_bus(bus: Node) -> bool:
     return true
 
 ## Attempts to locate the global EventBus if it was not injected manually.
-func _get_event_bus() -> EventBusSingleton:
+func _get_event_bus() -> Node:
     if event_bus:
         return event_bus
 
     if EVENT_BUS_SCRIPT.is_singleton_ready():
-        event_bus = EVENT_BUS_SCRIPT.get_singleton()
-        return event_bus
-
-    if typeof(EventBus) == TYPE_OBJECT and EventBus is Node:
-        event_bus = EventBus
-        return event_bus
+        var singleton := EVENT_BUS_SCRIPT.get_singleton()
+        if singleton is Node:
+            event_bus = singleton
+            return event_bus
 
     var tree := get_tree()
     if tree:
         var root := tree.get_root()
         if root:
-            event_bus = root.get_node_or_null("EventBus") as EventBusSingleton
+            event_bus = root.get_node_or_null("EventBus")
     return event_bus
 
 ## Ensures we always emit a usable entity identifier for debug payloads.
