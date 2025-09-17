@@ -83,7 +83,7 @@ Each section groups related properties. "Common range" records the values most b
 | Property | Type | Description | Common range & notes |
 | --- | --- | --- | --- |
 | `skill_levels` | `Dictionary[StringName, int]` | Tracks each learned skill's tier (basic/common/rare/etc.).【F:src/components/StatsComponent.gd†L155-L158】 | Store 3–8 skills for early heroes, expanding toward 12 for veterans. Values typically map to 0–4 representing rarity tiers.【F:BaseCharacterStats.md†L95-L123】 |
-| `skill_options` | `Dictionary[StringName, Array[StringName]]` | Lists unlocked options or upgrades per skill tree.【F:src/components/StatsComponent.gd†L160-L163】 | Each skill carries 1–3 unlocked options mid-game; complex trees may hit 5. Arrays should stay ordered for deterministic UI.【F:BaseCharacterStats.md†L95-L123】 |
+| `skill_options` | `Dictionary[StringName, Array]` | Lists unlocked options or upgrades per skill tree. Arrays should contain `StringName` entries even though the exported type is untyped to satisfy Godot's parser.【F:src/components/StatsComponent.gd†L125-L128】 | Each skill carries 1–3 unlocked options mid-game; complex trees may hit 5. Arrays should stay ordered for deterministic UI.【F:BaseCharacterStats.md†L95-L123】 |
 
 ## Equipment and inventory snapshots
 
