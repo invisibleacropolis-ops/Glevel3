@@ -1,76 +1,24 @@
 <testsuites>
-  <testsuite name="GodotTestSuite" tests="22" failures="1" skipped="0" time="0.146">
-    <testcase classname="TestAssetRegistry.gd" name="TestAssetRegistry.gd" time="0.004">
-      <properties>
-        <property name="tags" value=""/>
-        <property name="priority" value="unspecified"/>
-        <property name="owner" value="unspecified"/>
-        <property name="flaky" value="false"/>
-        <property name="retry_count" value="0"/>
-      </properties>
+  <testsuite name="GodotTestSuite" tests="10" failures="0" skipped="0">
+    <testcase classname="TestAssetRegistry" name="res://src/tests/TestAssetRegistry.gd">
     </testcase>
-    <testcase classname="TestEventBus.gd" name="TestEventBus.gd" time="0.035">
-      <properties>
-        <property name="tags" value=""/>
-        <property name="priority" value="unspecified"/>
-        <property name="owner" value="unspecified"/>
-        <property name="flaky" value="false"/>
-        <property name="retry_count" value="0"/>
-      </properties>
+    <testcase classname="TestEventBus" name="res://src/tests/TestEventBus.gd">
     </testcase>
-    <testcase classname="TestDebugSystem.gd" name="TestDebugSystem.gd" time="0.003">
-      <properties>
-        <property name="tags" value=""/>
-        <property name="priority" value="unspecified"/>
-        <property name="owner" value="unspecified"/>
-        <property name="flaky" value="false"/>
-        <property name="retry_count" value="0"/>
-      </properties>
+    <testcase classname="TestDebugSystem" name="res://src/tests/TestDebugSystem.gd">
     </testcase>
-    <testcase classname="TestModuleRegistry.gd" name="TestModuleRegistry.gd" time="0.007">
-      <properties>
-        <property name="tags" value=""/>
-        <property name="priority" value="unspecified"/>
-        <property name="owner" value="unspecified"/>
-        <property name="flaky" value="false"/>
-        <property name="retry_count" value="0"/>
-      </properties>
+    <testcase classname="TestModuleRegistry" name="res://src/tests/TestModuleRegistry.gd">
     </testcase>
-    <testcase classname="TestComponent.gd" name="TestComponent.gd" time="0.007">
-      <properties>
-        <property name="tags" value=""/>
-        <property name="priority" value="unspecified"/>
-        <property name="owner" value="unspecified"/>
-        <property name="flaky" value="false"/>
-        <property name="retry_count" value="0"/>
-      </properties>
+    <testcase classname="TestSystemStyle" name="res://src/tests/TestSystemStyle.gd">
     </testcase>
-    <testcase classname="TestEntityData.gd" name="TestEntityData.gd" time="0.007">
-      <properties>
-        <property name="tags" value=""/>
-        <property name="priority" value="unspecified"/>
-        <property name="owner" value="unspecified"/>
-        <property name="flaky" value="false"/>
-        <property name="retry_count" value="0"/>
-      </properties>
+    <testcase classname="TestTraitComponent" name="res://src/tests/TestTraitComponent.gd">
     </testcase>
-    <testcase classname="TestStatsComponent.gd" name="TestStatsComponent.gd" time="0.007">
-      <properties>
-        <property name="tags" value=""/>
-        <property name="priority" value="unspecified"/>
-        <property name="owner" value="unspecified"/>
-        <property name="flaky" value="false"/>
-        <property name="retry_count" value="0"/>
-      </properties>
+    <testcase classname="TestArchetype" name="res://src/tests/TestArchetype.gd">
     </testcase>
-    <testcase classname="TestSystemStyle.gd" name="TestSystemStyle.gd" time="0.003">
-      <properties>
-        <property name="tags" value=""/>
-        <property name="priority" value="unspecified"/>
-        <property name="owner" value="unspecified"/>
-        <property name="flaky" value="false"/>
-        <property name="retry_count" value="0"/>
-      </properties>
+    <testcase classname="TestComponent" name="res://src/tests/TestComponent.gd">
+    </testcase>
+    <testcase classname="TestEntityData" name="res://src/tests/TestEntityData.gd">
+    </testcase>
+    <testcase classname="TestStatsComponent" name="res://src/tests/TestStatsComponent.gd">
     </testcase>
   </testsuite>
 </testsuites>

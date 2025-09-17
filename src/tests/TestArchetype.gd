@@ -1,12 +1,12 @@
 # src/tests/TestArchetype.gd
 extends Node
 
-const ArchetypeResource := preload("res://assets/archetypes/MerchantArchetype.tres")
-const TraitComponentScript := preload("res://src/systems/TraitComponent.gd")
-const Trait := preload("res://src/systems/Trait.gd")
-const MerchantTrait := preload("res://assets/traits/MerchantTrait.tres")
-const CowardlyTrait := preload("res://assets/traits/CowardlyTrait.tres")
-const FireAttunedTrait := preload("res://assets/traits/FireAttunedTrait.tres")
+const TRAIT_CLASS_PATH := "res://src/systems/Trait.gd"
+const ARCHETYPE_RESOURCE_PATH := "res://assets/archetypes/MerchantArchetype.tres"
+const TRAIT_COMPONENT_SCRIPT_PATH := "res://src/systems/TraitComponent.gd"
+const MERCHANT_TRAIT_PATH := "res://assets/traits/MerchantTrait.tres"
+const COWARDLY_TRAIT_PATH := "res://assets/traits/CowardlyTrait.tres"
+const FIRE_TRAIT_PATH := "res://assets/traits/FireAttunedTrait.tres"
 
 func run_test() -> Dictionary:
     var passed := true
@@ -14,12 +14,23 @@ func run_test() -> Dictionary:
     var successes := 0
     print("-- Archetype Tests --")
 
-    var archetype: Archetype = ArchetypeResource.duplicate(true)
+    var trait_class := load(TRAIT_CLASS_PATH)
+    var archetype_resource := load(ARCHETYPE_RESOURCE_PATH)
+    var trait_component_script := load(TRAIT_COMPONENT_SCRIPT_PATH)
+    var merchant_trait_resource := load(MERCHANT_TRAIT_PATH)
+    var cowardly_trait_resource := load(COWARDLY_TRAIT_PATH)
+    var fire_trait_resource := load(FIRE_TRAIT_PATH)
+
+    if archetype_resource == null or trait_component_script == null:
+        push_error("FAIL: Unable to load Archetype dependencies.")
+        return {"passed": false, "successes": 0, "total": 0}
+
+    var archetype = archetype_resource.duplicate(true)
 
     # Test 1: Required trait validates successfully.
     total += 1
-    var base_component: TraitComponent = TraitComponentScript.new()
-    base_component.add_trait(MerchantTrait.duplicate(true))
+    var base_component = trait_component_script.new()
+    base_component.add_trait(merchant_trait_resource.duplicate(true))
     if archetype.validate_component(base_component):
         print("PASS: Archetype validates components containing required traits.")
         successes += 1
@@ -29,8 +40,8 @@ func run_test() -> Dictionary:
 
     # Test 2: Missing required trait is rejected.
     total += 1
-    var missing_component: TraitComponent = TraitComponentScript.new()
-    missing_component.add_trait(CowardlyTrait.duplicate(true))
+    var missing_component = trait_component_script.new()
+    missing_component.add_trait(cowardly_trait_resource.duplicate(true))
     if archetype.validate_component(missing_component):
         push_error("FAIL: Archetype should reject components missing required traits.")
         passed = false
@@ -40,9 +51,9 @@ func run_test() -> Dictionary:
 
     # Test 3: Optional traits are allowed.
     total += 1
-    var optional_component: TraitComponent = TraitComponentScript.new()
-    optional_component.add_trait(MerchantTrait.duplicate(true))
-    optional_component.add_trait(FireAttunedTrait.duplicate(true))
+    var optional_component = trait_component_script.new()
+    optional_component.add_trait(merchant_trait_resource.duplicate(true))
+    optional_component.add_trait(fire_trait_resource.duplicate(true))
     if archetype.validate_component(optional_component):
         print("PASS: Archetype accepts optional traits from the pool.")
         successes += 1
@@ -52,12 +63,14 @@ func run_test() -> Dictionary:
 
     # Test 4: Unknown traits are rejected.
     total += 1
-    var forbidden_component: TraitComponent = TraitComponentScript.new()
-    forbidden_component.add_trait(MerchantTrait.duplicate(true))
-    var forbidden_trait := Trait.new()
-    forbidden_trait.trait_id = "shadow_broker"
-    forbidden_component.add_trait(forbidden_trait)
-    if archetype.validate_component(forbidden_component):
+    var forbidden_component = trait_component_script.new()
+    forbidden_component.add_trait(merchant_trait_resource.duplicate(true))
+    var forbidden_trait = null
+    if trait_class != null and trait_class.has_method("new"):
+        forbidden_trait = trait_class.new()
+        forbidden_trait.set("trait_id", "shadow_broker")
+        forbidden_component.add_trait(forbidden_trait)
+    if forbidden_trait == null or archetype.validate_component(forbidden_component):
         push_error("FAIL: Archetype should reject traits outside the defined pool.")
         passed = false
     else:
@@ -66,14 +79,15 @@ func run_test() -> Dictionary:
 
     # Test 5: get_all_traits merges required and optional pools without duplicates.
     total += 1
-    var all_traits := archetype.get_all_traits()
+    var all_traits = archetype.get_all_traits()
     if all_traits.size() != 3:
         push_error("FAIL: get_all_traits should combine required and optional traits.")
         passed = false
     else:
         var ids := PackedStringArray()
-        for trait in all_traits:
-            ids.append(trait.trait_id)
+        for entry_index in range(all_traits.size()):
+            var trait_resource = all_traits[entry_index]
+            ids.append(trait_resource.get("trait_id"))
         ids.sort()
         if ids[0] == "cowardly" and ids[1] == "fire_attuned" and ids[2] == "merchant":
             print("PASS: get_all_traits returns the expected identifiers.")
