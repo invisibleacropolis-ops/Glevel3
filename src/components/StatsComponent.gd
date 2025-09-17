@@ -1,4 +1,4 @@
-extends Component
+extends "res://src/core/Component.gd"
 class_name StatsComponent
 
 ## Canonical data block describing a character's core stats and progression surface.
@@ -137,6 +137,11 @@ class_name StatsComponent
 
 func to_dictionary() -> Dictionary:
     """Returns a defensive snapshot of every exported stat value."""
+    var skill_options_copy: Dictionary[StringName, Array] = {}
+    for key in skill_options.keys():
+        var options: Array = skill_options[key]
+        skill_options_copy[key] = options.duplicate()
+
     return {
         "job_id": job_id,
         "job_title": job_title,
@@ -174,7 +179,7 @@ func to_dictionary() -> Dictionary:
         "technical": technical,
         "advanced_training": advanced_training.duplicate(true),
         "skill_levels": skill_levels.duplicate(true),
-        "skill_options": skill_options.duplicate(true),
+        "skill_options": skill_options_copy,
         "equipped_items": equipped_items.duplicate(true),
         "inventory_items": inventory_items.duplicate(),
     }
@@ -192,7 +197,7 @@ func heal(amount: int) -> void:
     if amount <= 0:
         return
     if max_health > 0:
-        health = int(clamp(health + amount, 0, max_health))
+        health = clampi(health + amount, 0, max_health)
     else:
         health += amount
 
@@ -209,7 +214,7 @@ func restore_energy(amount: int) -> void:
     if amount <= 0:
         return
     if max_energy > 0:
-        energy = int(clamp(energy + amount, 0, max_energy))
+        energy = clampi(energy + amount, 0, max_energy)
     else:
         energy += amount
 
@@ -226,17 +231,18 @@ func restore_action_points(amount: int) -> void:
     if amount <= 0:
         return
     if max_action_points > 0:
-        action_points = int(clamp(action_points + amount, 0, max_action_points))
+        action_points = clampi(action_points + amount, 0, max_action_points)
     else:
         action_points += amount
 
 
 func add_status(effect: StringName, is_long_term: bool = false) -> void:
     """Adds a status effect to the appropriate list if it is not already present."""
-    var target: Array[StringName] = long_term_statuses if is_long_term else short_term_statuses
-    if effect in target:
+    var normalized := StringName(effect)
+    var target := long_term_statuses if is_long_term else short_term_statuses
+    if normalized in target:
         return
-    target.append(effect)
+    target.append(normalized)
     if is_long_term:
         long_term_statuses = target
     else:
@@ -245,23 +251,26 @@ func add_status(effect: StringName, is_long_term: bool = false) -> void:
 
 func remove_status(effect: StringName) -> void:
     """Removes a status effect from both short and long term lists."""
-    if effect in short_term_statuses:
-        short_term_statuses.erase(effect)
-    if effect in long_term_statuses:
-        long_term_statuses.erase(effect)
+    var normalized := StringName(effect)
+    if normalized in short_term_statuses:
+        short_term_statuses.erase(normalized)
+    if normalized in long_term_statuses:
+        long_term_statuses.erase(normalized)
 
 
-func add_trait(trait: StringName) -> void:
+func add_trait(trait_name: StringName) -> void:
     """Registers a derived trait such as \"Goblin Slayer\" when conditions are met."""
-    if trait in traits:
+    var normalized := StringName(trait_name)
+    if normalized in traits:
         return
-    traits.append(trait)
+    traits.append(normalized)
 
 
-func remove_trait(trait: StringName) -> void:
+func remove_trait(trait_name: StringName) -> void:
     """Clears a trait when its prerequisite stats are no longer satisfied."""
-    if trait in traits:
-        traits.erase(trait)
+    var normalized := StringName(trait_name)
+    if normalized in traits:
+        traits.erase(normalized)
 
 
 func apply_stat_mod(modifiers: Dictionary) -> void:
@@ -307,12 +316,12 @@ func apply_stat_mod(modifiers: Dictionary) -> void:
             remove_status(StringName(status))
 
     if modifiers.has("traits_to_add"):
-        for trait in modifiers["traits_to_add"]:
-            add_trait(StringName(trait))
+        for trait_name in modifiers["traits_to_add"]:
+            add_trait(StringName(trait_name))
 
     if modifiers.has("traits_to_remove"):
-        for trait in modifiers["traits_to_remove"]:
-            remove_trait(StringName(trait))
+        for trait_name in modifiers["traits_to_remove"]:
+            remove_trait(StringName(trait_name))
 
 
 func reset_for_new_run() -> void:

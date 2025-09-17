@@ -206,7 +206,7 @@ func run_test() -> Dictionary:
         if not snapshot.has(key):
             snapshot_valid = false
             break
-        var component_value := snapshot_component.get(key)
+        var component_value: Variant = snapshot_component.get(key)
         if snapshot[key] != component_value:
             snapshot_valid = false
             break
