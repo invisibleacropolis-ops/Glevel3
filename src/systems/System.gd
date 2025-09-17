@@ -10,7 +10,7 @@ const EVENT_BUS_SCRIPT := preload("res://src/globals/EventBus.gd")
 ## Designed for Godot 4.4.1.
 
 ## Called by subclasses to process a specific entity.
-func _process_entity(entity_node: Node, delta: float) -> void:
+func _process_entity(_entity_node: Node, _delta: float) -> void:
     pass
 
 ## Emit a payload on the global EventBus singleton.
