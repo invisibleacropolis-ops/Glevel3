@@ -4,7 +4,7 @@ class_name DebugSystem
 const DEBUG_LOG_REDIRECTOR_SCRIPT := preload("res://src/globals/DebugLogRedirector.gd")
 
 const DEFAULT_LOG_DIRECTORY := "user://logs"
-const MASTER_ERROR_LOG_DIRECTORY := "res://"
+const MASTER_ERROR_LOG_DIRECTORY := "user://logs/master"
 const MASTER_ERROR_LOG_EXTENSION := ".txt"
 const ERROR_SEVERITY_THRESHOLD := 3
 const LOG_LEVEL_FALLBACK_LABELS := {
@@ -524,6 +524,11 @@ func _on_entity_killed(payload: Dictionary) -> void:
 func _initialize_master_error_log(date_stamp: String) -> void:
     _close_master_error_log()
 
+    if not _ensure_master_error_log_directory():
+        master_error_log_path = ""
+        _master_error_log_run_index = 0
+        return
+
     _master_error_log_run_index = _resolve_next_master_error_run_index(date_stamp)
 
     var file_name := _build_master_error_log_filename(date_stamp, _master_error_log_run_index)
@@ -586,8 +591,18 @@ func _is_error_level(level: int) -> bool:
 ## repository root. The implementation preserves gaps instead of compacting
 ## previous runs so historical captures remain untouched.
 func _resolve_next_master_error_run_index(date_stamp: String) -> int:
+    if not _ensure_master_error_log_directory():
+        return 1
+
     var directory := DirAccess.open(MASTER_ERROR_LOG_DIRECTORY)
     if directory == null:
+        var open_error := DirAccess.get_open_error()
+        push_error(
+            "DebugSystem could not scan master error log directory %s (error %d)." % [
+                MASTER_ERROR_LOG_DIRECTORY,
+                open_error,
+            ]
+        )
         return 1
 
     var prefix := "Master-Error-Log-DATE-%s-RUN-" % date_stamp
@@ -625,6 +640,19 @@ func _resolve_next_master_error_run_index(date_stamp: String) -> int:
 
     directory.list_dir_end()
     return max_run + 1
+
+func _ensure_master_error_log_directory() -> bool:
+    var result := DirAccess.make_dir_recursive_absolute(MASTER_ERROR_LOG_DIRECTORY)
+    if result != OK and result != ERR_ALREADY_EXISTS:
+        push_error(
+            "DebugSystem failed to prepare master error log directory %s (error %d)." % [
+                MASTER_ERROR_LOG_DIRECTORY,
+                result,
+            ]
+        )
+        return false
+
+    return true
 
 ## Builds the canonical filename for the master error log contract.
 func _build_master_error_log_filename(date_stamp: String, run_index: int) -> String:
