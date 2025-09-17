@@ -4,7 +4,9 @@ class_name DebugSystem
 const DEBUG_LOG_REDIRECTOR_SCRIPT := preload("res://src/globals/DebugLogRedirector.gd")
 
 const DEFAULT_LOG_DIRECTORY := "user://logs"
-const MASTER_ERROR_LOG_DIRECTORY := "user://logs/master"
+## Master error logs are persisted directly to the project root for quick access
+## during automated validation runs.
+const MASTER_ERROR_LOG_DIRECTORY := "res://"
 const MASTER_ERROR_LOG_EXTENSION := ".txt"
 const ERROR_SEVERITY_THRESHOLD := 3
 const LOG_LEVEL_FALLBACK_LABELS := {
@@ -15,8 +17,11 @@ const LOG_LEVEL_FALLBACK_LABELS := {
     4: "FATAL",
 }
 
-const EntityData = preload("res://src/core/EntityData.gd")
-const StatsComponent = preload("res://src/components/StatsComponent.gd")
+## Preloading ensures the globally named EntityData class is registered when the
+## DebugSystem script compiles in isolation (e.g., during headless test runs).
+const ENTITY_DATA_SCRIPT := preload("res://src/core/EntityData.gd")
+## Preloading ensures StatsComponent is registered before type checks occur.
+const STATS_COMPONENT_SCRIPT := preload("res://src/components/StatsComponent.gd")
 const ULTEnums = preload("res://src/globals/ULTEnums.gd")
 
 class LogEntryBuffer:
@@ -74,20 +79,20 @@ func _ready() -> void:
 func _exit_tree() -> void:
     _finalize_log_capture()
 
-func _physics_process(delta: float) -> void:
+func _physics_process(_delta: float) -> void:
     var tree := get_tree()
     if tree == null:
         return
 
     for entity in tree.get_nodes_in_group("entities"):
-        var data: EntityData = _extract_entity_data(entity)
+        var data: ENTITY_DATA_SCRIPT = _extract_entity_data(entity)
         if data == null:
             continue
 
         if not data.has_component(ULTEnums.ComponentKeys.STATS):
             continue
 
-        var stats: StatsComponent = data.get_component(ULTEnums.ComponentKeys.STATS)
+        var stats: STATS_COMPONENT_SCRIPT = data.get_component(ULTEnums.ComponentKeys.STATS)
         if stats == null:
             continue
 
@@ -285,7 +290,8 @@ func _generate_master_error_log_date_stamp(components: Dictionary) -> String:
     var year := int(components.get("year", 0))
 
     if month == 0 or day == 0 or year == 0:
-        var fallback := Time.get_datetime_dict_from_unix_time(Time.get_unix_time_from_system())
+        var unix_time := int(Time.get_unix_time_from_system())
+        var fallback := Time.get_datetime_dict_from_unix_time(unix_time)
         month = int(fallback.get("month", 0))
         day = int(fallback.get("day", 0))
         year = int(fallback.get("year", 0))
@@ -310,7 +316,7 @@ func _initialize_log_level_labels() -> void:
     if not has_constant.is_valid() or not get_constant.is_valid():
         return
 
-    var remap := {
+    var log_level_remap := {
         "LEVEL_DEBUG": "DEBUG",
         "LEVEL_INFO": "INFO",
         "LEVEL_WARNING": "WARNING",
@@ -319,12 +325,12 @@ func _initialize_log_level_labels() -> void:
         "LEVEL_EDITOR": "EDITOR",
     }
 
-    for constant_name in remap.keys():
+    for constant_name in log_level_remap.keys():
         if has_constant.call("Logger", constant_name):
             var value_variant: Variant = get_constant.call("Logger", constant_name)
             if typeof(value_variant) == TYPE_INT:
                 var value: int = value_variant
-                _log_level_labels[value] = remap[constant_name]
+                _log_level_labels[value] = log_level_remap[constant_name]
 
 ## Resolves the display label for a logger severity integer.
 func _resolve_log_level_name(level: int) -> String:
@@ -488,7 +494,7 @@ func _get_event_bus() -> Node:
     return event_bus
 
 ## Ensures we always emit a usable entity identifier for debug payloads.
-func _resolve_entity_id(entity: Node, data: EntityData) -> String:
+func _resolve_entity_id(entity: Node, data: ENTITY_DATA_SCRIPT) -> String:
     if data.entity_id != "":
         return data.entity_id
     return entity.name
@@ -496,7 +502,7 @@ func _resolve_entity_id(entity: Node, data: EntityData) -> String:
 ## Resolves the EntityData payload associated with the supplied entity node.
 ## Handles components exposed as properties, metadata, or helper methods so tests
 ## and gameplay scenes can use whichever wiring is most convenient.
-func _extract_entity_data(entity: Node) -> EntityData:
+func _extract_entity_data(entity: Node) -> ENTITY_DATA_SCRIPT:
     if entity == null:
         return null
 
@@ -508,13 +514,13 @@ func _extract_entity_data(entity: Node) -> EntityData:
     if data == null and entity.has_meta("entity_data"):
         data = entity.get_meta("entity_data")
 
-    if data is EntityData:
+    if data is ENTITY_DATA_SCRIPT:
         return data
 
     return null
 
 ## Produces a serializable snapshot of the stats component for signal payloads.
-func _snapshot_stats(stats: StatsComponent) -> Dictionary:
+func _snapshot_stats(stats: STATS_COMPONENT_SCRIPT) -> Dictionary:
     return stats.to_dictionary()
 
 ## Receives notifications when other systems broadcast entity_killed.
@@ -543,12 +549,13 @@ func _initialize_master_error_log(date_stamp: String) -> void:
     var file_name := _build_master_error_log_filename(date_stamp, _master_error_log_run_index)
     master_error_log_path = _join_paths(MASTER_ERROR_LOG_DIRECTORY, file_name)
 
-    _master_error_log_file = FileAccess.open(master_error_log_path, FileAccess.WRITE)
+    var absolute_master_path := ProjectSettings.globalize_path(master_error_log_path)
+    _master_error_log_file = FileAccess.open(absolute_master_path, FileAccess.WRITE)
     if _master_error_log_file == null:
         var open_error := FileAccess.get_open_error()
         push_error(
             "DebugSystem failed to open master error log at %s (error %d)." % [
-                master_error_log_path,
+                absolute_master_path,
                 open_error,
             ]
         )
@@ -603,12 +610,13 @@ func _resolve_next_master_error_run_index(date_stamp: String) -> int:
     if not _ensure_master_error_log_directory():
         return 1
 
-    var directory := DirAccess.open(MASTER_ERROR_LOG_DIRECTORY)
+    var directory_path := ProjectSettings.globalize_path(MASTER_ERROR_LOG_DIRECTORY)
+    var directory := DirAccess.open(directory_path)
     if directory == null:
         var open_error := DirAccess.get_open_error()
         push_error(
             "DebugSystem could not scan master error log directory %s (error %d)." % [
-                MASTER_ERROR_LOG_DIRECTORY,
+                directory_path,
                 open_error,
             ]
         )
@@ -651,11 +659,12 @@ func _resolve_next_master_error_run_index(date_stamp: String) -> int:
     return max_run + 1
 
 func _ensure_master_error_log_directory() -> bool:
-    var result := DirAccess.make_dir_recursive_absolute(MASTER_ERROR_LOG_DIRECTORY)
+    var absolute_path := ProjectSettings.globalize_path(MASTER_ERROR_LOG_DIRECTORY)
+    var result := DirAccess.make_dir_recursive_absolute(absolute_path)
     if result != OK and result != ERR_ALREADY_EXISTS:
         push_error(
             "DebugSystem failed to prepare master error log directory %s (error %d)." % [
-                MASTER_ERROR_LOG_DIRECTORY,
+                absolute_path,
                 result,
             ]
         )
