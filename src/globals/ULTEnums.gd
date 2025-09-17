@@ -135,7 +135,11 @@ static func assert_valid_entity_type(entity_type: int) -> bool:
         push_error(
             "ULTEnums: Unknown EntityType id %s. Expected one of: %s." % [
                 entity_type,
-                ", ".join(_ENTITY_TYPE_NAMES.values().map(func(name: StringName) -> String: return String(name))),
+                ", ".join(
+                    _ENTITY_TYPE_NAMES.values().map(
+                        func(entity_type_name: StringName) -> String: return String(entity_type_name)
+                    )
+                ),
             ]
         )
         return false

@@ -3,6 +3,8 @@ class_name DebugLogRedirectorSingleton
 
 ## Engine singleton identifier used to locate the low-level logging interface.
 const LOGGER_SINGLETON_NAME := "Logger"
+## Maximum number of deferred attempts to hook the engine logger before giving up.
+const LOGGER_RETRY_LIMIT := 5
 
 ## Autoload singleton that intercepts Godot's global logger and forwards messages
 ## to the active DebugSystem instance. Designed for Godot 4.4.1.
@@ -20,12 +22,19 @@ var _active_debug_system: WeakRef = null
 var _previous_log_func: Callable = Callable()
 var _logger_callable: Callable = Callable()
 var _is_logger_installed := false
+## Count of installation retries attempted since the node entered the tree.
+var _retry_attempts := 0
+## Tracks whether a deferred retry has already been scheduled for the current frame.
+var _is_retry_queued := false
+## Prevents duplicate log spam when the logger interface is unavailable.
+var _has_reported_install_issue := false
 
 func _enter_tree() -> void:
     _singleton = self
 
 func _ready() -> void:
-    _install_logger()
+    if not _install_logger():
+        _queue_logger_retry()
 
 func _exit_tree() -> void:
     if _singleton == self:
@@ -78,23 +87,23 @@ func _get_logger_singleton() -> Object:
 ## for `Logger.set_log_func` and `Logger.get_log_func` at runtime so the redirect
 ## safely degrades when running in environments that do not expose the Logger
 ## interface (for example, stripped-down test runners).
-func _install_logger() -> void:
+func _install_logger() -> bool:
     if _is_logger_installed:
-        return
+        return true
 
     var logger: Object = _get_logger_singleton()
     if logger == null:
-        push_warning(
+        _report_logger_issue(
             "Logger singleton is unavailable; DebugLogRedirectorSingleton cannot intercept log output."
         )
-        return
+        return false
 
     var set_callable: Callable = Callable(logger, "set_log_func")
     if not set_callable.is_valid():
-        push_warning(
+        _report_logger_issue(
             "Logger.set_log_func is unavailable; DebugLogRedirectorSingleton cannot intercept log output."
         )
-        return
+        return false
 
     var get_callable: Callable = Callable(logger, "get_log_func")
     if get_callable.is_valid():
@@ -105,6 +114,10 @@ func _install_logger() -> void:
     _logger_callable = Callable(self, "_on_log_message")
     set_callable.call(_logger_callable)
     _is_logger_installed = true
+    _retry_attempts = 0
+    _is_retry_queued = false
+    _has_reported_install_issue = false
+    return true
 
 ## Restores the previous logger callback so the engine's logging stack returns to
 ## its default configuration. Called automatically when the singleton exits the
@@ -125,6 +138,9 @@ func _uninstall_logger() -> void:
     _is_logger_installed = false
     _logger_callable = Callable()
     _previous_log_func = Callable()
+    _retry_attempts = 0
+    _is_retry_queued = false
+    _has_reported_install_issue = false
 
 ## Internal helper that resolves the currently registered DebugSystem instance.
 ## The weak reference automatically clears itself when the system is freed,
@@ -155,3 +171,45 @@ func _on_log_message(message: String, level: int, category: String, timestamp: S
 
     if _previous_log_func.is_valid():
         _previous_log_func.call(message, level, category, timestamp)
+
+## Schedules a deferred logger installation attempt so the singleton can hook the
+## engine logger after other subsystems finish initialising. Retries are limited
+## to avoid infinite loops in stripped-down builds that omit the Logger API.
+func _queue_logger_retry() -> void:
+    if not is_inside_tree():
+        return
+    if _is_logger_installed:
+        return
+    if _retry_attempts >= LOGGER_RETRY_LIMIT:
+        _report_logger_issue(
+            "Logger installation retries exhausted; DebugLogRedirectorSingleton will operate without interception."
+        )
+        return
+    if _is_retry_queued:
+        return
+    _is_retry_queued = true
+    call_deferred("_retry_install_logger")
+
+## Executes the deferred installation attempt queued by `_queue_logger_retry` and
+## schedules additional retries when the logger is still unavailable.
+func _retry_install_logger() -> void:
+    _is_retry_queued = false
+    if _is_logger_installed:
+        return
+    if not is_inside_tree():
+        return
+    _retry_attempts += 1
+    if not _install_logger():
+        _queue_logger_retry()
+
+## Emits a single diagnostic message describing why the logger hook failed.
+## Editor sessions use `push_warning` for visibility while headless test runs fall
+## back to `print_verbose` to keep their logs noise-free.
+func _report_logger_issue(message: String) -> void:
+    if _has_reported_install_issue:
+        return
+    _has_reported_install_issue = true
+    if Engine.is_editor_hint():
+        push_warning(message)
+    else:
+        print_verbose("DebugLogRedirectorSingleton: %s" % message)
