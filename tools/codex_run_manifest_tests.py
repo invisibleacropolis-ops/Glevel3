@@ -276,9 +276,7 @@ def _run_godot(
         )
         stderr_thread.start()
 
-        assert manager._process is not None  # Access internal state for wait semantics.
-        exit_code = manager._process.wait()
-        manager.stop()
+        exit_code = manager.wait()
         stderr_thread.join(timeout=1.0)
 
     duration = time.perf_counter() - start_time
