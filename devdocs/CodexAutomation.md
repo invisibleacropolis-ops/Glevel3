@@ -71,6 +71,7 @@ active command line, process ID, negotiated banner, and heartbeat settings.
 This makes it straightforward to mirror Codex' perspective on a live session
 when debugging in external tooling or when collecting telemetry for CI.
 
+
 ## EventBus replay troubleshooting
 
 Codex replays EventBus transcripts by launching the headless runner at
@@ -104,3 +105,61 @@ alongside Codex' summary, or export the log to disk for attachment to bug
 reports.  Because the runner reuses the same harness logic that powers the
 in-editor tooling, reproducing Codex' steps manually ensures parity between CI
 and local debugging.
+
+## Running the manifest suite end-to-end
+
+The `tools/codex_run_manifest_tests.py` helper provides a batteries-included
+command line for executing the entire manifest suite in the same way Codex does
+during automated reviews.  Outside engineers can use it to reproduce failures
+locally, capture diagnostics, or experiment with new test manifests.
+
+### Step-by-step workflow
+
+1. Export the standard Codex environment variables so the script can discover
+   your Godot installation and project root:
+
+   ```bash
+   export CODEX_GODOT_BIN=/Applications/Godot.app/Contents/MacOS/Godot
+   export CODEX_PROJECT_ROOT=/path/to/Glevel3
+   ```
+
+2. (Optional) Inspect `tests/tests_manifest.json` to understand which scenes or
+   scripts will be executed.  The manifest is the same file consumed in Codex
+   runs.
+
+3. Invoke the runner.  By default it cleans stale `tests/results.*` artifacts,
+   launches Godot headlessly, and emits both a human friendly summary and a
+   JSON payload that Codex can stream back to the operator:
+
+   ```bash
+   python tools/codex_run_manifest_tests.py
+   ```
+
+4. When you need persistent evidence for a review, add `--output snapshots/` to
+   capture `summary.txt` and `codex_payload.json` artifacts.  These files mirror
+   what Codex archives during CI validation.
+
+5. Use `--max-retries 3 --retry-delay 2` if you suspect flaky tests.  Each retry
+   clears the report files before relaunching Godot so the resulting payloads
+   accurately represent the final attempt.
+
+6. Inspect `tests/results.json` and `tests/results.xml` after the run for the
+   detailed assertion counts and per-script diagnostics that power the summary.
+   The JSON structure is parsed into a rich payload that the runner prints to
+   stderr for Codex to consume.
+
+### Example Codex prompts
+
+Codex operators usually seed the assistant with one of the following prompts to
+drive the manifest suite:
+
+- _"Use `tools/codex_run_manifest_tests.py --output artifacts/ci` to gather a
+  structured manifest report and share the summary with me."_
+- _"Re-run the manifest tests with two retries and include any failing script
+  diagnostics in the Codex JSON payload."_
+- _"Clean the stale test reports, execute the manifest suite, and attach the
+  resulting `codex_payload.json` so I can inspect the raw numbers."_
+
+Because the CLI is deterministic and mirrors the automation harness, any prompt
+that works in Codex will behave identically for local engineers.
+
