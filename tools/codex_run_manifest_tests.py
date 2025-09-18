@@ -276,9 +276,7 @@ def _run_godot(
         )
         stderr_thread.start()
 
-        assert manager._process is not None  # Access internal state for wait semantics.
-        exit_code = manager._process.wait()
-        manager.stop()
+        exit_code = manager.wait()
         stderr_thread.join(timeout=1.0)
 
     duration = time.perf_counter() - start_time
@@ -289,7 +287,15 @@ def _load_json_results(path: Path) -> tuple[ManifestSummary, List[ScriptReport]]
     if not path.exists():
         return ManifestSummary(error=f"JSON results missing at {path}"), []
 
-    data = json.loads(path.read_text(encoding="utf-8"))
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        return (
+            ManifestSummary(
+                error=f"Failed to parse JSON results at {path}: {exc}"
+            ),
+            [],
+        )
     summary_data = data.get("summary", {}) if isinstance(data, dict) else {}
     tests_data = data.get("tests", []) if isinstance(data, dict) else []
 

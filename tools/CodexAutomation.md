@@ -44,6 +44,10 @@ with CodexGodotProcessManager(extra_args=["-s", "res://tests/run_all_tests.gd"])
     request_id = manager.send_command("scenario.load", {"name": "Arena"})
     for message in manager.iter_messages(timeout=1.0):
         print(message)
+
+    # Block until the Godot instance exits when the script is complete.
+    exit_code = manager.wait()
+    print(f"Godot finished with {exit_code}")
 ```
 
 - `start()` launches `godot --headless --path <project>` with the configured
@@ -52,6 +56,13 @@ with CodexGodotProcessManager(extra_args=["-s", "res://tests/run_all_tests.gd"])
   `manager.describe_session().banner`.
 - `stop()` gracefully terminates the process and joins the reader threads.  A
   context manager (`with` block) is provided for convenience.
+- `wait()` blocks until the managed Godot process exits.  The helper polls the
+  underlying `subprocess.Popen` object in small intervals so shutdown signals
+  triggered via `stop()` are honoured instead of leaving callers stuck on a
+  private attribute.  Always use this API instead of touching `_process`.
+- `poll()` and the `returncode` property expose the cached exit status without
+  blocking, mirroring the `subprocess.Popen` contract for outside engineers who
+  need lightweight introspection.
 
 ### Banner negotiation and timeout semantics
 
@@ -143,6 +154,14 @@ The `tools/codex_run_manifest_tests.py` helper provides a batteries-included
 command line for executing the entire manifest suite in the same way Codex does
 during automated reviews.  Outside engineers can use it to reproduce failures
 locally, capture diagnostics, or experiment with new test manifests.
+
+When the Godot runner emits a corrupted or truncated `tests/results.json`, the
+helper now catches the JSON parsing error and returns a `ManifestSummary` with
+an explanatory message instead of raising an exception.  Both the terminal
+summary and the structured Codex payload include the `error` field so outside
+engineers and Codex operators can immediately see that the report itself was
+malformed.  This ensures automation surfaces actionable diagnostics without
+masking the underlying run status.
 
 ## Preflight orchestration with Codex
 

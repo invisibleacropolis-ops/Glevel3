@@ -81,6 +81,7 @@ class CodexGodotProcessManager:
 
     #: Method invoked automatically to negotiate a banner for Codex sessions.
     _BANNER_METHOD = "codex.banner"
+    _WAIT_POLL_INTERVAL = 0.1
 
     def __init__(
         self,
@@ -140,7 +141,64 @@ class CodexGodotProcessManager:
     # Public API
     @property
     def is_running(self) -> bool:
-        return bool(self._process and self._process.poll() is None)
+        process = self._process
+        return bool(process and process.poll() is None)
+
+    def poll(self) -> Optional[int]:
+        """Return the Godot process exit code when it has finished."""
+
+        process = self._process
+        if not process:
+            return None
+        return process.poll()
+
+    @property
+    def returncode(self) -> Optional[int]:
+        """Expose the cached return code of the managed process."""
+
+        process = self._process
+        if not process:
+            return None
+        return process.returncode
+
+    def wait(self, timeout: Optional[float] = None) -> int:
+        """Block until the Godot process exits and return the exit code.
+
+        The helper delegates to :meth:`subprocess.Popen.wait` while polling in
+        short intervals so shutdown signals triggered by :meth:`stop` are
+        honoured.  When ``timeout`` is provided a :class:`TimeoutError` is
+        raised once the deadline is exceeded without the process terminating.
+        """
+
+        process = self._process
+        if not process:
+            raise RuntimeError("Godot process is not running.")
+        if timeout is not None and timeout < 0:
+            raise ValueError("timeout must be non-negative")
+
+        deadline = time.monotonic() + timeout if timeout is not None else None
+
+        while True:
+            return_code = process.poll()
+            if return_code is not None:
+                return return_code
+
+            if deadline is not None:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise TimeoutError("Timed out waiting for Godot process to exit")
+                step = min(self._WAIT_POLL_INTERVAL, remaining)
+            else:
+                step = self._WAIT_POLL_INTERVAL
+
+            try:
+                return process.wait(timeout=step)
+            except subprocess.TimeoutExpired:
+                if self._stop_event.is_set():
+                    polled = process.poll()
+                    if polled is not None:
+                        return polled
+                continue
 
     def start(self) -> None:
         """Start the Godot process and associated reader threads."""
