@@ -53,6 +53,7 @@ The log toolbar sits directly under the “Signal Log” heading:
 - **Save Log** opens a file dialog pre-filled with a timestamped filename in the user data directory (`user://`). Confirm the path to export a `.log` (or `.txt`) capture containing the parsed log text.【F:tests/EventBus_TestHarness.tscn†L63-L86】【F:src/tests/EventBusHarness.gd†L575-L600】【F:src/tests/EventBusHarness.gd†L483-L509】
 
 - **Replay Log** prompts for a previously saved replay (`.json` or `.log`). Once selected, the harness replays each entry through the EventBus and reports success or failure inline.【F:tests/EventBus_TestHarness.tscn†L67-L92】【F:src/tests/EventBusHarness.gd†L602-L644】【F:src/tests/EventBusHarness.gd†L389-L482】
+  The harness records the Godot error code returned by each emission (`OK`, `ERR_INVALID_DATA`, etc.) so you can immediately spot contract mismatches in the transcript.【F:src/tests/EventBusHarness.gd†L431-L482】
 
 
 
