@@ -348,7 +348,7 @@ func _parse_failure_entry(message: String, timestamp: String) -> Dictionary:
 
 func _parse_skipped_entry(message: String, timestamp: String) -> Dictionary:
     var parts := message.split(" ")
-    var index_text := parts.size() >= 3 ? parts[2] : "0"
+    var index_text := parts[2] if parts.size() >= 3 else "0"
     var entry_index := index_text.to_int()
     return {
         "type": "eventbus_replay_entry",
