@@ -113,6 +113,48 @@ command line for executing the entire manifest suite in the same way Codex does
 during automated reviews.  Outside engineers can use it to reproduce failures
 locally, capture diagnostics, or experiment with new test manifests.
 
+## Preflight orchestration with Codex
+
+Codex now exposes a single entry point for end-to-end validation via
+`tools/codex_preflight.py`.  The helper mirrors the automation workflow used in
+production by layering lightweight parse checks in front of the manifest suite
+so obvious syntax issues are caught before Godot boots.
+
+### Step-by-step workflow
+
+1. Select the directories or individual `.gd` files you want to validate.  When
+   no paths are provided the script defaults to scanning the current working
+   directory.
+2. Run the preflight helper.  By default it emits Codex-friendly JSON so the
+   orchestrator can consume telemetry and diagnostics directly:
+
+   ```bash
+   python tools/codex_preflight.py src tests
+   ```
+
+3. When the parse phase finds no issues the tool automatically chains into
+   `codex_run_manifest_tests.py`.  Additional flags can be forwarded using the
+   `--manifest-args <args>` pattern:
+
+   ```bash
+   python tools/codex_preflight.py --manifest-args --project-root $CODEX_PROJECT_ROOT
+   ```
+
+4. Use `--human` if you prefer a concise textual summary instead of JSON while
+   iterating locally.  The flag preserves the same control flow but formats the
+   report for terminal consumption.
+
+5. Combine `--skip-parse` or `--skip-manifest` to focus on a single phase.  For
+   example, `python tools/codex_preflight.py --skip-parse --manifest-args \
+   --manifest tests/custom_manifest.json` runs only the manifest suite while
+   still surfacing aggregated telemetry.
+
+The JSON payload always reports how many scripts were scanned, the number of
+parse failures, whether the manifest suite ran, and the resulting coverage
+statistics (scripts passed/failed).  Codex uses these counts to short-circuit
+automation when syntax regressions are detected, while outside engineers can
+embed the same helper in CI pipelines to mirror the production guard rails.
+
 ### Step-by-step workflow
 
 1. Export the standard Codex environment variables so the script can discover
