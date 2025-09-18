@@ -9,7 +9,7 @@ from unittest import mock
 
 import sys
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import pytest
 
@@ -86,6 +86,8 @@ def test_iter_messages_skips_banner(monkeypatch):
     description = manager.describe_session()
     assert description.banner == {"banner": "hello"}
 
+    assert manager.wait_for_banner() == {"banner": "hello"}
+
     manager.stop()
 
 
@@ -130,3 +132,50 @@ def test_heartbeat_timeout_emits_diagnostic(monkeypatch):
     assert any(entry["stream"] == "heartbeat" for entry in diagnostics)
 
     manager.stop()
+
+
+def test_wait_for_banner_buffers_messages(monkeypatch):
+    process = FakeProcess(
+        [
+            "{\"id\":1,\"result\":{\"ok\":true}}",
+            "{\"id\":0,\"result\":{\"banner\":\"later\"}}",
+        ]
+    )
+    monkeypatch.setattr("subprocess.Popen", mock.Mock(return_value=process))
+
+    manager = CodexGodotProcessManager()
+    manager.start()
+
+    iterator = manager.iter_messages(timeout=0.1)
+    assert next(iterator) == {"id": 1, "result": {"ok": True}}
+
+    manager.stop()
+
+
+def test_start_times_out_without_banner(monkeypatch):
+    class HangingStdout:
+        def __init__(self):
+            self._closed = False
+
+        def readline(self, size=-1):  # pragma: no cover - size unused
+            time.sleep(0.02)
+            return "" if self._closed else "\n"
+
+        def close(self):
+            self._closed = True
+
+    class HangingProcess(FakeProcess):
+        def __init__(self):
+            super().__init__([])
+            self.stdout = HangingStdout()
+
+    process = HangingProcess()
+    monkeypatch.setattr("subprocess.Popen", mock.Mock(return_value=process))
+
+    manager = CodexGodotProcessManager(banner_timeout=0.01)
+
+    with pytest.raises(TimeoutError):
+        manager.start()
+
+    diagnostics = list(manager.iter_stderr_diagnostics())
+    assert any(entry["stream"] == "banner" for entry in diagnostics)

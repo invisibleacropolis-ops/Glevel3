@@ -32,8 +32,9 @@ import subprocess
 import threading
 import time
 import uuid
+from collections import deque
 from dataclasses import dataclass
-from typing import Dict, Generator, Iterable, List, Optional
+from typing import Deque, Dict, Generator, Iterable, List, Optional
 
 
 @dataclass
@@ -123,6 +124,8 @@ class CodexGodotProcessManager:
         self._banner: Optional[dict] = None
         self._session_id = str(uuid.uuid4())
         self._last_activity = time.monotonic()
+        self._pending_messages: Deque[dict] = deque()
+        self._pending_lock = threading.Lock()
 
     # ------------------------------------------------------------------
     # Context manager support
@@ -203,6 +206,12 @@ class CodexGodotProcessManager:
             )
             self._heartbeat_thread.start()
 
+        try:
+            self.wait_for_banner()
+        except Exception:
+            self.stop()
+            raise
+
     def stop(self) -> None:
         """Terminate the Godot process and wait for reader threads to exit."""
 
@@ -254,6 +263,80 @@ class CodexGodotProcessManager:
             heartbeat_timeout=self.heartbeat_timeout,
         )
 
+    def wait_for_banner(self, *, timeout: Optional[float] = None) -> dict:
+        """Block until the banner handshake completes or raise on timeout.
+
+        Parameters
+        ----------
+        timeout:
+            Optional override for the timeout window.  Defaults to the
+            ``banner_timeout`` configured for the process manager.
+        """
+
+        if self._banner_request_id is None:
+            if self._banner is None:
+                raise RuntimeError("Banner negotiation was not initiated.")
+            return self._banner
+
+        if not self.is_running:
+            raise RuntimeError("Godot process is not running.")
+
+        timeout = self.banner_timeout if timeout is None else timeout
+        start_time = time.monotonic()
+        deadline = start_time + timeout if timeout is not None else None
+        buffered_messages: List[dict] = []
+
+        while self._banner_request_id is not None:
+            remaining = None
+            if deadline is not None:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    break
+
+            try:
+                line = self._stdout_queue.get(timeout=remaining)
+            except queue.Empty:
+                break
+
+            if line is None:
+                diagnostic = {
+                    "timestamp": time.time(),
+                    "stream": "lifecycle",
+                    "text": "Godot process exited before banner negotiation completed",
+                    "level": "error",
+                    "session": self._session_id,
+                }
+                self._stderr_queue.put(diagnostic)
+                raise RuntimeError(
+                    "Godot process terminated before banner negotiation completed"
+                )
+
+            message = self._consume_stdout_line(line)
+            if message is not None:
+                buffered_messages.append(message)
+
+        if buffered_messages:
+            with self._pending_lock:
+                self._pending_messages.extend(buffered_messages)
+
+        if self._banner_request_id is not None:
+            elapsed = time.monotonic() - start_time
+            diagnostic = {
+                "timestamp": time.time(),
+                "stream": "banner",
+                "text": (
+                    f"Timed out waiting for {self._BANNER_METHOD} after {elapsed:.2f}s"
+                ),
+                "level": "error",
+                "session": self._session_id,
+            }
+            self._stderr_queue.put(diagnostic)
+            raise TimeoutError(
+                f"Timed out waiting {elapsed:.2f}s for banner response from Godot"
+            )
+
+        return self._banner or {}
+
     # Communication helpers -------------------------------------------------
     def send_command(
         self,
@@ -301,6 +384,10 @@ class CodexGodotProcessManager:
             raise RuntimeError("Godot process is not running.")
 
         while True:
+            with self._pending_lock:
+                if self._pending_messages:
+                    yield self._pending_messages.popleft()
+                    continue
             try:
                 line = self._stdout_queue.get(timeout=timeout)
             except queue.Empty:
@@ -310,35 +397,9 @@ class CodexGodotProcessManager:
             if line is None:
                 break
 
-            stripped = line.strip()
-            if not stripped:
-                continue
-
-            try:
-                message = json.loads(stripped)
-            except json.JSONDecodeError:
-                self._stderr_queue.put(
-                    {
-                        "timestamp": time.time(),
-                        "stream": "stdout",
-                        "text": stripped,
-                        "level": "protocol",
-                    }
-                )
-                continue
-
-            self._last_activity = time.monotonic()
-
-            if self._banner_request_id is not None and message.get("id") == self._banner_request_id:
-                banner_payload = message.get("result")
-                if isinstance(banner_payload, dict):
-                    self._banner = banner_payload
-                else:
-                    self._banner = {"message": banner_payload}
-                self._banner_request_id = None
-                continue
-
-            yield message
+            message = self._consume_stdout_line(line)
+            if message is not None:
+                yield message
 
     def iter_stderr_diagnostics(self) -> Generator[dict, None, None]:
         """Yield structured diagnostics that originated from stderr or decoding errors."""
@@ -403,6 +464,37 @@ class CodexGodotProcessManager:
         }
         self._stderr_queue.put(diagnostic)
         self._last_activity = time.monotonic()
+
+    def _consume_stdout_line(self, line: str) -> Optional[dict]:
+        stripped = line.strip()
+        if not stripped:
+            return None
+
+        try:
+            message = json.loads(stripped)
+        except json.JSONDecodeError:
+            self._stderr_queue.put(
+                {
+                    "timestamp": time.time(),
+                    "stream": "stdout",
+                    "text": stripped,
+                    "level": "protocol",
+                }
+            )
+            return None
+
+        self._last_activity = time.monotonic()
+
+        if self._banner_request_id is not None and message.get("id") == self._banner_request_id:
+            banner_payload = message.get("result")
+            if isinstance(banner_payload, dict):
+                self._banner = banner_payload
+            else:
+                self._banner = {"message": banner_payload}
+            self._banner_request_id = None
+            return None
+
+        return message
 
 
 __all__ = ["CodexGodotProcessManager", "SessionDescription"]
