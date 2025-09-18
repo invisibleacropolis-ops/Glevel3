@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import io
 import json
+import subprocess
+import threading
 import time
 from pathlib import Path
 from typing import Iterable
@@ -39,6 +41,34 @@ class FakeProcess:
         self._returncode = -9
 
 
+class SlowExitProcess(FakeProcess):
+    def __init__(self, stdout_lines: Iterable[str], exit_code: int = 0):
+        super().__init__(stdout_lines)
+        self._exit_code = exit_code
+        self._wait_event = threading.Event()
+        self.wait_calls = 0
+
+    def wait(self, timeout=None):
+        self.wait_calls += 1
+        if timeout is None:
+            raise AssertionError("wait() should receive a timeout when managed by CodexGodotProcessManager")
+        if not self._wait_event.wait(timeout):
+            raise subprocess.TimeoutExpired(cmd=["godot"], timeout=timeout)
+        self._returncode = self._exit_code
+        return self._exit_code
+
+    def terminate(self):
+        super().terminate()
+        self._wait_event.set()
+
+    def kill(self):
+        super().kill()
+        self._wait_event.set()
+
+    def trigger_exit(self):
+        self._wait_event.set()
+
+
 @pytest.fixture(autouse=True)
 def _set_env(monkeypatch):
     monkeypatch.setenv("CODEX_GODOT_BIN", "godot")
@@ -63,6 +93,55 @@ def test_start_sends_banner_request(monkeypatch):
         "method": "scene.load",
         "params": {"path": "res://test.tscn"},
     }
+
+    manager.stop()
+
+
+def test_wait_delegates_to_process_wait(monkeypatch):
+    process = FakeProcess(["{\"id\":0,\"result\":{\"banner\":\"ok\"}}"])
+    wait_mock = mock.Mock(return_value=7)
+    process.wait = wait_mock
+    monkeypatch.setattr("subprocess.Popen", mock.Mock(return_value=process))
+
+    manager = CodexGodotProcessManager()
+    manager.start()
+
+    exit_code = manager.wait()
+    assert exit_code == 7
+    wait_mock.assert_called()
+
+    manager.stop()
+
+
+def test_wait_handles_timeout_and_shutdown(monkeypatch):
+    process = SlowExitProcess(["{\"id\":0,\"result\":{\"banner\":true}}"], exit_code=11)
+    monkeypatch.setattr("subprocess.Popen", mock.Mock(return_value=process))
+
+    manager = CodexGodotProcessManager()
+    manager.start()
+
+    def _release_process():
+        time.sleep(0.35)
+        process.trigger_exit()
+
+    threading.Thread(target=_release_process, daemon=True).start()
+
+    exit_code = manager.wait(timeout=1.0)
+    assert exit_code == 11
+    assert process.wait_calls >= 2  # ensure TimeoutExpired was raised at least once
+
+    manager.stop()
+
+
+def test_wait_respects_timeout(monkeypatch):
+    process = SlowExitProcess(["{\"id\":0,\"result\":{\"banner\":42}}"], exit_code=3)
+    monkeypatch.setattr("subprocess.Popen", mock.Mock(return_value=process))
+
+    manager = CodexGodotProcessManager()
+    manager.start()
+
+    with pytest.raises(TimeoutError):
+        manager.wait(timeout=0.05)
 
     manager.stop()
 
