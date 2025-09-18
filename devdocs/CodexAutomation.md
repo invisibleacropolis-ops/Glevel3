@@ -71,6 +71,41 @@ active command line, process ID, negotiated banner, and heartbeat settings.
 This makes it straightforward to mirror Codex' perspective on a live session
 when debugging in external tooling or when collecting telemetry for CI.
 
+
+## EventBus replay troubleshooting
+
+Codex replays EventBus transcripts by launching the headless runner at
+`res://tests/eventbus_replay_runner.gd`.  The script instantiates the harness
+scene, validates the JSON transcript, and calls
+`EventBusHarness.replay_signals_from_json()` so every entry is exercised against
+the live EventBus contracts.  Outcomes are streamed as newline-delimited JSON
+records that Codex aggregates into a report.  Manual engineers can mirror the
+same workflow by running:
+
+```bash
+godot4 --headless --path <project> --script res://tests/eventbus_replay_runner.gd <path/to/replay.json>
+```
+
+The transcript must be a JSON array of dictionaries.  Each entry requires a
+`signal_name` string and a `payload` dictionary; additional metadata keys are
+ignored.  Any structural issue (missing keys, non-dictionary payloads, malformed
+JSON) triggers a fast-fail diagnostic before Godot emits the replay, preventing
+partial runs from masking schema drift.
+
+For automation, `tools/codex_replay_eventbus.py` wraps the process manager so
+Codex can collect structured results.  The helper accepts the replay path plus
+optional `--export-log` and `--echo-log` flags to persist or mirror the harness
+log.  It parses every `eventbus_replay_*` JSON line into a machine-readable
+report that downstream systems or engineers can inspect without scraping human
+text.  The module also exposes a `format_report()` utility to render the results
+in a human-friendly summary when troubleshooting locally.
+
+When diagnosing failures, enable the echo flag to capture the harness transcript
+alongside Codex' summary, or export the log to disk for attachment to bug
+reports.  Because the runner reuses the same harness logic that powers the
+in-editor tooling, reproducing Codex' steps manually ensures parity between CI
+and local debugging.
+
 ## Running the manifest suite end-to-end
 
 The `tools/codex_run_manifest_tests.py` helper provides a batteries-included
@@ -127,3 +162,4 @@ drive the manifest suite:
 
 Because the CLI is deterministic and mirrors the automation harness, any prompt
 that works in Codex will behave identically for local engineers.
+
