@@ -258,7 +258,9 @@ def _run_godot(
     manager = CodexGodotProcessManager(
         godot_binary=str(godot_binary),
         project_root=str(project_root),
-        extra_args=["--script", "res://tests/run_all_tests.gd", "--quit"],
+        # Avoid passing ``--quit`` so Godot continues processing frames while
+        # asynchronous tests yield on ``await get_tree().process_frame``.
+        extra_args=["--script", "res://tests/run_all_tests.gd"],
         env_overrides=extra_env,
     )
 
