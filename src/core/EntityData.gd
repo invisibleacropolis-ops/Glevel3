@@ -30,7 +30,21 @@ var _invalid_component_warnings: Dictionary[String, bool] = {}
 ## all attached Component Resources, keyed by a canonical StringName identifier
 ## (e.g., ComponentKeys.STATS).
 ## Keys MUST correspond to the constants defined in ULTEnums.gd (e.g., ComponentKeys.STATS).
-@export var components: Dictionary = {}
+var _components: Dictionary = {}
+
+## Exposed manifest of component resources keyed by canonical identifiers.
+##
+## The exported dictionary allows designers to author entity manifests directly
+## in the Inspector while the internal `_components` cache guarantees keys are
+## normalised to `StringName` for stable lookups. The getter exposes the live
+## manifest so existing editor tooling and tests that expect direct dictionary
+## access continue to function.
+@export var components: Dictionary = {}:
+    set(value):
+        _invalid_component_warnings.clear()
+        _components = _sanitize_component_manifest(value)
+    get:
+        return _components
 
 ## Registers or replaces a component using a canonical ComponentKeys identifier.
 ## Converts arbitrary string inputs to StringName before storage to ensure stable lookups.
@@ -45,11 +59,11 @@ func add_component(key: Variant, component: Resource) -> void:
         ULTEnums.is_valid_component_key(normalized_key),
         "Component key '%s' is not registered in ULTEnums.ComponentKeys." % normalized_key,
     )
-    components.erase(normalized_key)
+    _components.erase(normalized_key)
     var legacy_key := String(normalized_key)
-    if components.has(legacy_key):
-        components.erase(legacy_key)
-    components[normalized_key] = component
+    if _components.has(legacy_key):
+        _components.erase(legacy_key)
+    _components[normalized_key] = component
     _invalid_component_warnings.erase(legacy_key)
 
 ## Retrieves a component reference by its canonical key.
@@ -90,7 +104,7 @@ func remove_component(key: Variant) -> Resource:
     var lookup := _locate_component_entry(normalized_key)
     if lookup.get("component") == null:
         return null
-    components.erase(lookup.get("key"))
+    _components.erase(lookup.get("key"))
     if lookup.get("component") is ComponentClass:
         return lookup.get("component")
     _report_invalid_component_type(normalized_key, lookup.get("component"))
@@ -99,8 +113,8 @@ func remove_component(key: Variant) -> Resource:
 ## Produces a shallow copy of the component manifest for safe iteration.
 ## External systems must treat the returned dictionary as read-only metadata.
 func list_components() -> Dictionary:
-    var manifest: Dictionary = {}
-    for key in components.keys():
+    var manifest: Dictionary[StringName, Component] = {}
+    for key in _components.keys():
         var normalized: StringName = _normalize_component_key(key)
         if not ULTEnums.is_valid_component_key(normalized):
             continue
@@ -122,15 +136,32 @@ func _locate_component_entry(normalized_key: StringName) -> Dictionary:
         "component": null,
         "key": null,
     }
-    if components.has(normalized_key):
-        entry["component"] = components.get(normalized_key)
+    if _components.has(normalized_key):
+        entry["component"] = _components.get(normalized_key)
         entry["key"] = normalized_key
         return entry
     var legacy_key := String(normalized_key)
-    if components.has(legacy_key):
-        entry["component"] = components.get(legacy_key)
+    if _components.has(legacy_key):
+        entry["component"] = _components.get(legacy_key)
         entry["key"] = legacy_key
     return entry
+
+func _sanitize_component_manifest(raw_value: Variant) -> Dictionary:
+    var sanitized: Dictionary = {}
+    if raw_value == null:
+        return sanitized
+    if not (raw_value is Dictionary):
+        push_warning("EntityData: components export expected a Dictionary but received %s." % type_string(typeof(raw_value)))
+        return sanitized
+    for key in raw_value.keys():
+        var normalized_key := _normalize_component_key(key)
+        if normalized_key == StringName():
+            continue
+        var value: Variant = raw_value.get(key)
+        sanitized[normalized_key] = value
+        if value != null and not (value is ComponentClass):
+            _report_invalid_component_type(normalized_key, value)
+    return sanitized
 
 func _report_invalid_component_type(normalized_key: StringName, value: Variant) -> void:
     var key_string := String(normalized_key)
