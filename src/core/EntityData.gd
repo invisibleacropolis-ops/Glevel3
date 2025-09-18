@@ -2,7 +2,6 @@ extends Resource
 class_name EntityData
 
 const ULTEnums := preload("res://src/globals/ULTEnums.gd")
-const ComponentClass := preload("res://src/core/Component.gd")
 ## Tracks manifest keys that have already reported invalid component payloads so we
 ## do not spam logs when the same corrupted entry is queried repeatedly.
 var _invalid_component_warnings: Dictionary[String, bool] = {}
@@ -51,7 +50,7 @@ var _components: Dictionary = {}
 func add_component(key: Variant, component: Resource) -> void:
     assert(component != null, "EntityData.add_component requires a Component instance.")
     assert(
-        component is ComponentClass,
+        _is_component_resource(component),
         "EntityData.add_component only accepts resources derived from Component.",
     )
     var normalized_key: StringName = _normalize_component_key(key)
@@ -76,7 +75,7 @@ func get_component(key: Variant) -> Resource:
     var component = lookup.get("component")
     if component == null:
         return null
-    if component is ComponentClass:
+    if _is_component_resource(component):
         return component
     _report_invalid_component_type(normalized_key, component)
     return null
@@ -90,7 +89,7 @@ func has_component(key: Variant) -> bool:
     var component = lookup.get("component")
     if component == null:
         return false
-    if component is ComponentClass:
+    if _is_component_resource(component):
         return true
     _report_invalid_component_type(normalized_key, component)
     return false
@@ -105,7 +104,7 @@ func remove_component(key: Variant) -> Resource:
     if lookup.get("component") == null:
         return null
     _components.erase(lookup.get("key"))
-    if lookup.get("component") is ComponentClass:
+    if _is_component_resource(lookup.get("component")):
         return lookup.get("component")
     _report_invalid_component_type(normalized_key, lookup.get("component"))
     return null
@@ -120,7 +119,7 @@ func list_components() -> Dictionary:
             continue
         var lookup := _locate_component_entry(normalized)
         var component = lookup.get("component")
-        if component is ComponentClass:
+        if _is_component_resource(component):
             manifest[normalized] = component
         elif component != null:
             _report_invalid_component_type(normalized, component)
@@ -158,8 +157,13 @@ func _sanitize_component_manifest(raw_value: Variant) -> Dictionary:
         if normalized_key == StringName():
             continue
         var value: Variant = raw_value.get(key)
-        sanitized[normalized_key] = value
-        if value != null and not (value is ComponentClass):
+        if value == null:
+            sanitized[normalized_key] = null
+            continue
+        if _is_component_resource(value):
+            sanitized[normalized_key] = value
+        else:
+            sanitized[normalized_key] = null
             _report_invalid_component_type(normalized_key, value)
     return sanitized
 
@@ -177,3 +181,7 @@ func _report_invalid_component_type(normalized_key: StringName, value: Variant) 
             value_description,
         ]
     )
+
+## Returns true when the supplied value is a Component resource instance.
+func _is_component_resource(candidate: Variant) -> bool:
+    return candidate is Component
