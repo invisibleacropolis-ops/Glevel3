@@ -29,16 +29,17 @@ var _invalid_component_warnings: Dictionary[String, bool] = {}
 ## all attached Component Resources, keyed by a canonical StringName identifier
 ## (e.g., ComponentKeys.STATS).
 ## Keys MUST correspond to the constants defined in ULTEnums.gd (e.g., ComponentKeys.STATS).
-var _components: Dictionary = {}
+var _components: Dictionary[StringName, Component] = {}
 
 ## Exposed manifest of component resources keyed by canonical identifiers.
 ##
-## The exported dictionary allows designers to author entity manifests directly
-## in the Inspector while the internal `_components` cache guarantees keys are
-## normalised to `StringName` for stable lookups. The getter exposes the live
-## manifest so existing editor tooling and tests that expect direct dictionary
-## access continue to function.
-@export var components: Dictionary = {}:
+## The exported dictionary is now strongly typed so the Inspector knows each
+## value expects a Component resource, enabling drag-and-drop authoring from the
+## FileSystem dock. The internal `_components` cache still normalises keys to
+## `StringName` for stable lookups while tolerating legacy manifest data. The
+## getter exposes the live manifest so existing editor tooling and tests that
+## expect direct dictionary access continue to function.
+@export var components: Dictionary[StringName, Component] = {}:
     set(value):
         _invalid_component_warnings.clear()
         _components = _sanitize_component_manifest(value)
@@ -59,10 +60,8 @@ func add_component(key: Variant, component: Resource) -> void:
         "Component key '%s' is not registered in ULTEnums.ComponentKeys." % normalized_key,
     )
     _components.erase(normalized_key)
-    var legacy_key := String(normalized_key)
-    if _components.has(legacy_key):
-        _components.erase(legacy_key)
     _components[normalized_key] = component
+    var legacy_key := String(normalized_key)
     _invalid_component_warnings.erase(legacy_key)
 
 ## Retrieves a component reference by its canonical key.
@@ -111,7 +110,7 @@ func remove_component(key: Variant) -> Resource:
 
 ## Produces a shallow copy of the component manifest for safe iteration.
 ## External systems must treat the returned dictionary as read-only metadata.
-func list_components() -> Dictionary:
+func list_components() -> Dictionary[StringName, Component]:
     var manifest: Dictionary[StringName, Component] = {}
     for key in _components.keys():
         var normalized: StringName = _normalize_component_key(key)
@@ -138,15 +137,10 @@ func _locate_component_entry(normalized_key: StringName) -> Dictionary:
     if _components.has(normalized_key):
         entry["component"] = _components.get(normalized_key)
         entry["key"] = normalized_key
-        return entry
-    var legacy_key := String(normalized_key)
-    if _components.has(legacy_key):
-        entry["component"] = _components.get(legacy_key)
-        entry["key"] = legacy_key
     return entry
 
-func _sanitize_component_manifest(raw_value: Variant) -> Dictionary:
-    var sanitized: Dictionary = {}
+func _sanitize_component_manifest(raw_value: Variant) -> Dictionary[StringName, Component]:
+    var sanitized: Dictionary[StringName, Component] = {}
     if raw_value == null:
         return sanitized
     if not (raw_value is Dictionary):
@@ -158,12 +152,10 @@ func _sanitize_component_manifest(raw_value: Variant) -> Dictionary:
             continue
         var value: Variant = raw_value.get(key)
         if value == null:
-            sanitized[normalized_key] = null
             continue
         if _is_component_resource(value):
             sanitized[normalized_key] = value
         else:
-            sanitized[normalized_key] = null
             _report_invalid_component_type(normalized_key, value)
     return sanitized
 
