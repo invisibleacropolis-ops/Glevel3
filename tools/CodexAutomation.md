@@ -155,6 +155,14 @@ command line for executing the entire manifest suite in the same way Codex does
 during automated reviews.  Outside engineers can use it to reproduce failures
 locally, capture diagnostics, or experiment with new test manifests.
 
+When the Godot runner emits a corrupted or truncated `tests/results.json`, the
+helper now catches the JSON parsing error and returns a `ManifestSummary` with
+an explanatory message instead of raising an exception.  Both the terminal
+summary and the structured Codex payload include the `error` field so outside
+engineers and Codex operators can immediately see that the report itself was
+malformed.  This ensures automation surfaces actionable diagnostics without
+masking the underlying run status.
+
 ## Preflight orchestration with Codex
 
 Codex now exposes a single entry point for end-to-end validation via
