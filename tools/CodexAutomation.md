@@ -6,7 +6,7 @@ is designed to follow the communication and orchestration guidelines described
 in the "Python Godot Automation Design Bible" so that outside engineers can
 easily integrate Codex-driven automation into their own tooling.
 
-## Environment variables
+## Environment variables and project portability
 
 Two environment variables define the default launch configuration:
 
@@ -20,6 +20,19 @@ Both variables can be overridden by passing explicit values to the
 `CodexGodotProcessManager` constructor.  Manual operators often provide custom
 arguments or environment tweaks while Codex production runs typically rely on
 CI provided defaults.
+
+Because the process manager is completely project agnostic you can reuse it in
+any repository that exposes a Godot project.  When onboarding a new project:
+
+1. Point `CODEX_GODOT_BIN` at the Godot binary that matches the project's
+   version.
+2. Export `CODEX_PROJECT_ROOT` (or pass the argument explicitly) so the helper
+   locates the correct `project.godot` manifest.
+3. Provide any additional command line flags through `extra_args` when you need
+   to toggle feature flags or supply scripts unique to your workflows.
+
+No other repository-specific tweaks are required; the rest of the module uses
+standard Godot command line switches and JSON-RPC messaging to stay portable.
 
 ## Session lifecycle
 
@@ -39,6 +52,24 @@ with CodexGodotProcessManager(extra_args=["-s", "res://tests/run_all_tests.gd"])
   `manager.describe_session().banner`.
 - `stop()` gracefully terminates the process and joins the reader threads.  A
   context manager (`with` block) is provided for convenience.
+
+### Banner negotiation and timeout semantics
+
+Codex requires every automation session to identify itself via the
+`codex.banner` method.  The process manager now enforces this handshake by
+waiting for the banner response during `start()`.  If the Godot process fails to
+reply within `banner_timeout` seconds a `TimeoutError` is raised and the process
+is torn down automatically.  Diagnostics describing the failure are published to
+`iter_stderr_diagnostics()` with `stream="banner"` so CI or manual operators can
+inspect the root cause.
+
+When the response arrives late or out of order the manager buffers any other
+JSON-RPC messages until the banner is processed, ensuring downstream iterators
+still observe a strict ordering.  Outside engineers can invoke the public
+`wait_for_banner()` method to block explicitly (for example, in bespoke
+integration tests) or to override the timeout when experimenting interactively.
+Calling `wait_for_banner()` returns the structured banner payload and raises the
+same diagnostics if the handshake fails.
 
 ## Communication model
 
