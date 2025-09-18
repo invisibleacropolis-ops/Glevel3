@@ -5,11 +5,18 @@ The EventBus test harness (\[`tests/EventBus_TestHarness.tscn`\]) lets designers
 ## Getting started
 
 1. Open the scene in the Godot editor (`tests/EventBus_TestHarness.tscn`) and press ▶ to run it.
-2. Review the automatically generated signal sections. Each reflects the contract published in [`EventBusSignals.md`](./EventBusSignals.md), so any new keys appear here without manual scene edits.
-3. Populate the input fields. Required keys are highlighted until they receive values; optional keys can be left blank.
-4. Click the **Emit** button for the signal you want to test. The sibling listener logs the result in the right-hand transcript pane.
+2. Review the automatically generated signal sections. The harness asks [`EventBusHarness.gd`](../src/tests/EventBusHarness.gd) for the contracts published in [`EventBusSignals.md`](./EventBusSignals.md) / `EventBus.SIGNAL_CONTRACTS` and builds UI controls on the fly, so new keys appear without manual scene edits.【F:src/tests/EventBusHarness.gd†L35-L119】
+3. Populate the input fields. Required keys are highlighted until they receive values; optional keys can be left blank. Leaving a required field empty triggers the red tooltip/border styling configured by `_mark_field_invalid()` which keeps your payloads honest before they hit the bus.【F:src/tests/EventBusHarness.gd†L235-L343】
+4. Click the **Emit** button for the signal you want to test. The sibling listener logs the result in the right-hand transcript pane by relaying every payload through [`EventBusHarnessListener.gd`](../src/tests/EventBusHarnessListener.gd).【F:src/tests/EventBusHarnessListener.gd†L13-L71】
 
 > Tip: The harness accepts JSON fragments in any field. Entering `{ "quest_id": "tutorial" }` or `["objective_a", "objective_b"]` saves you from hand-escaping dictionaries and arrays.
+
+### Harness internals (quick reference)
+
+- **Dynamic sections.** `_build_signal_controls()` clears the previous layout, sorts the published signal names, and calls `_create_signal_section()` for each contract so the scene always reflects the latest singleton state.【F:src/tests/EventBusHarness.gd†L35-L119】
+- **Smart editors.** `_populate_field_rows()` adds `LineEdit` widgets with contextual placeholders and tooltips describing the accepted Variant types. `_coerce_field_value()` then accepts JSON, booleans, integers, floats, or string-likes at emit time to minimise copy/paste friction.【F:src/tests/EventBusHarness.gd†L121-L210】【F:src/tests/EventBusHarness.gd†L345-L371】
+- **Automatic logging.** `EventBusHarnessListener.gd` connects to every user-defined signal when the scene is ready and pushes timestamped payloads into the log with `append_log()`, so designers can focus on contract content rather than wiring.【F:src/tests/EventBusHarnessListener.gd†L13-L86】【F:src/tests/EventBusHarness.gd†L373-L388】
+- **Utility buttons.** The Clear, Save, and Replay actions on the log are wired by `_wire_signal_controls()`. Save opens `FileDialog` with a timestamped filename, while Replay parses a JSON array (or raw string) and re-emits each entry through the live EventBus instance for deterministic reproductions.【F:src/tests/EventBusHarness.gd†L471-L644】
 
 ## Scenario playbooks
 
@@ -42,7 +49,7 @@ The transcript renders each entry as `[timestamp] signal_name -> {payload}`. Use
 - **Payload audits:** Expand complex dictionaries (objective metadata, loot descriptors) to ensure localization tags, stat deltas, and economy flags align with documentation. If a required key is absent, the harness will block emission, surfacing gaps before integration.
 - **Regression detection:** Replay a saved log via **Replay Log** to compare historical sessions against current contracts. Divergent listener output highlights content or systems changes that may impact balance.
 
-When tuning, export the transcript with **Save Log**. The `.log` file preserves timestamps, while exporting a replayable `.json` from external tooling captures the exact signal/payload sequence for regression checks.
+When tuning, export the transcript with **Save Log**. The `.log` file preserves timestamps, while exporting a replayable `.json` from external tooling captures the exact signal/payload sequence for regression checks. The harness will create any missing directories and report failures directly in the console, so you always know whether the capture succeeded.【F:src/tests/EventBusHarness.gd†L483-L509】
 
 ## Sharing results during content reviews
 

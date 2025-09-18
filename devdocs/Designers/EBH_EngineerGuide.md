@@ -5,9 +5,16 @@ It is intended for engineers who need to emit diagnostic payloads, replay captur
 
 ## Key scripts
 
-* [`src/globals/EventBus.gd`](../src/globals/EventBus.gd) – singleton that defines the contracts and runtime validation rules for every published signal.
-* [`src/tests/EventBusHarness.gd`](../src/tests/EventBusHarness.gd) – control surface that builds form inputs for each contract, emits payloads, and manages log export/replay.
-* [`src/tests/EventBusHarnessListener.gd`](../src/tests/EventBusHarnessListener.gd) – omniscient subscriber that mirrors every EventBus signal into the harness log.
+* [`src/globals/EventBus.gd`](../src/globals/EventBus.gd) – singleton that defines the contracts and runtime validation rules for every published signal. `emit_signal()` wraps the built-in implementation with contract validation, so malformed payloads never propagate to downstream systems.【F:src/globals/EventBus.gd†L82-L178】
+* [`src/tests/EventBusHarness.gd`](../src/tests/EventBusHarness.gd) – control surface that builds form inputs for each contract, emits payloads, and manages log export/replay. `_build_signal_controls()` generates UI from the live contracts and `_wire_signal_controls()` binds emit/utility buttons at runtime so the scene stays synchronized with code.【F:src/tests/EventBusHarness.gd†L35-L210】【F:src/tests/EventBusHarness.gd†L471-L540】
+* [`src/tests/EventBusHarnessListener.gd`](../src/tests/EventBusHarnessListener.gd) – omniscient subscriber that mirrors every EventBus signal into the harness log. `_connect_to_bus()` binds a reference-counted callable per signal and relays payloads back to the harness’ `append_log()` helper.【F:src/tests/EventBusHarnessListener.gd†L13-L86】
+
+## Runtime flow at a glance
+
+1. **EventBus resolution.** `_resolve_event_bus()` locates the active autoload on the scene tree or instantiates a private copy (added deferred when required) so engineers can run the harness in isolation without modifying project autoloads.【F:src/tests/EventBusHarness.gd†L541-L573】
+2. **Dynamic UI generation.** Once the scene is ready, `_build_signal_controls()` clears previous children, sorts contract names, and produces a section for each signal including per-field tooltips and validation metadata. `_apply_field_error_styles()` and `_coerce_field_value()` work together to keep inline validation and type coercion consistent across sessions.【F:src/tests/EventBusHarness.gd†L35-L210】【F:src/tests/EventBusHarness.gd†L235-L371】
+3. **Emission and logging.** `_emit_signal()` gathers the payload dictionary from the current editors. When validation passes it forwards the payload to `EventBus.emit_signal()`. The listener’s `_on_signal_received()` then calls back into `append_log()` so every broadcast is timestamped in the RichTextLabel.【F:src/tests/EventBusHarness.gd†L219-L388】【F:src/tests/EventBusHarnessListener.gd†L60-L86】
+4. **Replay pipeline.** Selecting **Replay Log** funnels the chosen file through `_on_replay_file_selected()` and `replay_signals_from_json()`. The helper accepts raw JSON text or an in-memory array, performs structural validation per entry, and replays each payload while logging the Godot error code for auditing.【F:src/tests/EventBusHarness.gd†L389-L644】
 
 ## EventBus contracts
 
@@ -79,10 +86,23 @@ Because controls are generated from the source contracts, new signals become ava
 Use the Godot CLI to run the harness in isolation (handy for remote desktop sessions or continuous integration smoke tests):
 
 ```bash
-godot --path . --scene tests/EventBus_TestHarness.tscn
+godot4 --path . --scene res://tests/EventBus_TestHarness.tscn
 ```
 
 Godot will open the scene with the same controls provided by the editor workflow.
+
+When a graphical session is unavailable, the Python automation helpers under `tools/` can orchestrate a headless run. Export `CODEX_GODOT_BIN` with the path to your Godot executable and execute a short script that reuses the shared process manager:
+
+```bash
+python - <<'PY'
+from tools.codex_godot_process_manager import CodexGodotProcessManager
+
+with CodexGodotProcessManager(extra_args=["--scene", "res://tests/EventBus_TestHarness.tscn"]) as session:
+    print(session.describe_session())
+PY
+```
+
+`CodexGodotProcessManager` wraps `subprocess.Popen` with Codex defaults (headless mode, JSON-friendly pipes, heartbeat support) so the same entry point powers CI smoke tests and local reproductions.【F:tools/codex_godot_process_manager.py†L40-L208】
 
 ## Log export and replay
 
@@ -127,11 +147,11 @@ Each entry is emitted sequentially. Payloads are validated against the same cont
 Execute the unit test manifest through Godot's headless runner to confirm EventBus behaviour before submitting changes:
 
 ```bash
-godot --headless --path . --run-tests --test junit --output tests/results.xml
-godot --headless --path . --run-tests --test json --output tests/results.json
+godot4 --headless --path . --run-tests --test junit --output tests/results.xml
+godot4 --headless --path . --run-tests --test json --output tests/results.json
 ```
 
-Both commands consume [`tests/tests_manifest.json`](../tests/tests_manifest.json) and populate machine-readable reports alongside human-readable console output. Inspect the generated XML or JSON files when diagnosing CI failures.
+Both commands consume [`tests/tests_manifest.json`](../tests/tests_manifest.json) and populate machine-readable reports alongside human-readable console output. If you prefer the Python orchestrator, run `python tools/codex_run_manifest_tests.py --godot-binary "$CODEX_GODOT_BIN" --project-root .` to mirror the CI harness and capture structured summaries for dashboards.【F:tools/codex_run_manifest_tests.py†L1-L150】【F:tools/codex_run_manifest_tests.py†L222-L289】
 
 ## Extending the EventBus ecosystem
 
