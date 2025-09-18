@@ -235,7 +235,7 @@ func heal(amount: int) -> void:
         health += amount
 
 
-func get_skill_action_ids(skill_type: StringName, rarity: StringName, upgrade_level: StringName, trait: StringName) -> Array[StringName]:
+func get_skill_action_ids(skill_type: StringName, rarity: StringName, upgrade_level: StringName, trait_id: StringName) -> Array[StringName]:
     """Returns the action identifiers tied to the requested skill catalog entry.
 
     The lookup traverses the hierarchy of type → rarity → upgrade level → trait. A
@@ -252,9 +252,9 @@ func get_skill_action_ids(skill_type: StringName, rarity: StringName, upgrade_le
     if not level_map.has(upgrade_level):
         return empty_actions
     var trait_map: Dictionary = level_map[upgrade_level]
-    if not trait_map.has(trait):
+    if not trait_map.has(trait_id):
         return empty_actions
-    var actions: Array = trait_map[trait]
+    var actions: Array = trait_map[trait_id]
     var result: Array[StringName] = actions.duplicate()
     return result
 
