@@ -7,6 +7,7 @@ class_name StatsComponent
 
 ## Runtime identifier that links the character to a Job or Profession definition resource.
 ## Designers assign a stable key so generators can request "ninja" or "scientist" loadouts.
+@export_group("Job Assignment")
 @export var job_id: StringName = StringName("")
 
 ## Optional localized title to show in UI for the current Job selection.
@@ -18,6 +19,7 @@ class_name StatsComponent
 
 ## ---- Vital Resources ----
 ## Current health pool. When this reaches 0 the entity is considered defeated.
+@export_group("Vital Resources")
 @export var health: int = 0
 
 ## Maximum health capacity granted by the character's archetype, gear, and traits.
@@ -40,6 +42,7 @@ class_name StatsComponent
 
 ## ---- Status Tracking ----
 ## Short-lived status effects such as Poisoned or Inspired that should clear between missions.
+@export_group("Status Tracking")
 @export var short_term_statuses: Array[StringName] = []
 
 ## Persistent status effects such as Diseased or Aged that survive multiple encounters.
@@ -53,6 +56,7 @@ class_name StatsComponent
 
 ## ---- Progression ----
 ## Experience points accumulated toward the next level reward.
+@export_group("Progression")
 @export var experience_points: int = 0
 
 ## Character level used to gate skill unlocks and campaign events.
@@ -66,6 +70,7 @@ class_name StatsComponent
 
 ## ---- Attribute Pools ----
 ## Fixed points allocated to the Body pool that cannot be reassigned.
+@export_group("Attribute Pools")
 @export var body_pool_fixed: int = 0
 
 ## Flexible points currently stored in the Body pool for camp reallocation.
@@ -97,6 +102,7 @@ class_name StatsComponent
 
 ## ---- Training Proficiencies ----
 ## Athletic training score used for climbing, swimming, and similar body checks.
+@export_group("Training Proficiencies")
 @export var athletics: int = 0
 
 ## Combat training score measuring general martial expertise across weapon types.
@@ -120,6 +126,18 @@ class_name StatsComponent
 
 ## ---- Skill Surface ----
 ## Mapping of skill identifiers to their current level tier (basic/common/rare/etc.).
+@export_group("Skill Surface")
+@export_subgroup("Skill Catalog Organization")
+## Hierarchical catalog describing every skill available to the character.
+## Keys follow the structure:
+##   skill_catalog[skill_type][rarity][upgrade_level][trait] -> Array[StringName] of action IDs.
+## * skill_type: broad categories such as "melee", "ranged", "defense", or "utility".
+## * rarity: strings like "basic", "common", "unique", or "legendary".
+## * upgrade_level: identifiers such as "base", "path_a_rank_1", etc., representing the upgrade tier.
+## * trait: trait identifiers describing the mechanical modifier for the upgrade action.
+## Each Array should contain StringName identifiers referencing concrete skill actions.
+@export var skill_catalog: Dictionary[StringName, Dictionary] = {}
+@export_subgroup("Skill Loadouts")
 @export var skill_levels: Dictionary[StringName, int] = {}
 
 ## Mapping of skill identifiers to unlocked option identifiers within each skill tree.
@@ -129,6 +147,7 @@ class_name StatsComponent
 
 ## ---- Equipment Snapshot ----
 ## Mapping of equipment slot identifiers (e.g., "weapon", "armor") to equipped item IDs.
+@export_group("Equipment Snapshot")
 @export var equipped_items: Dictionary[StringName, StringName] = {}
 
 ## Bag or locker items carried by the character outside of equipped slots.
@@ -141,6 +160,19 @@ func to_dictionary() -> Dictionary:
     for key in skill_options.keys():
         var options: Array = skill_options[key]
         skill_options_copy[key] = options.duplicate()
+
+    var skill_catalog_copy: Dictionary[StringName, Dictionary] = {}
+    for type_key in skill_catalog.keys():
+        var rarity_map: Dictionary = skill_catalog[type_key]
+        var rarity_copy: Dictionary[StringName, Dictionary] = {}
+        for rarity_key in rarity_map.keys():
+            var level_map: Dictionary = rarity_map[rarity_key]
+            var level_copy: Dictionary[StringName, Dictionary] = {}
+            for level_key in level_map.keys():
+                var trait_map: Dictionary = level_map[level_key]
+                level_copy[level_key] = trait_map.duplicate(true)
+            rarity_copy[rarity_key] = level_copy
+        skill_catalog_copy[type_key] = rarity_copy
 
     return {
         "job_id": job_id,
@@ -178,6 +210,7 @@ func to_dictionary() -> Dictionary:
         "lore": lore,
         "technical": technical,
         "advanced_training": advanced_training.duplicate(true),
+        "skill_catalog": skill_catalog_copy,
         "skill_levels": skill_levels.duplicate(true),
         "skill_options": skill_options_copy,
         "equipped_items": equipped_items.duplicate(true),
@@ -200,6 +233,30 @@ func heal(amount: int) -> void:
         health = clampi(health + amount, 0, max_health)
     else:
         health += amount
+
+
+func get_skill_action_ids(skill_type: StringName, rarity: StringName, upgrade_level: StringName, trait: StringName) -> Array[StringName]:
+    """Returns the action identifiers tied to the requested skill catalog entry.
+
+    The lookup traverses the hierarchy of type → rarity → upgrade level → trait. A
+    defensive copy is returned so callers may mutate the result without affecting the
+    stored catalog.
+    """
+    var empty_actions: Array[StringName] = []
+    if not skill_catalog.has(skill_type):
+        return empty_actions
+    var rarity_map: Dictionary = skill_catalog[skill_type]
+    if not rarity_map.has(rarity):
+        return empty_actions
+    var level_map: Dictionary = rarity_map[rarity]
+    if not level_map.has(upgrade_level):
+        return empty_actions
+    var trait_map: Dictionary = level_map[upgrade_level]
+    if not trait_map.has(trait):
+        return empty_actions
+    var actions: Array = trait_map[trait]
+    var result: Array[StringName] = actions.duplicate()
+    return result
 
 
 func spend_energy(amount: int) -> void:
