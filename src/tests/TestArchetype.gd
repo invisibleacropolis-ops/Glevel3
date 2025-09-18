@@ -1,9 +1,9 @@
 # src/tests/TestArchetype.gd
 extends Node
 
-const TRAIT_CLASS_PATH := "res://src/systems/Trait.gd"
+const TRAIT_CLASS_PATH := "res://src/components/Trait.gd"
 const ARCHETYPE_RESOURCE_PATH := "res://assets/archetypes/MerchantArchetype.tres"
-const TRAIT_COMPONENT_SCRIPT_PATH := "res://src/systems/TraitComponent.gd"
+const TRAIT_COMPONENT_SCRIPT_PATH := "res://src/components/TraitComponent.gd"
 const MERCHANT_TRAIT_PATH := "res://assets/traits/MerchantTrait.tres"
 const COWARDLY_TRAIT_PATH := "res://assets/traits/CowardlyTrait.tres"
 const FIRE_TRAIT_PATH := "res://assets/traits/FireAttunedTrait.tres"
