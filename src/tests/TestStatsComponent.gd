@@ -195,6 +195,7 @@ func run_test() -> Dictionary:
         "lore",
         "technical",
         "advanced_training",
+        "skill_catalog",
         "skill_levels",
         "skill_options",
         "equipped_items",
