@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="EntityData" load_steps=3 format=3 uid="uid://b4k1atd6b7e2i"]
+
+[ext_resource type="Resource" uid="uid://b6505l7842sol" path="res://tests/test_archetypes/Test_Stat.tres" id="1_d7d25"]
+[ext_resource type="Script" uid="uid://dkwlkfpl03j5t" path="res://src/core/EntityData.gd" id="2_8r8s7"]
+
+[resource]
+script = ExtResource("2_8r8s7")
+entity_id = ""
+display_name = ""
+entity_type = 1
+archetype_id = ""
+components = Dictionary[StringName, Resource]({
+&"stats": ExtResource("1_d7d25")
+})
+metadata/_custom_type_script = "uid://dkwlkfpl03j5t"

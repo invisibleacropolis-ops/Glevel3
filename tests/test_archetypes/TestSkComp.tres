@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="SkillComponent" load_steps=3 format=3 uid="uid://c5qf8kef8msjm"]
+
+[ext_resource type="Script" uid="uid://dm35ci7sp6c1e" path="res://src/components/SkillComponent.gd" id="1_xbge1"]
+[ext_resource type="Resource" uid="uid://dmjofph5k0bc1" path="res://tests/test_archetypes/Test_Fireball.tres" id="2_r6pxf"]
+
+[resource]
+script = ExtResource("1_xbge1")
+skills = Array[Resource]([ExtResource("2_r6pxf"), null])
+metadata/_custom_type_script = "uid://dm35ci7sp6c1e"

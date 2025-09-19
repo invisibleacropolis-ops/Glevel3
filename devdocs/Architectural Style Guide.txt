@@ -1,0 +1,436 @@
+﻿
+Architectural Style Guide: Project Chimera
+
+
+Section 1: The Prime Directive: A Data-Oriented Architecture
+
+This document establishes the foundational technical architecture for Project Chimera. The design philosophy detailed herein is paramount; it prioritizes a strict separation of data from logic to manage the immense complexity inherent in a highly modular, procedural game. The architectural decisions outlined below are not merely implementation details but the very bedrock upon which the game's capacity for emergent gameplay will be built. Every subsequent line of code is to be written in strict adherence to these principles.
+
+
+1.1 The Mandate: Composition Over Inheritance
+
+The central design goal of Project Chimera is to foster emergent outcomes through radical modularity. To achieve this, the architecture must reject traditional, rigid class hierarchies in favor of a more fluid, data-centric model. The principle of composition over inheritance will be strictly enforced across all game systems.1 This philosophy aligns with Godot's engine design, which encourages the use of nodes and scenes as compositional building blocks rather than relying on deep, complex inheritance chains.1
+Instead of creating specific, monolithic classes for every type of game object (e.g., a Goblin class inheriting from a Monster class), all entities in the game world will be defined by the data components they possess. An entity is not a "goblin" because of its class type; it is a "goblin" because it possesses a specific combination of StatsComponent, AIBehaviorComponent, and AppearanceComponent resources that collectively describe its attributes and behavior.
+
+1 This data-oriented approach offers several critical advantages. Firstly, it prevents the inevitable explosion of class hierarchies that occurs when trying to represent a wide variety of unique entities. Secondly, and more importantly, it makes the procedural generation of novel entity types a trivial matter. A new creature is not created by writing a new script, but by algorithmically assembling a new combination of existing data components.1
+The project's design goals necessitate this deliberate choice to prioritize modularity over the most conventional, inheritance-based usage of Godot's nodes. While the engine's node system has a strong Object-Oriented Programming (OOP) inheritance structure (e.g., CharacterBody2D extends PhysicsBody2D, which extends CollisionObject2D, etc.), this guide mandates that this pattern not be used for defining game entity types.2 To enforce this, all game entities—be they player characters, monsters, NPCs, or even interactive objects—will be instances of a single, base Entity scene. This scene acts as a generic container, and its specific identity and functionality are determined at runtime by the collection of
+Resource files attached to it. This design ensures that any system can interact with any entity on a common data level, which is the primary catalyst for emergent interactions.1
+
+
+1.2 The Hybrid Model: A Symbiosis of Nodes and Resources
+
+To effectively implement a data-oriented design in Godot 4.4.1, the architecture employs a hybrid model that marries the designer-friendly workflow of Custom Resources with the clean, scalable logic of an Entity-Component-System (ECS) like structure. This model is a direct risk-mitigation strategy, designed to leverage the strengths of Godot's systems while avoiding their respective pitfalls.
+
+A pure Resource-based approach, where both data and logic reside in Resource scripts, is unacceptably brittle for a project of this scale. Refactoring variable names in a script can lead to silent data loss across all .tres files that use it, posing a significant long-term maintenance risk.1 Conversely, a pure ECS framework can be hostile to designers who are accustomed to the intuitive, visual workflow of the Godot Inspector.1
+The Project Chimera hybrid model resolves this tension by creating a well-defined boundary between the domains of programming and design, allowing each discipline to use the tools best suited to their workflow. It is a sociotechnical solution that enables parallel, efficient work streams. 
+
+The roles are defined as follows:
+* Data (Components): All data-only components, such as StatsComponent or InventoryComponent, will be implemented as Custom Resources. These are GDScript files that extend the Resource class and are saved as text-based .tres files. This approach empowers designers to use the Godot Inspector as their primary tool for creating and balancing the archetypes for characters, items, and other game elements.1
+
+* Logic (Systems): All game logic will be encapsulated within Systems, which are implemented as standard Godot Nodes. These System nodes will contain the logic that iterates through and operates upon entities that possess the necessary component resources.1
+
+This hybrid architecture provides the organizational clarity and decoupling of ECS while retaining the rapid iteration capabilities of Godot's native resource system, making it the ideal foundation for a project defined by modularity and procedural generation.1
+
+
+Section 2: The Three Pillars: Entities, Components, and Systems
+
+The architecture is built upon three core concepts: the Entity, the Component, and the System. A universal, unambiguous understanding of these building blocks is essential for every member of the development team. The following definitions, rules, and code templates are non-negotiable standards.
+
+For a bird's-eye refresher on how these resources compose a playable runtime object, review the component diagram stored at
+`devdocs/diagrams/entity_composition_component.svg`. The illustration maps how Godot entity nodes point at `EntityData` assets,
+how those assets enumerate concrete component resources such as `StatsComponent` and `TraitComponent`, and how archetypes and
+traits remain in the validation loop. Keep the figure open when designing new components so the data contracts remain
+consistent across systems.
+
+2.1 The Entity: The Universal Data Container
+
+An Entity is the fundamental game object in Project Chimera. It represents any actor or interactive object in the game world. In Godot's terms, an entity is a Node in the scene tree that acts as a generic container. Its behavior and properties are not defined by its script's class but are composed entirely from the data attached to it.1
+The identity and functionality of an entity are determined at runtime by a master EntityData resource. This resource is the "digital DNA" of the object, serving as a manifest that links the entity's identity to its modular data Components.1
+
+Implementation: EntityData.gd
+
+The following script is the mandatory base template for the EntityData resource. All entity archetypes (e.g., GoblinArcher.tres) will be saved instances of this resource type.
+
+GDScript
+
+
+# res://src/core/EntityData.gd
+#
+# The digital DNA of every object in the game world. This Resource acts as a
+# manifest, linking an entity's identity to its modular data Components.
+# Adherence to this data contract is critical for all systems.
+
+class_name EntityData
+extends Resource
+
+## A unique identifier for this specific entity instance, persistent within a single World Run.
+## Essential for saving, loading, and tracking specific entities for quests and narrative state.
+@export var entity_id: String = ""
+
+## The player-facing, in-game name of the entity (e.g., "Grak the Fierce").
+@export var display_name: String = ""
+
+## A broad category classification for high-level system filtering.
+## See ULTEnums.gd for possible values (e.g., EntityType.MONSTER).
+@export var entity_type: int # Enum: EntityType
+
+## The unique ID that links to the base archetype resource used for this entity's generation.
+## Crucial for informing AI behavior and other procedural systems.
+@export var archetype_id: String = ""
+
+## The core of the compositional design. This dictionary holds references to
+## all attached Component Resources, keyed by a string identifier (e.g., "stats").
+## Keys MUST correspond to the constants defined in ULTEnums.gd (e.g., ComponentKeys.STATS).
+@export var components: Dictionary = {}
+
+The components dictionary is the lynchpin of the entire architecture. While its flexibility is a key feature, the use of plain string keys (e.g., "stats", "inventory") introduces a potential source of runtime errors from typos. To mitigate this, this guide establishes a strict convention: all dictionary keys used to store and retrieve components must be defined as constants in a global ULTEnums.gd script. This provides the flexibility of a dictionary while adding a layer of safety and code-completion support, preventing a common class of errors.
+
+2025 implementation update: the production script now normalizes every component key into a `StringName` and mirrors the entry under that canonical key. Backwards-compatibility shims still accept legacy string keys so existing `.tres` assets remain valid, but new content must store and query values via `ULTEnums.ComponentKeys` and the helper methods exposed on `EntityData`. Always call `add_component()` / `remove_component()` when mutating manifests and `get_component()` / `has_component()` for lookups so the validation guard `ULTEnums.is_valid_component_key()` can reject unknown keys at the boundary.【F:src/core/EntityData.gd†L24-L74】【F:src/globals/ULTEnums.gd†L31-L92】 Use `list_components()` when systems need a defensive snapshot for iteration—the method returns a `StringName` keyed dictionary safe for read-only inspection.【F:src/core/EntityData.gd†L64-L74】
+
+2.2 The Component: The Atomic Unit of Data (extends Resource)
+
+A Component is a script whose sole purpose is to hold data. It is the atomic, modular data block that defines a specific domain of an entity's attributes, such as its stats, inventory, or skills.1
+Formal Definition:
+* A Component must extend Resource.
+* A Component's script must be given a class_name for type-hinting and editor integration.
+* A Component must not contain complex game logic, methods, or functions. Its purpose is exclusively to serve as a data container.
+While Godot's Resource class can technically contain methods, this practice is explicitly forbidden for Components within Project Chimera. Adding logic to Components violates the fundamental separation of data and logic, leading to a tightly coupled architecture that is difficult to maintain and debug.
+
+Implementation: Component.gd (Base Class)
+
+All components must inherit from this minimal base class.
+
+GDScript
+
+
+# res://src/core/Component.gd
+#
+# The base class for all data components in the architecture.
+# It is intentionally minimal to enforce the data-only nature of Components.
+
+class_name Component
+extends Resource
+
+
+Implementation: StatsComponent.gd (Concrete Example)
+
+This script serves as a practical example of a concrete Component implementation.
+
+GDScript
+
+
+# res://src/components/StatsComponent.gd
+#
+# A concrete Component holding primary combat and utility statistics.
+# All variables are exported to be editable in the Godot Inspector by designers.
+
+class_name StatsComponent
+extends Component
+
+@export var health: int = 0
+@export var action_points: int = 0
+#... other stats such as strength, dexterity, etc. would be defined here.
+
+In practice the production component contains more than forty exported fields covering job metadata, vital pools, resistances, attribute budgets, proficiencies, and equipment snapshots, plus helper methods for common runtime adjustments.【F:src/components/StatsComponent.gd†L1-L308】 Consult the [Stats Component Manual](Designers/StatsComponentManual.md) for the authoritative property breakdown, expected ranges, and authoring guidance shared with systems engineers and content designers.
+
+The use of Godot's Resource system for components is a powerful choice that comes with significant risks that must be proactively managed. For a detailed protocol on managing and refactoring Component resources to prevent data loss and version control issues, refer to Section 5.1 of this guide.
+
+2.3 The System: The Engine of Logic (extends Node)
+
+A System is a script that contains game logic. It is the engine that drives behavior in the game world, operating on the data stored in Components.1
+Formal Definition:
+* A System must extend Node.
+* A System's script must be given a class_name.
+* A System must not store persistent state data. All data it operates on must be read from the Components of the entities it processes.
+The rule that Systems must be stateless is critical to the architecture's integrity. A developer might be tempted to cache a reference to an entity or component within a System for performance reasons. This would create a stateful System, violating the ECS-like principle and leading to unpredictable bugs, especially with dynamic entity spawning/despawning or save/load functionality. It is acceptable for a System to hold temporary data for the duration of a single frame's processing loop (e.g., an array of entities to process). It is unacceptable for it to hold any data that persists across frames. This stateless nature is key to a System's reusability and predictability.
+
+Implementation: System.gd (Base Class)
+
+All systems should inherit from this base class to encourage a consistent processing interface.
+
+GDScript
+
+
+# res://src/core/System.gd
+#
+# The base class for all logic systems. Systems are stateless nodes that
+# operate on entities and their components.
+
+class_name System
+extends Node
+
+## Virtual function intended to be overridden by concrete Systems.
+## This defines a common interface for processing a single entity, though
+## not all systems will use this exact pattern.
+func _process_entity(entity_node: Node, delta: float) -> void:
+    pass
+
+
+Section 3: The Rules of Interaction: A Contract for Decoupling
+
+This section codifies the strict laws governing how Systems find and operate on Components, and how Systems communicate with each other. Adherence to these rules is the primary defense against "architectural drift" and the creation of unmaintainable "spaghetti code".1
+
+3.1 The Data Pipeline: How Systems Access Component Data
+
+Systems must discover and operate on entities through abstract, decoupled queries. They are forbidden from holding direct, hard-coded references to specific entity nodes.1 The canonical data access pattern involves querying for a group of entity nodes, accessing their
+EntityData resource, and then retrieving the specific Component data needed for processing.
+
+Implementation: DebugSystem.gd (Canonical Example)
+
+The logic from DebugSystem.gd, developed during the project's foundational sprint, serves as the official reference implementation for the data access pipeline.1
+
+GDScript
+
+
+# res://src/systems/DebugSystem.gd
+#
+# A simple system that demonstrates the canonical data access pipeline.
+class_name DebugSystem
+extends System
+
+func _physics_process(delta: float) -> void:
+    # STEP 1: Query for entities using an abstract group.
+    var entity_nodes = get_tree().get_nodes_in_group("entities")
+
+    for entity_node in entity_nodes:
+        # STEP 2: Access the entity's master EntityData resource via its exported property.
+        # This assumes the entity's script has `class_name Entity` and `@export var entity_data: EntityData`.
+        var entity: Entity = entity_node as Entity
+        if not is_instance_valid(entity) or not entity.entity_data:
+            continue
+
+        # STEP 3: Retrieve a specific Component from the dictionary using a constant key.
+        if entity.entity_data.components.has(ComponentKeys.STATS):
+            var stats_component: StatsComponent = entity.entity_data.components
+
+            # STEP 4: Operate on the Component's data.
+            print(entity.entity_data.display_name + " Health: " + str(stats_component.health))
+
+To ensure type safety and leverage the engine's static analysis capabilities, all entity node scripts must define their EntityData property as an exported, type-hinted variable (e.g., @export var entity_data: EntityData).
+The following methods are the approved forms of "abstract query" for Systems to discover entities:
+1. Node Groups: The primary method for querying broad categories of entities (e.g., "entities", "enemies", "interactables").
+2. Scene Tree Traversal: Using methods like find_children() for localized queries within a complex entity's own scene tree (e.g., a Vehicle system finding all Turret child nodes).
+3. Area/Physics Queries: Using Area3D/Area2D or physics server queries to find entities within a specific spatial volume. This is the preferred method for proximity-based interactions.
+
+3.2 The First Commandment: No Direct System-to-System References
+
+Systems are strictly forbidden from holding or obtaining direct, hard-coded references to other Systems.1 This is the single most important rule for maintaining a decoupled, modular architecture and preventing the project from devolving into a brittle, monolithic codebase.
+Direct coupling, where one system calls a method on another using a hard-coded path, is the primary killer of modularity. If CombatSystem contains a line like get_node("/root/World/QuestSystem").update_quest(), the two systems become permanently fused. The QuestSystem cannot be refactored, moved, or disabled for testing without breaking the CombatSystem. This creates a fragile architecture where any change can have unpredictable and catastrophic ripple effects.6
+To enforce this rule, the following patterns are explicitly forbidden for inter-system communication:
+* Using get_node() with absolute or relative scene paths (e.g., get_node("../OtherSystem")).
+* Using the unique node name syntax (e.g., %OtherSystem).
+* Storing a reference to another system in an exported variable (e.g., @export var other_system: OtherSystem).
+* Using @onready to get a reference to another system.
+All communication between systems must be achieved indirectly, primarily through the Global Event Bus.
+
+3.3 The Global Event Bus: The Central Nervous System (EventBus.gd)
+
+The primary mechanism for decoupled, inter-system communication is the EventBus.gd autoloaded singleton. This node serves as a central, anonymous dispatcher for all significant game-wide events. Instead of calling each other directly, Systems emit signals on the EventBus, and any other interested Systems can subscribe to those signals without needing to know who sent them.1
+This pattern formalizes Godot's built-in signal system into a robust, game-wide communication architecture. The EventBus becomes the single, well-defined point of contact for all inter-system communication. Systems remain completely decoupled; the CombatSystem has no knowledge of quests or loot, it only knows that it must report when an entity is killed.1
+
+Implementation Rules for the Event Bus
+
+1. Dictionary Payload: All signals emitted on the EventBus must use a single Dictionary as their payload. This is a deliberate and robust pattern that allows the data contract of an event to be expanded in the future (by adding new keys to the dictionary) without ever needing to change the signal's signature, which would break all existing connections.1
+2. Mandatory Documentation: The biggest danger of a global event bus is devolving into "signal soup"—a chaotic and undocumented mess of events that makes the flow of data impossible to trace.1 To prevent this, the contract for each signal
+must be documented within the EventBus.gd script itself, detailing the expected keys and data types of its payload dictionary.
+3. Semantic Distinction: Events should announce things that have happened, not command things to happen. For example, emit entity_killed, not kill_entity. This semantic distinction discourages the creation of complex, cascading event chains that are difficult to debug.
+While the EventBus solves direct coupling, it introduces its own challenges, such as making the flow of logic opaque and difficult to trace with a standard debugger.7 To mitigate this, the EventBus_TestHarness.tscn scene, created during the foundational sprint, is the designated primary tool for testing and debugging all event-driven logic.1 Furthermore, because the order in which signal listeners are executed is not guaranteed, any signal whose listeners are expected to mutate shared state must have this behavior explicitly documented in its contract to alert developers to potential race conditions.10
+
+3.4 The "Call Down, Signal Up" Principle in Practice
+
+The "Call Down, Signal Up" principle is a widely accepted best practice within the Godot community that promotes encapsulation and reusability.11 It dictates that a parent node can directly call methods on its children, but a child should use signals to communicate with its parent or siblings. This guide formally maps this principle to the Project Chimera architecture.
+* Inter-System Communication: Communication between different Systems (which are typically siblings in the scene tree) must follow a "Signal Across" pattern, mediated exclusively by the global EventBus. This is the project-level application of the "Signal Up" concept.
+* Intra-Entity Communication: Communication within the node structure of a single complex entity (e.g., the Player scene, which may contain an AnimationPlayer, Sprite3D, and WeaponController as children) must follow the traditional "Call Down, Signal Up" pattern.
+	* Call Down: The entity's root node script can and should hold direct references to its children (e.g., using @onready) and call their methods directly (e.g., animation_player.play("attack")).
+	* Signal Up: If a child node needs to communicate an event to its parent (e.g., an AnimationPlayer emitting its animation_finished signal), it should emit a local signal. The entity's root script is then responsible for connecting to that signal and handling the logic.
+This dual approach ensures that individual entities remain self-contained and reusable, while the broader game architecture remains decoupled and scalable.
+
+For a concrete implementation of this pattern, review `res://src/tests/EventBusHarness.gd`. The harness' root Control node wires its child buttons directly ("call down") and relies on their emitted signals to bubble payloads back through the shared EventBus singleton ("signal up"), providing a practical, self-contained example of the contract in action for engineers validating inter-node communication flows.
+
+Section 4: Implementation Standards and Conventions
+
+This section serves as a practical, day-to-day reference guide for all developers. Strict adherence to these standards is mandatory to ensure consistency, readability, and maintainability across the entire project codebase.
+
+4.1 Project Directory Structure
+
+A standardized, professional-grade directory structure provides clarity and separates concerns from the outset. This structure was established on Day 1 and must be maintained.1 Moving files around can break dependencies, especially string-based paths, so this structure should be respected.13
+The mandatory top-level directory structure for the project is as follows:
+* /src/: Contains all GDScript (.gd) files. This strictly separates code from assets and scenes. Subdirectories should be used to organize scripts by function (e.g., /src/core, /src/components, /src/systems, /src/entities).
+* /assets/: Contains all non-code assets, including models, textures, audio, fonts, and data resources. Sub-folders must be organized by asset type (e.g., /assets/models, /assets/audio, /assets/entity_archetypes).
+* /scenes/: Contains all scene (.tscn) files. Subdirectories should mirror the organization of the /src directory where applicable (e.g., /scenes/entities, /scenes/ui).
+* /tests/: Contains all validation scenes (Sprint1_Validation.tscn), test harnesses (EventBus_TestHarness.tscn), unit test scripts, and mock assets used exclusively for testing and validation.1 This directory should be excluded from final game builds.
+* /docs/: Contains all project documentation, including this guide and other design documents.
+
+4.2 Naming Conventions
+
+A strict and unwavering adherence to naming conventions is required to ensure consistency and readability across the entire codebase. These conventions are based on Godot's official best practices and are extended with project-specific rules.1
+The following table provides the single, unambiguous reference for all asset and code naming in Project Chimera.
+---------------------------------------------
+| |Asset Type | |Convention | |Example |
+---------------------------------------------
+| |Scripts (.gd) | |PascalCase.gd | |StatsComponent.gd, DebugSystem.gd |
+---------------------------------------------
+| |Scenes (.tscn) | |PascalCase.tscn | |Sprint1_Validation.tscn, Player.tscn |
+---------------------------------------------
+| |Resources (.tres) | |PascalCase.tres | |TestDummy.tres, IronSword.tres |
+---------------------------------------------
+| |Nodes (in Scene Tree) | |PascalCase | |Player, AnimationPlayer, DebugSystem |
+---------------------------------------------
+| |class_name | |PascalCase | |class_name EntityData |
+---------------------------------------------
+| |Functions / Methods | |snake_case() | |func _process_entity() |
+---------------------------------------------
+| |Variables | |snake_case | |var health: int |
+---------------------------------------------
+| |Constants | |SNAKE_CASE | |const MAX_HEALTH = 100 |
+---------------------------------------------
+| |Signals | |snake_case | |signal entity_killed |
+---------------------------------------------
+| |Node Groups | |snake_case | |entities, interactables |
+
+4.3 Script Templates and Base Classes
+
+To ensure all new architectural elements are created correctly, this section provides a quick reference to the foundational base class scripts. All new Components and Systems must extend these base classes.1 The full, commented versions of these scripts are detailed in Section 2.
+* EntityData.gd: The master manifest for an entity. Extends Resource.
+* Component.gd: The base class for all data components. Extends Resource.
+* System.gd: The base class for all logic systems. Extends Node.
+
+Section 5: Advanced Topics and Proactive Risk Mitigation
+
+This section addresses known complexities and pitfalls of the chosen architectural patterns and tools. It provides proactive guidance and mandatory protocols to prevent common sources of technical debt and ensure the long-term health and stability of the project.
+
+5.1 Managing Custom Resources: Best Practices and Warnings
+
+The project's heavy reliance on Godot's Resource system for Components offers significant workflow advantages for designers but also introduces critical technical risks that must be actively managed.1 The engine's handling of resource serialization and refactoring contains several "footguns" that can lead to data loss, corrupted data, and version control conflicts if not handled with discipline.4
+The following rules and protocols are mandatory for all team members working with Resource-based Components.
+1. Rule: No Default Values in Scripts. Default values for exported variables in Component.gd scripts are explicitly forbidden. When a .tres file is opened and saved in the editor for the first time, Godot "bakes" the script's current default values into the file. Any subsequent changes to the default value in the script will be ignored for that resource file.4 To ensure consistent and manageable default data, all base values must be set within a "template"
+.tres archetype file (e.g., BaseMonsterStats.tres), which can then be duplicated and modified by designers.
+2. Protocol: The Resource Refactoring Process. Renaming a variable or changing its type in a Component.gd script does not automatically migrate the data in existing .tres files. This will lead to silent data loss.4 Therefore, when a variable in a Component script must be changed, the following data migration process is mandatory:
+	* Before changing the script, create a temporary @tool script.
+	* This tool script must scan the relevant asset directories for all .tres files that use the Component script being refactored.
+	* For each file, the script will load() the resource, manually copy the data from the old property to the new property, perform any necessary type conversion, and use ResourceSaver.save() to write the changes back to the file.
+	* This script is then run once from the editor to perform a safe, automated data migration across the entire project. The tool script should then be removed or disabled.
+3. Git Hygiene and Merge Conflicts: Godot embeds unique IDs (uid://) within .tscn and .tres files to track dependencies. These can cause frequent merge conflicts when multiple developers work on the same scenes or resources.15 When resolving these conflicts, it is crucial that the team coordinates to ensure a single, consistent version of the UID is committed. In general, accepting one version of the file (either "ours" or "theirs") and having the other developer re-apply their changes is safer than attempting to manually merge conflicting UIDs.
+
+5.2 Singleton Discipline: Using Global Systems Responsibly
+
+The project architecture relies on several autoload singletons (EventBus, AssetRegistry, ModuleRegistry) to manage global systems.1 Godot 4.x requires the scripts that back these autoloads to export distinct `class_name` identifiers, so the runtime classes are registered as `EventBusSingleton`, `AssetRegistrySingleton`, and `ModuleRegistrySingleton` while the autoload entries stay on the shorter names used throughout the design docs. This separation keeps the parser happy and preserves the ergonomic API consumed by gameplay systems. While powerful, the overuse or misuse of singletons is a common architectural anti-pattern that can introduce hidden dependencies, make code difficult to test, and lead to the creation of monolithic "god objects" that violate the single responsibility principle.9
+Operationally, each singleton should expose narrow accessors. For ModuleRegistry,
+consumers request dependencies via `get_module("id")` and can probe optional
+dependencies with `has_module("id")` rather than reading the internal
+dictionary directly. This keeps the singleton free to evolve without forcing
+call sites to change.
+To maintain a clean and modular architecture, the following rules for the use and creation of singletons are in effect.
+1. The Singleton Litmus Test: A new autoload singleton may only be proposed for the architecture if it meets all of the following criteria:
+	* Globally Unique: The system it manages is genuinely, conceptually singular within the entire application (e.g., there is only one EventBus).
+	* Global Accessibility Required: The system needs to be accessed by many disparate and unrelated parts of the codebase, making dependency injection impractical.
+	* Manages a Cross-Cutting Concern: The system's responsibility is orthogonal to core gameplay logic, such as event dispatching, asset loading, or scene transitions.
+2. Rule: Singletons Must Be Self-Contained. Autoload scripts must not hold direct references to nodes within a specific, loaded game scene (e.g., a reference to the "Player" node). They can hold references to other autoloads or to pre-loaded resources, but not to transient scene objects that may be freed or reloaded.16 Violating this rule creates strong coupling and can lead to difficult-to-trace bugs and memory leaks.
+3. Rule: No Gameplay State in Singletons. Singletons should manage persistent systems or registries, not mutable gameplay state. Storing level-specific or run-specific data (e.g., the player's current health, the number of enemies remaining) in a singleton is a common source of bugs when changing or restarting levels, as this state will improperly persist.16 All such state must be managed within the scene tree or passed between scenes as needed.
+
+Section 6: Conclusion and Recommendations
+
+The architectural blueprint detailed in this document provides a comprehensive and technically sound foundation for the development of Project Chimera. By adhering to the core pillars of the Hybrid ECS-Resource Model, a strict separation of data and logic, and a decoupled communication contract, the project is well-positioned to achieve its ambitious goals of creating a deeply replayable and emergent gameplay experience.
+The successful implementation of this design requires a development team that is not only proficient in Godot and GDScript but also deeply understands and respects the principles of data-oriented design. The most significant long-term challenges will lie not in the implementation of any single system, but in the disciplined orchestration of all systems to work together through the abstract, data-driven interfaces defined herein.
+Key Architectural Recommendations:
+* Embrace the Hybrid ECS-Resource Model: This model is the single most important technical decision. Strict adherence to this pattern—using Custom Resources for data and Node-based Systems for logic—is essential for managing the project's complexity.1
+* Prioritize the Universal Entity and Event Bus: The EntityData resource and the EventBus singleton are the two primary enablers of emergent gameplay. All gameplay systems must be designed to operate on the generic EntityData interface and communicate exclusively through the EventBus to prevent hard-coded special cases.1
+* Adhere to Protocols for High-Risk Areas: The mandatory protocols for Resource refactoring and Singleton usage are not suggestions; they are critical risk-mitigation strategies. Following these procedures will prevent significant technical debt and data corruption issues down the line.
+* Leverage Validation and Test Harnesses: The validation scenes and test harnesses created during the foundational sprints are not disposable. They form the basis of a permanent regression testing suite. These scenes must be maintained and expanded upon throughout development to ensure the core architecture remains sound.
+By following this guide as the single source of truth, the development team can build a robust and flexible foundation capable of supporting a truly unique and emergent gameplay experience that fulfills the ambitious vision of Project Chimera.
+
+Appendix A: Reference Implementation - The Sprint 1 Validation Testbed
+
+This appendix serves as a complete, practical tutorial demonstrating the entire architecture in action. It walks a developer through the exact steps required to create the Sprint1_Validation.tscn testbed, as defined in the project's foundational plan.1 By successfully recreating this scene, a developer proves they have a functional understanding of the core data pipeline of Project Chimera. This is the "Hello, World!" of the project's architecture.
+
+Step 1: Create Component Data (TestDummyStats.tres)
+
+1. In the Godot editor's FileSystem dock, navigate to a test assets directory (e.g., /tests/test_assets/).
+2. Right-click and select New Resource....
+3. In the dialog, search for and select StatsComponent.
+4. Save the new resource as TestDummyStats.tres.
+5. Select the newly created TestDummyStats.tres file. In the Inspector, set the Health property to 100 and Action Points to 10.
+
+Step 2: Create Entity Data (TestDummy.tres)
+
+1. In the same directory, create another new resource, this time of type EntityData.
+2. Save the file as TestDummy.tres.
+3. Select TestDummy.tres. In the Inspector, configure its properties:
+	* Display Name: "Test Dummy"
+	* Components: Click the property to expand it. Set the Size to 1.
+	* A new key-value pair will appear. Set the Key (Type String) to "stats".
+	* For the Value (Type Variant), click <empty> and select Load. Find and select the TestDummyStats.tres file you created in Step 1.
+
+Step 3: Build the Test Scene (Sprint1_Validation.tscn)
+
+1. Create a new scene (Scene > New Scene).
+2. Add a Node as the root. Rename it to Sprint1Validation.
+3. Add another Node as a child of the root. Rename it to Entity. This will represent our test entity.
+4. Save the scene as Sprint1_Validation.tscn in the /tests/ directory.
+
+Step 4: Implement the Entity Node Script
+
+1. Select the Entity node and attach a new script to it. Save it as Entity.gd in /src/entities/.
+2. Edit the script with the following code. This script's only jobs are to hold the EntityData resource and add the node to the correct group.
+GDScript
+# res://src/entities/Entity.gd
+class_name Entity
+extends Node
+
+@export var entity_data: EntityData
+
+func _ready() -> void:
+    # Add this node to the "entities" group so that Systems can find it.
+    add_to_group("entities")
+
+3. Back in the editor, with the Entity node selected, find the "Entity Data" property in the Inspector. Drag the TestDummy.tres resource from the FileSystem dock into this slot.
+
+Step 5: Add the System (DebugSystem)
+
+1. Add an instance of the DebugSystem to the Sprint1Validation scene. If you haven't created a scene for it, you can simply add a new Node, rename it DebugSystem, and attach the DebugSystem.gd script to it.
+
+Step 6: Run and Validate
+
+You have now fully assembled the testbed. The scene structure should look like this:
+
+
+
+- Sprint1Validation (Node)
+  - Entity (Node, with Entity.gd script)
+  - DebugSystem (Node, with DebugSystem.gd script)
+
+Primary Test Case:
+* Run the Sprint1_Validation.tscn scene (F6).
+* Expected Result: The Godot console must output the message Test Dummy Health: 100 every physics frame. This confirms the entire data pipeline is functional: the DebugSystem is querying the "entities" group, finding the Entity node, accessing its EntityData resource, retrieving the StatsComponent from the dictionary, and reading the health property.
+Secondary Test Case:
+* While the scene is running, go to the Godot editor and click the "Remote" tab at the top of the Scene dock.
+* In the remote scene tree, select the Entity node.
+* In the Inspector, find the Entity Data property and click to inspect the TestDummy.tres resource.
+* Expand the Components dictionary and inspect the StatsComponent resource.
+* Change the Health value in the remote inspector (e.g., to 75).
+* Expected Result: The console output must immediately reflect this change, now printing Test Dummy Health: 75. This proves the real-time data link between the running game logic and the underlying Resource data.
+
+
+
+
+Works cited
+
+1. Project Chimera.docx
+2. Why isn't Godot an ECS-based game engine?, accessed September 14, 2025, https://godotengine.org/article/why-isnt-godot-ecs-based-game-engine/(https://godotengine.org/article/why-isnt-godot-ecs-based-game-engine/)
+3. Godot's design philosophy — Godot Engine (4.4) documentation in English, accessed September 14, 2025, https://docs.godotengine.org/en/4.4/getting_started/introduction/godot_design_philosophy.html(https://docs.godotengine.org/en/4.4/getting_started/introduction/godot_design_philosophy.html)
+4. My GodotCon talk on custom resources got posted :) : r/godot - Reddit, accessed September 14, 2025, https://www.reddit.com/r/godot/comments/1mwh2bo/my_godotcon_talk_on_custom_resources_got_posted/(https://www.reddit.com/r/godot/comments/1mwh2bo/my_godotcon_talk_on_custom_resources_got_posted/)
+5. Custom Resources in Godot Engine 4.x - Simon Dalvai, accessed September 14, 2025, https://simondalvai.org/blog/godot-custom-resources/(https://simondalvai.org/blog/godot-custom-resources/)
+6. Good code architecture in Godot - Programming, accessed September 14, 2025, https://forum.godotengine.org/t/good-code-architecture-in-godot/117649(https://forum.godotengine.org/t/good-code-architecture-in-godot/117649)
+7. Riding the Event Bus in Godot - DEV Community, accessed September 14, 2025, https://dev.to/bajathefrog/riding-the-event-bus-in-godot-ped(https://dev.to/bajathefrog/riding-the-event-bus-in-godot-ped)
+8. The Events bus singleton · GDQuest, accessed September 14, 2025, https://www.gdquest.com/tutorial/godot/design-patterns/event-bus-singleton/(https://www.gdquest.com/tutorial/godot/design-patterns/event-bus-singleton/)
+9. Stop Using Singletons in Godot: Use This Alternative Now | by ..., accessed September 14, 2025, https://medium.com/@yuvrajsjohal/stop-using-singletons-in-godot-use-this-alternative-now-7bd517173e84(https://medium.com/@yuvrajsjohal/stop-using-singletons-in-godot-use-this-alternative-now-7bd517173e84)
+10. Pros and Cons of Eventbus pattern? : r/godot - Reddit, accessed September 14, 2025, https://www.reddit.com/r/godot/comments/1cw7eb8/pros_and_cons_of_eventbus_pattern/(https://www.reddit.com/r/godot/comments/1cw7eb8/pros_and_cons_of_eventbus_pattern/)
+11. Correct architecture in Godot : r/godot - Reddit, accessed September 14, 2025, https://www.reddit.com/r/godot/comments/11i4c7j/correct_architecture_in_godot/(https://www.reddit.com/r/godot/comments/11i4c7j/correct_architecture_in_godot/)
+12. As a new dev, what is meant by "Call down, signal up"? : r/godot - Reddit, accessed September 14, 2025, https://www.reddit.com/r/godot/comments/y2jovs/as_a_new_dev_what_is_meant_by_call_down_signal_up/(https://www.reddit.com/r/godot/comments/y2jovs/as_a_new_dev_what_is_meant_by_call_down_signal_up/)
+13. How To Structure Your Godot Project (so You Don't Get Confused) - Python for Engineers, accessed September 14, 2025, https://pythonforengineers.com/blog/how-to-structure-your-godot-project-so-you-dont-get-confused/index.html(https://pythonforengineers.com/blog/how-to-structure-your-godot-project-so-you-dont-get-confused/index.html)
+14. What are some godot best practices people don't talk about in tutorials? - Reddit, accessed September 14, 2025, https://www.reddit.com/r/godot/comments/16j365l/what_are_some_godot_best_practices_people_dont/(https://www.reddit.com/r/godot/comments/16j365l/what_are_some_godot_best_practices_people_dont/)
+15. Problem when loading a scene, after sharing through git - Help - Godot Forum, accessed September 14, 2025, https://forum.godotengine.org/t/problem-when-loading-a-scene-after-sharing-through-git/111098(https://forum.godotengine.org/t/problem-when-loading-a-scene-after-sharing-through-git/111098)
+16. Any downsides to Autoload/Singletons ? : r/godot - Reddit, accessed September 14, 2025, https://www.reddit.com/r/godot/comments/1g3ankx/any_downsides_to_autoloadsingletons/(https://www.reddit.com/r/godot/comments/1g3ankx/any_downsides_to_autoloadsingletons/)
+17. Tutorial - Singletons and how they can help scale your games with reusable code : r/godot, accessed September 14, 2025, https://www.reddit.com/r/godot/comments/1f5yh08/tutorial_singletons_and_how_they_can_help_scale/(https://www.reddit.com/r/godot/comments/1f5yh08/tutorial_singletons_and_how_they_can_help_scale/)
+
+

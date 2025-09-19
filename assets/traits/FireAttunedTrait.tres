@@ -1,0 +1,11 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+[ext_resource path="res://src/components/Trait.gd" type="Script" id=1]
+
+[resource]
+script = ExtResource(1)
+trait_id = "fire_attuned"
+display_name = "Fire-Attuned"
+description = "Draws additional power from flame-based abilities."
+tags = ["elemental"]
+flags = ["combat_bonus_fire"]
+stat_modifiers = {"fire_damage": 0.1}
