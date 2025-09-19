@@ -1,9 +1,0 @@
-[gd_resource type="Resource" load_steps=5 format=3]
-[ext_resource path="res://src/components/TraitComponent.gd" type="Script" id=1]
-[ext_resource path="res://assets/traits/CowardlyTrait.tres" type="Resource" id=2]
-[ext_resource path="res://assets/traits/FireAttunedTrait.tres" type="Resource" id=3]
-[ext_resource path="res://assets/traits/MerchantTrait.tres" type="Resource" id=4]
-
-[resource]
-script = ExtResource(1)
-traits = [ExtResource(2), ExtResource(3), ExtResource(4)]
