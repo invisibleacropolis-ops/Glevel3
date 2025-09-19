@@ -1,0 +1,13 @@
+[gd_scene load_steps=4 format=3 uid="uid://clrrqjejbspqn"]
+
+[ext_resource type="Script" uid="uid://x80fgft83adw" path="res://TestDum.gd" id="1_qsw20"]
+[ext_resource type="Resource" uid="uid://bf51md0pqvkmk" path="res://tests/test_assets/TestDum2.tres" id="2_tihn1"]
+[ext_resource type="Script" uid="uid://bbmwvy5r1jql4" path="res://src/systems/DebugSystem.gd" id="3_skno7"]
+
+[node name="Node" type="Node" groups=["entities"]]
+script = ExtResource("1_qsw20")
+entity_data = ExtResource("2_tihn1")
+
+[node name="DebugSystem" type="Node" parent="."]
+script = ExtResource("3_skno7")
+metadata/_custom_type_script = "uid://bbmwvy5r1jql4"

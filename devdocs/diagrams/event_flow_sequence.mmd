@@ -1,0 +1,17 @@
+%% Event Flow: Debug telemetry and combat notifications
+sequenceDiagram
+    participant DebugSystem as DebugSystem
+    participant EntityNode as Entity Node
+    participant EventBus as EventBus
+    participant QuestSystem as Quest / Loot Systems
+    participant CombatSystem as Combat System
+
+    DebugSystem->>EntityNode: query entity_data & components
+    EntityNode-->>DebugSystem: EntityData + StatsComponent snapshot
+    DebugSystem->>EventBus: emit debug_stats_reported(payload)
+    EventBus-->>QuestSystem: broadcast debug telemetry (optional listeners)
+
+    CombatSystem->>EventBus: emit entity_killed(payload)
+    EventBus-->>DebugSystem: forward entity_killed(payload)
+    EventBus-->>QuestSystem: notify subscribers
+    DebugSystem->>DebugSystem: _on_entity_killed(payload)
