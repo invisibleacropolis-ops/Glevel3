@@ -10,6 +10,7 @@ class_name AssetRegistrySingleton
 ## exported `directories_to_scan` property.
 const DEFAULT_SCAN_DIRECTORIES: Array[String] = [
     "res://assets/archetypes/",
+    "res://assets/entity_archetypes/",
     "res://assets/traits/",
 ]
 
@@ -111,3 +112,8 @@ func has_asset(asset_name: String) -> bool:
 ## be mutated from the outside.
 func get_failed_assets() -> Dictionary:
     return failed_assets.duplicate()
+
+## Returns a shallow copy of the loaded asset catalog so callers can iterate over
+## registered resources without mutating the registry's internal cache.
+func get_asset_catalog() -> Dictionary[String, Resource]:
+    return assets.duplicate()
