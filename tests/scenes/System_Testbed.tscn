@@ -1,10 +1,11 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://tests/scripts/system_testbed/EntitySpawnerPanel.gd" id="1"]
 [ext_resource type="Script" path="res://tests/scripts/system_testbed/SceneInspectorPanel.gd" id="2"]
 [ext_resource type="Script" path="res://tests/scripts/system_testbed/ComponentViewerPanel.gd" id="3"]
 [ext_resource type="Script" path="res://tests/scripts/system_testbed/SystemTriggerPanel.gd" id="4"]
 [ext_resource type="Script" path="res://tests/scripts/system_testbed/EventBusLogPanel.gd" id="5"]
+[ext_resource type="Script" path="res://tests/scripts/system_testbed/SystemTestbed.gd" id="6"]
 
 [node name="System_Testbed" type="Control"]
 anchors_preset = 15
@@ -12,6 +13,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 offset_right = 0.0
 offset_bottom = 0.0
+script = ExtResource("6")
 
 [node name="RootPanel" type="PanelContainer" parent="."]
 anchors_preset = 15
@@ -96,6 +98,12 @@ scroll_horizontal = false
 [node name="SceneInspectorBody" type="VBoxContainer" parent="RootPanel/MainHBox/LeftColumn/SceneInspectorPanel/SceneInspectorContent/SceneInspectorScroll"]
 size_flags_horizontal = 3
 size_flags_vertical = 3
+
+[node name="SceneInspectorTree" type="Tree" parent="RootPanel/MainHBox/LeftColumn/SceneInspectorPanel/SceneInspectorContent/SceneInspectorScroll/SceneInspectorBody"]
+visible = false
+size_flags_horizontal = 3
+size_flags_vertical = 3
+hide_root = true
 
 [node name="SceneInspectorPlaceholder" type="Label" parent="RootPanel/MainHBox/LeftColumn/SceneInspectorPanel/SceneInspectorContent/SceneInspectorScroll/SceneInspectorBody"]
 text = "Inspect the live scene graph here."
