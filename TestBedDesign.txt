@@ -1,0 +1,109 @@
+The foundational work of the initial sixty days has been successfully completed. Month 1 established the "factory"—the project's core architectural pillars, including the disciplined version control workflow, the Hybrid ECS-Resource model, the global communication bus, and the data registries.1 Month 2 used this factory to assemble the universal "actors"—the comprehensive, data-oriented component structure that forms the digital DNA for every entity in the game world.1 The factory is built, tested, and ready for production.
+The directive for Month 3 is to construct the "control room" for this factory. This 30-day sprint produces no direct gameplay features. Instead, its entire focus is on building a powerful, integrated suite of internal diagnostic and testing tools. This infrastructure will provide the development team with the necessary visibility and control to manage the immense systemic complexity inherent in Project Chimera's design.1 This work is a direct and strategic investment in future productivity and quality, addressing the "Proactive Validation" pillar established in the project's foundational phase.1 The tools built here are the primary defense against the cascading bugs and severe delays that inevitably plague complex, systemic games developed without such infrastructure.
+To ensure the success and utility of this critical sprint, all development will adhere to the following guiding principles:
+* Architecture-First: Every tool must be designed to specifically interface with, validate, and reinforce the project's existing Hybrid ECS-Resource model, Event Bus, and Registries. They are not generic utilities; they are bespoke instruments for this specific architecture.
+* Isolate and Verify: The core function of these tools is to enable the isolated testing of individual systems. This principle is a massive productivity multiplier, preventing the need for a fully functional game loop to verify a single line of combat calculation or AI behavior logic.
+* Accelerate Iteration: The ultimate goal is to create a development workflow where a programmer or designer can test a single mechanic hundreds of times a day. This rapid feedback loop is essential for balancing, debugging, and achieving the level of polish required for a deep, procedural RPG.
+
+Section 1: The System Testbed: An Architectural Blueprint
+
+This section serves as the comprehensive design bible for the primary deliverable of Month 3: the System_Testbed.tscn. This scene will be the central hub for all isolated logic testing, providing a controlled environment to spawn, inspect, and manipulate any game entity and its interactions.
+
+1.1 Design Philosophy: From Data Inspector to Logic Harness
+
+The work of this sprint represents a critical conceptual leap from the tooling developed in Month 2. The Component_Testbed.tscn was a static data inspector; its purpose was to answer the question, "What is this entity's data?".1 The new System_Testbed.tscn is a dynamic "logic harness" designed to answer a far more complex question: "What happens when game logic acts upon this data?"
+This evolution embodies a powerful, self-enforcing architectural pattern that can be described as "tooling inversion." The project's core architecture, as defined in the design bible, dictates the necessary features of the testbed. For example, because entities are defined by EntityData resources and systems communicate via the EventBus, the testbed must be able to load these resources and monitor that bus.1 The testbed is then built to these exact specifications. Subsequently, a programmer tasked with creating a new
+CombatSystem must design that system to be testable within the pre-existing testbed. This implicitly forces them to adhere to the established architectural contracts—they must operate on generic EntityData components and use the EventBus for communication because that is the only way to interface with the validation tool.
+Therefore, the testbed transforms from a passive utility into an active enforcement mechanism for architectural discipline. It becomes a tangible quality gate that actively mitigates the risk of "architectural drift" identified in Month 1, ensuring that all future systems are built in a modular, decoupled, and testable manner.1 The testbed is not merely a utility; it is a critical piece of the project's architectural governance strategy.
+
+1.2 Core Modules & Scene Architecture
+
+The System_Testbed.tscn will be a complex UI scene constructed from Godot's native Control nodes. The layout will leverage containers such as HBoxContainer and VBoxContainer to create a robust, scalable, and responsive interface that can adapt to various screen sizes and data complexities.2 The scene will be logically divided into several key modules, each managed by its own dedicated script, to maintain a clean separation of concerns.
+The following table provides a formal definition of the testbed's primary modules and their responsibilities. This structure serves as the single source of truth for the scene's composition, clarifying the roles of different UI elements and their associated scripts.
+---------------------------------------------
+| |Node Name | |Node Type | |Controller Script | |Purpose |
+---------------------------------------------
+| |EntitySpawnerPanel | |PanelContainer | |EntitySpawner.gd | |Manages loading entity archetypes from the AssetRegistry and spawning them into the test environment. |
+---------------------------------------------
+| |SceneInspectorPanel | |PanelContainer | |SceneInspector.gd | |Displays a tree view of all spawned entities, allowing for selection, multi-selection, and targeting for actions. |
+---------------------------------------------
+| |ComponentViewerPanel | |PanelContainer | |ComponentViewer.gd | |Dynamically generates a UI to inspect and modify the component data of the currently selected entity in real-time. |
+---------------------------------------------
+| |SystemTriggerPanel | |PanelContainer | |SystemTrigger.gd | |Contains a grid of buttons that execute predefined test logic (e.g., calling a System function, emitting an EventBus signal) on the selected entity or globally. |
+---------------------------------------------
+| |EventBusLogPanel | |PanelContainer | |EventBusLog.gd | |Displays a real-time, filterable log of all signals emitted on the global EventBus, showing the signal name and its full data payload. |
+
+1.3 The Architectural Interface and Data Flow
+
+The testbed's power comes from its deep integration with the project's core architectural pillars. The following subsections detail the critical data flow patterns and technical challenges that must be addressed to ensure the tool is both robust and effective.
+
+1.3.1 Entity Spawning and the "Resource Instancing" Problem
+
+A critical, non-obvious failure point exists when instantiating entities that are defined by Godot's Resource objects. The testbed will load an EntityData.tres archetype, such as GoblinArcher_EntityData.tres, from the AssetRegistry.1 It will then instantiate a base
+Entity.tscn scene.3 If the spawner logic simply assigns the loaded
+EntityData resource to this new scene instance, a severe problem arises: any modifications made to that instance's components in the testbed will modify the original resource object still held in the AssetRegistry's cache. If another entity is spawned from the same archetype, it will share this modified, now-corrupted resource. Worse, these changes could even be inadvertently saved back to the original .tres file on disk.
+To prevent this data corruption and ensure true test isolation, the spawner logic must perform a deep copy of the resource. Before assigning the EntityData to a new scene instance, the code must call the .duplicate(true) method on the loaded resource. The true argument is essential, as it enables recursive duplication, creating a unique, in-memory copy of not only the EntityData resource itself but also all of its nested component resources (like StatsComponent.tres, SkillComponent.tres, etc.).1 This guarantees that each entity spawned in the testbed is a completely independent data object, allowing for safe, isolated modification and testing.
+
+1.3.2 The Decoupling Debugging Solution: The Event Bus Log
+
+The project's reliance on a global EventBus for inter-system communication is a powerful tool for decoupling, but it introduces a significant debugging challenge.1 When an interaction fails—for example, a monster is killed, but the
+QuestSystem does not update—it is not immediately clear where the failure occurred. Is the CombatSystem failing to emit the entity_killed signal, or is the QuestSystem failing to correctly process it?.4
+The EventBusLogPanel module is the definitive solution to this problem. It is not a "nice-to-have" feature but a core, non-negotiable component of the testbed. The panel's script will connect to every signal defined in the EventBus singleton. When any signal is received, the logger will capture its name and full payload dictionary and display it as a timestamped entry in a RichTextLabel. This provides an immutable, real-time record of all inter-system communication.
+This tool transforms a difficult debugging problem into a simple, two-step process. First, perform the action in the testbed. Second, check the log. If the expected signal appears in the log with the correct payload, the emitting system is functioning correctly, and the bug must lie within the listener's logic. If the signal does not appear, or its payload is incorrect, the bug is in the emitter. This simple tool will save hundreds of hours of debugging time over the project's lifecycle by immediately isolating the point of failure in a decoupled architecture.
+
+1.3.3 Initial System Trigger Definitions
+
+The SystemTriggerPanel is the interactive heart of the testbed. Its buttons provide the means to execute specific, repeatable test cases. The following table defines the initial set of triggers to be implemented. This table serves as a formal contract, providing clear specifications for the developers implementing both the testbed UI and the game systems themselves.
+
+---------------------------------------------
+| |Button Label | |Target System/Event | |Function/Signal Name | |Payload Contract |
+---------------------------------------------
+| |"Spawn Goblin Archer" | |EntitySpawner | |_spawn_entity | |Takes archetype_id string (e.g., "GoblinArcher_EntityData.tres"). |
+---------------------------------------------
+| |"Apply 10 Fire Damage" | |CombatSystem | |apply_damage | |Requires a selected target entity. Function signature: (target: Node, damage: int, type: String). |
+---------------------------------------------
+| |"Give 'Health Potion'" | |InventorySystem | |add_item_to_entity | |Requires a selected target entity. Function signature: (target: Node, item_id: String). |
+---------------------------------------------
+| |"Emit 'entity_killed'" | |EventBus | |emit_signal | |Payload dictionary must match the contract defined in EventBus.gd: {"entity_id": String, "entity_data": EntityData, "killer_id": String}.1 |
+
+Section 2: The Debugging Suite: Enhancing In-Situ Visibility
+
+While the System_Testbed is essential for isolated testing, a separate suite of tools is required to provide real-time feedback and control during actual gameplay. These tools allow for the debugging of dynamic, emergent states that are difficult or impossible to reproduce in a controlled test environment.
+
+2.1 The On-Screen Entity Inspector
+
+The On-Screen Entity Inspector is a toggleable UI overlay that allows a developer to pause the game, click on any entity in the world, and see a real-time, editable view of its complete component data. This is invaluable for diagnosing issues that arise from complex interactions between multiple entities and systems over time.
+The implementation will be an autoloaded singleton scene whose root node is a CanvasLayer. This ensures that the inspector UI always draws on top of all other game elements, whether in 2D or 3D.5 When activated, the inspector will use a raycast from the mouse's current position to identify the entity being targeted. Upon selection, the inspector's UI will be dynamically generated to represent the component data of the selected entity's
+EntityData resource, much like the ComponentViewerPanel in the testbed.
+A key technical challenge is ensuring the displayed data updates in real-time without causing performance degradation. A naive approach of rebuilding the entire UI every frame would be inefficient. Instead, a hybrid data-binding strategy will be employed. The choice of update mechanism will depend on the nature of the data being displayed, as outlined in the table below.
+---------------------------------------------
+| |Data Type | |UI Control Node | |Update Mechanism | |Rationale |
+---------------------------------------------
+| |int / float (e.g., health) | |ProgressBar / Label | |Polling in _process | |These values can change frequently (e.g., damage over time, regeneration). Polling every frame is simpler and more reliable than emitting dozens of signals per second. |
+---------------------------------------------
+| |Array (e.g., inventory) | |ItemList | |Signal-based (e.g., inventory_changed) | |The contents of an inventory change relatively infrequently (only when items are added or removed). A signal-based update is far more performant than rebuilding the entire item list every frame. |
+---------------------------------------------
+| |String (e.g., display_name) | |LineEdit | |Signal-based (e.g., name_changed) | |This data changes very rarely. A signal is the most efficient method. |
+---------------------------------------------
+| |Dictionary (e.g., reputation) | |Custom GridContainer | |Signal-based (e.g., reputation_changed) | |Faction reputation changes at discrete moments. A signal carrying the specific faction and new value is optimal. |
+
+2.2 The In-Game Developer Console
+
+A classic, Quake-style dropdown developer console is an indispensable tool for ad-hoc testing, debugging, and content validation. It allows developers to execute arbitrary GDScript commands at runtime, enabling them to quickly give themselves items, teleport to different locations, trigger events, or query the state of any object in the game world.
+The implementation will follow a well-established pattern for Godot developer consoles.6 The core will be an autoloaded
+CanvasLayer scene containing a LineEdit for input and a RichTextLabel for output and history. The console's power comes from Godot's built-in Expression class, which can safely parse and execute GDScript code from a string. This allows the console to call any function on itself or other globally accessible singletons.
+Key features will include:
+* Command History: A simple array will store previously executed commands, which can be navigated using the up and down arrow keys.
+* Autocomplete: A basic autocomplete system will be implemented. When the user presses Tab, the console will search a predefined list of available commands and function names and suggest the first match.
+* API: The console's script will expose a library of powerful helper functions, such as spawn(archetype_id), give_item(item_id, target_entity), teleport(x, y), and get_entity(entity_id), which can be easily called from the console's input line.
+
+2.3 Visualizers and Gizmos
+
+Often, the state of a system is best understood visually rather than through printed numbers or text. A debug drawing system allows logic systems to render their internal state directly into the game world, providing an intuitive, at-a-glance understanding of complex spatial data.8
+This will be implemented as an autoloaded singleton named DebugDraw.gd. This node will manage all drawing requests and render them into the scene. It will expose a simple, globally accessible API with functions like:
+* DebugDraw.line(start_pos, end_pos, color, duration)
+* DebugDraw.sphere(position, radius, color, duration)
+* DebugDraw.box(transform, size, color, duration)
+* DebugDraw.text(position, text_string, color, duration)
+This API allows any other system to easily visualize its state. For example, the AISystem could call DebugDraw.line(self.position, target.position, Color.RED) to draw a line to its current target, or the InteractionManager could call DebugDraw.sphere(skill_origin, area_of_effect_radius, Color.BLUE) to show the range of an area-of-effect ability. To prevent visual clutter, the system will support named layers (e.g., "AI", "Physics", "Pathfinding") that can be individually toggled on or off via commands in the developer console.
+
