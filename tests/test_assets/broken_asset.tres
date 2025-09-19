@@ -1,3 +1,0 @@
-This file is intentionally malformed.
-It lacks the [gd_resource] header required by Godot
-and should trigger a load failure when scanned.
