@@ -1,0 +1,180 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://tests/scripts/system_testbed/EntitySpawnerPanel.gd" id="1"]
+[ext_resource type="Script" path="res://tests/scripts/system_testbed/SceneInspectorPanel.gd" id="2"]
+[ext_resource type="Script" path="res://tests/scripts/system_testbed/ComponentViewerPanel.gd" id="3"]
+[ext_resource type="Script" path="res://tests/scripts/system_testbed/SystemTriggerPanel.gd" id="4"]
+[ext_resource type="Script" path="res://tests/scripts/system_testbed/EventBusLogPanel.gd" id="5"]
+
+[node name="System_Testbed" type="Control"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 0.0
+offset_bottom = 0.0
+
+[node name="RootPanel" type="PanelContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 0.0
+offset_bottom = 0.0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="MainHBox" type="HBoxContainer" parent="RootPanel"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 0.0
+offset_bottom = 0.0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+
+[node name="LeftColumn" type="VBoxContainer" parent="RootPanel/MainHBox"]
+custom_minimum_size = Vector2(320, 0)
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+
+[node name="EntitySpawnerPanel" type="PanelContainer" parent="RootPanel/MainHBox/LeftColumn"]
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("1")
+
+[node name="EntitySpawnerContent" type="VBoxContainer" parent="RootPanel/MainHBox/LeftColumn/EntitySpawnerPanel"]
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="EntitySpawnerTitle" type="Label" parent="RootPanel/MainHBox/LeftColumn/EntitySpawnerPanel/EntitySpawnerContent"]
+text = "Entity Spawner"
+theme_override_font_sizes/font_size = 18
+
+[node name="EntitySpawnerScroll" type="ScrollContainer" parent="RootPanel/MainHBox/LeftColumn/EntitySpawnerPanel/EntitySpawnerContent"]
+size_flags_horizontal = 3
+size_flags_vertical = 3
+scroll_horizontal = false
+
+[node name="EntitySpawnerBody" type="VBoxContainer" parent="RootPanel/MainHBox/LeftColumn/EntitySpawnerPanel/EntitySpawnerContent/EntitySpawnerScroll"]
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="EntitySpawnerPlaceholder" type="Label" parent="RootPanel/MainHBox/LeftColumn/EntitySpawnerPanel/EntitySpawnerContent/EntitySpawnerScroll/EntitySpawnerBody"]
+text = "Spawner controls coming soon."
+autowrap_mode = 3
+
+[node name="SceneInspectorPanel" type="PanelContainer" parent="RootPanel/MainHBox/LeftColumn"]
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("2")
+
+[node name="SceneInspectorContent" type="VBoxContainer" parent="RootPanel/MainHBox/LeftColumn/SceneInspectorPanel"]
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="SceneInspectorTitle" type="Label" parent="RootPanel/MainHBox/LeftColumn/SceneInspectorPanel/SceneInspectorContent"]
+text = "Scene Inspector"
+theme_override_font_sizes/font_size = 18
+
+[node name="SceneInspectorScroll" type="ScrollContainer" parent="RootPanel/MainHBox/LeftColumn/SceneInspectorPanel/SceneInspectorContent"]
+size_flags_horizontal = 3
+size_flags_vertical = 3
+scroll_horizontal = false
+
+[node name="SceneInspectorBody" type="VBoxContainer" parent="RootPanel/MainHBox/LeftColumn/SceneInspectorPanel/SceneInspectorContent/SceneInspectorScroll"]
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="SceneInspectorPlaceholder" type="Label" parent="RootPanel/MainHBox/LeftColumn/SceneInspectorPanel/SceneInspectorContent/SceneInspectorScroll/SceneInspectorBody"]
+text = "Inspect the live scene graph here."
+autowrap_mode = 3
+
+[node name="ComponentViewerPanel" type="PanelContainer" parent="RootPanel/MainHBox"]
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("3")
+
+[node name="ComponentViewerContent" type="VBoxContainer" parent="RootPanel/MainHBox/ComponentViewerPanel"]
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="ComponentViewerTitle" type="Label" parent="RootPanel/MainHBox/ComponentViewerPanel/ComponentViewerContent"]
+text = "Component Viewer"
+theme_override_font_sizes/font_size = 18
+
+[node name="ComponentViewerScroll" type="ScrollContainer" parent="RootPanel/MainHBox/ComponentViewerPanel/ComponentViewerContent"]
+size_flags_horizontal = 3
+size_flags_vertical = 3
+scroll_horizontal = false
+
+[node name="ComponentViewerBody" type="VBoxContainer" parent="RootPanel/MainHBox/ComponentViewerPanel/ComponentViewerContent/ComponentViewerScroll"]
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="ComponentViewerPlaceholder" type="Label" parent="RootPanel/MainHBox/ComponentViewerPanel/ComponentViewerContent/ComponentViewerScroll/ComponentViewerBody"]
+text = "Component data will appear here."
+autowrap_mode = 3
+
+[node name="RightColumn" type="VBoxContainer" parent="RootPanel/MainHBox"]
+custom_minimum_size = Vector2(320, 0)
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+
+[node name="SystemTriggerPanel" type="PanelContainer" parent="RootPanel/MainHBox/RightColumn"]
+size_flags_horizontal = 3
+size_flags_vertical = 1
+script = ExtResource("4")
+
+[node name="SystemTriggerContent" type="VBoxContainer" parent="RootPanel/MainHBox/RightColumn/SystemTriggerPanel"]
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="SystemTriggerTitle" type="Label" parent="RootPanel/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent"]
+text = "System Triggers"
+theme_override_font_sizes/font_size = 18
+
+[node name="SystemTriggerScroll" type="ScrollContainer" parent="RootPanel/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent"]
+size_flags_horizontal = 3
+size_flags_vertical = 3
+scroll_horizontal = false
+
+[node name="SystemTriggerBody" type="VBoxContainer" parent="RootPanel/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll"]
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="SystemTriggerPlaceholder" type="Label" parent="RootPanel/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody"]
+text = "Trigger gameplay systems from this panel."
+autowrap_mode = 3
+
+[node name="EventBusLogPanel" type="PanelContainer" parent="RootPanel/MainHBox/RightColumn"]
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("5")
+
+[node name="EventBusLogContent" type="VBoxContainer" parent="RootPanel/MainHBox/RightColumn/EventBusLogPanel"]
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="EventBusLogTitle" type="Label" parent="RootPanel/MainHBox/RightColumn/EventBusLogPanel/EventBusLogContent"]
+text = "Event Bus Log"
+theme_override_font_sizes/font_size = 18
+
+[node name="EventBusLogScroll" type="ScrollContainer" parent="RootPanel/MainHBox/RightColumn/EventBusLogPanel/EventBusLogContent"]
+size_flags_horizontal = 3
+size_flags_vertical = 3
+scroll_horizontal = false
+
+[node name="EventBusLogBody" type="VBoxContainer" parent="RootPanel/MainHBox/RightColumn/EventBusLogPanel/EventBusLogContent/EventBusLogScroll"]
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="EventBusLogPlaceholder" type="Label" parent="RootPanel/MainHBox/RightColumn/EventBusLogPanel/EventBusLogContent/EventBusLogScroll/EventBusLogBody"]
+text = "Recent EventBus activity will be displayed here."
+autowrap_mode = 3
