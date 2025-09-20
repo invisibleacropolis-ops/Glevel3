@@ -232,7 +232,7 @@ func _find_player_node() -> Node:
         return named
     return scene
 
-func _ensure_input_action(action_name: String, default_key: int) -> void:
+func _ensure_input_action(action_name: String, default_key: Key) -> void:
     """Defines the toggle input action when it does not already exist."""
     if InputMap.has_action(action_name):
         return

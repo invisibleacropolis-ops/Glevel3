@@ -88,8 +88,7 @@ func clear_log() -> void:
 func _format_payload(payload: Variant) -> String:
     """Produces a readable representation of the payload for the log."""
     if typeof(payload) == TYPE_DICTIONARY:
-        var json := JSON.new()
-        return json.stringify(payload, "  ")
+        return JSON.stringify(payload, "  ")
     return str(payload)
 
 func _update_placeholder_visibility() -> void:

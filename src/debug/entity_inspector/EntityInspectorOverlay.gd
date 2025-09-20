@@ -179,14 +179,14 @@ func _update_subtitle() -> void:
     var entity_id: String = ""
     if data != null and data.entity_id != "":
         entity_id = String(data.entity_id)
-    var descriptor: String = entity_id if entity_id != "" else _current_entity.name
+    var descriptor: String = entity_id if entity_id != "" else String(_current_entity.name)
     _subtitle_label.text = "%s — Position %s" % [descriptor, _format_vector3(position)]
 
 func _format_vector3(value: Vector3) -> String:
     """Formats a Vector3 for compact display in the overlay."""
     return "(%.2f, %.2f, %.2f)" % [value.x, value.y, value.z]
 
-func _ensure_input_action(action_name: String, default_key: int) -> void:
+func _ensure_input_action(action_name: String, default_key: Key) -> void:
     """Creates the toggle input action if it was not defined in the project."""
     if InputMap.has_action(action_name):
         return
