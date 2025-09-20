@@ -2,6 +2,8 @@ extends PanelContainer
 class_name EntitySpawnerPanel
 """UI controller responsible for spawning archetype-driven entities into the testbed."""
 
+signal archetype_selection_changed(archetype_id: String)
+
 const ENTITY_DIRECTORY := "res://assets/entity_archetypes/"
 const ENTITY_SCENE_PATH := "res://src/entities/Entity.tscn"
 
@@ -62,12 +64,14 @@ func _populate_archetype_selector() -> void:
 
     _archetype_selector.select(0)
     _set_spawn_button_enabled(true)
+    _emit_archetype_selection_changed()
     _update_status("Select an archetype and press Spawn to instantiate an entity.")
 
 func _on_archetype_selected(_item_index: int) -> void:
     """Enables spawning once a valid archetype selection exists."""
     var has_selection := _get_selected_archetype_id() != ""
     _set_spawn_button_enabled(has_selection)
+    _emit_archetype_selection_changed()
 
 func _on_spawn_button_pressed() -> void:
     """Instantiates the selected archetype into the TestEnvironment node."""
@@ -77,6 +81,19 @@ func _on_spawn_button_pressed() -> void:
 func spawn_entity_by_id(archetype_id: String) -> Node:
     """Public helper allowing other panels to spawn archetypes directly."""
     return _spawn_entity(archetype_id)
+
+func get_selected_archetype_id() -> String:
+    """Exposes the currently highlighted archetype identifier."""
+    return _get_selected_archetype_id()
+
+func get_selected_archetype_display_label() -> String:
+    """Returns the user-facing label for the highlighted archetype."""
+    if not is_instance_valid(_archetype_selector):
+        return ""
+    var selected_index := _archetype_selector.get_selected()
+    if selected_index < 0:
+        return ""
+    return _archetype_selector.get_item_text(selected_index)
 
 func _spawn_entity(archetype_id: String) -> Node:
     """Instantiates ``archetype_id`` when the supporting resources are available."""
@@ -169,3 +186,8 @@ func _update_status(message: String) -> void:
     """Safely writes a status message to the UI label when available."""
     if is_instance_valid(_status_label):
         _status_label.text = message
+
+func _emit_archetype_selection_changed() -> void:
+    """Notifies listeners whenever the highlighted archetype changes."""
+    var archetype_id := _get_selected_archetype_id()
+    archetype_selection_changed.emit(archetype_id)

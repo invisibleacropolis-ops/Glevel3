@@ -58,7 +58,7 @@ The SystemTriggerPanel is the interactive heart of the testbed. Its buttons prov
 ---------------------------------------------
 | |Button Label | |Target System/Event | |Function/Signal Name | |Payload Contract |
 ---------------------------------------------
-| |"Spawn Goblin Archer" | |EntitySpawner | |_spawn_entity | |Takes archetype_id string (e.g., "GoblinArcher_EntityData.tres"). |
+| |"Spawn Selected Archetype" | |EntitySpawner | |spawn_entity_by_id | |Uses the currently highlighted archetype id from the Entity Spawner panel. |
 ---------------------------------------------
 | |"Attack Target" | |CombatSystem | |attack_target | |Requires a selected target entity. Damage amount comes from the UI spinner. Function signature: (target: Node, amount: int, damage_type: String). |
 ---------------------------------------------
