@@ -1,4 +1,4 @@
-extends Node
+extends Node3D
 class_name Entity
 
 ## Runtime node representing a spawned gameplay entity within the testbed.

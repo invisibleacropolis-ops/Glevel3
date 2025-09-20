@@ -1,0 +1,55 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="PackedScene" path="res://tests/scenes/OscillatingEntity3D.tscn" id="1"]
+[ext_resource type="Resource" path="res://assets/entity_archetypes/SkeletonWarrior_EntityData.tres" id="2"]
+
+[sub_resource type="Environment" id="1"]
+ambient_light_source = 2
+ambient_light_color = Color(0.15, 0.18, 0.22, 1)
+ambient_light_energy = 0.7
+
+[sub_resource type="PlaneMesh" id="2"]
+size = Vector2(20, 20)
+
+[sub_resource type="BoxShape3D" id="3"]
+size = Vector3(20, 0.2, 20)
+
+[node name="DebugOverlayTest" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("1")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.894427, -0.358569, -0.267261, 0.0, 0.597614, -0.801784, 0.447214, 0.716116, 0.535611, 0.0, 6.0, 0.0)
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(0.707107, -0.408248, 0.57735, 0.0, 0.816497, 0.57735, -0.707107, -0.408248, 0.57735, 8.0, 6.0, 10.0)
+current = true
+
+[node name="Ground" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Ground"]
+shape = SubResource("3")
+
+[node name="GroundMesh" type="MeshInstance3D" parent="Ground"]
+mesh = SubResource("2")
+material_override = null
+
+[node name="Player" type="Node3D" parent="."]
+groups = ["player"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0.5, 0)
+
+[node name="PlayerMesh" type="MeshInstance3D" parent="Player"]
+mesh = SubResource("2")
+scale = Vector3(0.2, 0.02, 0.2)
+
+[node name="EntityA" parent="." instance=ExtResource("1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
+
+[node name="EntityB" parent="." instance=ExtResource("1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0.6, -2)
+oscillation_axis = Vector3(0, 1, 0.2)
+oscillation_speed = 1.0
+entity_data = ExtResource("2")
+health_wave_speed = 1.3
+
