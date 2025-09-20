@@ -2,7 +2,7 @@ extends PanelContainer
 class_name SystemTriggerPanel
 """
 Hosts manual triggers for gameplay systems so engineers can exercise signal flows on demand.
-Future milestones will expose buttons, dropdowns, and parameter editors to drive systems.
+The status label mirrors the currently selected entity so it is obvious when triggers are armed.
 """
 
 const SYSTEM_TESTBED_SCRIPT := preload("res://tests/scripts/system_testbed/SystemTestbed.gd")
@@ -15,6 +15,7 @@ const EVENT_BUS_SCRIPT := preload("res://src/globals/EventBus.gd")
 @onready var _kill_target_button: Button = %KillTargetButton
 @onready var _emit_entity_killed_button: Button = %EmitEntityKilledButton
 @onready var _combat_system: TEST_COMBAT_SYSTEM_SCRIPT = %TestCombatSystem
+@onready var _target_status_label: Label = %TargetStatusLabel
 
 var _testbed_root: SYSTEM_TESTBED_SCRIPT
 
@@ -127,6 +128,19 @@ func _update_button_states() -> void:
         _apply_damage_button.disabled = not has_target
     if is_instance_valid(_kill_target_button):
         _kill_target_button.disabled = not has_target
+    _update_target_status_label()
+
+func _update_target_status_label() -> void:
+    """Reflects the currently selected entity in the status label."""
+    if not is_instance_valid(_target_status_label):
+        return
+    var target := _get_active_target()
+    if is_instance_valid(target):
+        _target_status_label.text = "Active target: %s" % target.name
+        _target_status_label.add_theme_color_override("font_color", Color(0.7, 0.88, 0.76))
+    else:
+        _target_status_label.text = "No active entity selected."
+        _target_status_label.add_theme_color_override("font_color", Color(0.84, 0.67, 0.49))
 
 func _update_placeholder_visibility() -> void:
     """Hides the placeholder label whenever actionable controls are present."""

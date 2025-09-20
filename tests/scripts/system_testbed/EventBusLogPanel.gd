@@ -2,13 +2,14 @@ extends PanelContainer
 class_name EventBusLogPanel
 """
 Streams recent EventBus activity so operators can validate system interactions in real time.
-At present the panel is a scaffold that will later subscribe to debug log feeds.
+The toolbar provides a quick reset button so each experiment starts with a clean transcript.
 """
 
 const EVENT_BUS_SCRIPT := preload("res://src/globals/EventBus.gd")
 
 @onready var _placeholder_label: Label = %EventBusLogPlaceholder
 @onready var _log_output: RichTextLabel = %EventBusLogOutput
+@onready var _clear_button: Button = %ClearLogButton
 
 var _connected_signals: Array[StringName] = []
 var _entry_count := 0
@@ -17,12 +18,19 @@ func _ready() -> void:
     """Connects to every EventBus signal and prepares the log display."""
     _initialise_log_output()
     _connect_event_bus_signals()
+    _wire_actions()
     _update_placeholder_visibility()
 
 func _initialise_log_output() -> void:
     """Clears any stale content from the log label before use."""
     if is_instance_valid(_log_output):
         _log_output.clear()
+    _entry_count = 0
+
+func _wire_actions() -> void:
+    """Connects toolbar buttons that manage the log content."""
+    if is_instance_valid(_clear_button):
+        _clear_button.pressed.connect(_on_clear_button_pressed)
 
 func _connect_event_bus_signals() -> void:
     """Iterates through the EventBus signal catalog and hooks the generic handler."""
@@ -50,14 +58,31 @@ func _resolve_event_bus() -> EVENT_BUS_SCRIPT:
         return null
     return EVENT_BUS_SCRIPT.get_singleton()
 
-func _on_event_bus_signal(payload: Variant, signal_name: StringName) -> void:
+func _on_event_bus_signal(payload: Variant = null, signal_name: StringName = StringName()) -> void:
     """Generic handler that formats signal payloads into the log feed."""
+    if signal_name == StringName():
+        signal_name = StringName(str(payload))
+        payload = null
+    var name_string := String(signal_name)
+    if name_string.begins_with("tree_") or name_string == "ready":
+        return
     var payload_string := _format_payload(payload)
     var entry := "[b]%s[/b]: %s" % [signal_name, payload_string]
     if is_instance_valid(_log_output):
         _log_output.append_text(entry + "\n")
         _log_output.scroll_to_line(_log_output.get_line_count() - 1)
     _entry_count += 1
+    _update_placeholder_visibility()
+
+func _on_clear_button_pressed() -> void:
+    """Clears the log output so new experiments start with a blank slate."""
+    clear_log()
+
+func clear_log() -> void:
+    """Public helper that wipes the log and resets counters."""
+    _entry_count = 0
+    if is_instance_valid(_log_output):
+        _log_output.clear()
     _update_placeholder_visibility()
 
 func _format_payload(payload: Variant) -> String:
