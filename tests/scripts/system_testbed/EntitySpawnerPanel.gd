@@ -5,8 +5,8 @@ class_name EntitySpawnerPanel
 const ENTITY_DIRECTORY := "res://assets/entity_archetypes/"
 const ENTITY_SCENE_PATH := "res://src/entities/Entity.tscn"
 
-const EntityData := preload("res://src/core/EntityData.gd")
-const Entity := preload("res://src/entities/Entity.gd")
+const ENTITY_DATA_SCRIPT := preload("res://src/core/EntityData.gd")
+const ENTITY_SCRIPT := preload("res://src/entities/Entity.gd")
 
 @onready var _archetype_selector: OptionButton = %ArchetypeSelector
 @onready var _spawn_button: Button = %SpawnButton
@@ -85,7 +85,7 @@ func _on_spawn_button_pressed() -> void:
     if base_resource == null:
         _update_status("Unable to locate resource for %s." % archetype_id)
         return
-    if not (base_resource is EntityData):
+    if not (base_resource is ENTITY_DATA_SCRIPT):
         _update_status("%s is not an EntityData resource." % archetype_id)
         return
 
@@ -96,7 +96,7 @@ func _on_spawn_button_pressed() -> void:
         return
 
     var entity_instance := entity_scene.instantiate()
-    if not (entity_instance is Entity):
+    if not (entity_instance is ENTITY_SCRIPT):
         if entity_instance != null:
             entity_instance.queue_free()
         _update_status("Base entity scene does not provide the Entity script.")
