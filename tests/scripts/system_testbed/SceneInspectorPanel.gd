@@ -7,6 +7,7 @@ const SYSTEM_TESTBED_SCRIPT := preload("res://tests/scripts/system_testbed/Syste
 
 @onready var _tree: Tree = %SceneInspectorTree
 @onready var _placeholder_label: Label = %SceneInspectorPlaceholder
+@onready var _delete_button: Button = %DeleteSelectedButton
 
 var _test_environment: Node
 var _testbed_root: SYSTEM_TESTBED_SCRIPT
@@ -19,6 +20,10 @@ func _ready() -> void:
     _tree.item_selected.connect(_on_tree_item_selected)
     if _tree.has_signal("nothing_selected"):
         _tree.nothing_selected.connect(_on_tree_nothing_selected)
+
+    if is_instance_valid(_delete_button):
+        _delete_button.pressed.connect(_on_delete_button_pressed)
+    _update_delete_button_state()
 
     _test_environment = _resolve_test_environment()
     if _test_environment != null:
@@ -49,6 +54,7 @@ func _rebuild_tree() -> void:
     if _test_environment == null:
         _placeholder_label.text = "TestEnvironment node is missing from the scene."
         _update_placeholder_visibility()
+        _update_delete_button_state()
         return
 
     _tree_root = _tree.create_item()
@@ -59,6 +65,7 @@ func _rebuild_tree() -> void:
         _tree.set_selected(_entity_items[_current_selection.get_instance_id()], 0)
     else:
         _current_selection = null
+    _update_delete_button_state()
     _update_placeholder_visibility()
 
 func _track_entity(node: Node) -> void:
@@ -97,6 +104,7 @@ func _untrack_entity(node: Node) -> void:
         _set_active_target(null)
 
     _update_placeholder_visibility()
+    _update_delete_button_state()
 
 func _on_environment_child_entered(node: Node) -> void:
     """Responds when new nodes join the TestEnvironment branch."""
@@ -118,11 +126,13 @@ func _on_tree_item_selected() -> void:
         return
     _current_selection = entity
     _set_active_target(entity)
+    _update_delete_button_state()
 
 func _on_tree_nothing_selected() -> void:
     """Clears the active target when the tree loses selection."""
     _current_selection = null
     _set_active_target(null)
+    _update_delete_button_state()
 
 func _set_active_target(target: ENTITY_SCRIPT) -> void:
     """Pushes the selection to the testbed root for other panels to consume."""
@@ -139,6 +149,8 @@ func _update_placeholder_visibility() -> void:
     _placeholder_label.visible = not has_entities
     if _test_environment != null and not has_entities:
         _placeholder_label.text = "No entities have been spawned yet."
+    if not has_entities:
+        _tree.deselect_all()
 
 func _ensure_tree_root() -> TreeItem:
     """Creates or returns the root TreeItem required for child entries."""
@@ -159,3 +171,23 @@ func _format_entity_label(entity: ENTITY_SCRIPT) -> String:
     if entity.entity_data != null and not entity.entity_data.display_name.is_empty():
         return entity.entity_data.display_name
     return entity.name
+
+func _update_delete_button_state() -> void:
+    """Enables the deletion button only when a valid entity is selected."""
+    if not is_instance_valid(_delete_button):
+        return
+    var can_delete := is_instance_valid(_current_selection)
+    _delete_button.disabled = not can_delete
+
+func _on_delete_button_pressed() -> void:
+    """Queues the selected entity for deletion and clears the inspector state."""
+    if not is_instance_valid(_current_selection):
+        _update_delete_button_state()
+        return
+    var entity := _current_selection
+    _set_active_target(null)
+    _current_selection = null
+    _tree.deselect_all()
+    _update_delete_button_state()
+    if is_instance_valid(entity):
+        entity.queue_free()

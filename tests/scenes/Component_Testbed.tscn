@@ -1,4 +1,28 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
+
+[sub_resource type="StyleBoxFlat" id="1"]
+bg_color = Color(0.11, 0.12, 0.16, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+shadow_color = Color(0, 0, 0, 0.3)
+shadow_size = 6
+content_margin_left = 16
+content_margin_right = 16
+content_margin_top = 16
+content_margin_bottom = 16
+
+[sub_resource type="StyleBoxFlat" id="2"]
+bg_color = Color(0.08, 0.09, 0.12, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 12
+content_margin_right = 12
+content_margin_top = 12
+content_margin_bottom = 12
 
 [ext_resource type="Script" path="res://tests/scripts/Testbed.gd" id="1"]
 
@@ -10,7 +34,7 @@ offset_right = 0.0
 offset_bottom = 0.0
 script = ExtResource("1")
 
-[node name="HBoxContainer" type="HBoxContainer" parent="."]
+[node name="RootPanel" type="PanelContainer" parent="."]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -18,36 +42,111 @@ offset_right = 0.0
 offset_bottom = 0.0
 size_flags_horizontal = 3
 size_flags_vertical = 3
+theme_override_styles/panel = SubResource("1")
 
-[node name="VBoxContainer" type="VBoxContainer" parent="HBoxContainer"]
-custom_minimum_size = Vector2(280, 0)
-size_flags_vertical = 3
-
-[node name="LoadButton" type="Button" parent="HBoxContainer/VBoxContainer"]
-text = "Load EntityData"
-
-[node name="LoadedFileLabel" type="Label" parent="HBoxContainer/VBoxContainer"]
-text = "No EntityData loaded"
-autowrap_mode = 3
-
-[node name="SaveButton" type="Button" parent="HBoxContainer/VBoxContainer"]
-text = "Save EntityData"
-
-[node name="ScrollContainer" type="ScrollContainer" parent="HBoxContainer"]
+[node name="ContentMargin" type="MarginContainer" parent="RootPanel"]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_right = 0.0
 offset_bottom = 0.0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="RootVBox" type="VBoxContainer" parent="RootPanel/ContentMargin"]
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 16
+
+[node name="HeaderTitle" type="Label" parent="RootPanel/ContentMargin/RootVBox"]
+text = "Component Testbed"
+theme_override_font_sizes/font_size = 24
+theme_override_colors/font_color = Color(0.89, 0.92, 0.98, 1)
+
+[node name="HeaderDescription" type="RichTextLabel" parent="RootPanel/ContentMargin/RootVBox"]
+bbcode_enabled = true
+text = "Load any <code>EntityData</code> resource, review its exported properties, and push edits back to disk. This harness mirrors the System Testbed's data pipelines so you can validate component definitions without booting the full game."
+fit_content = true
+scroll_active = false
+size_flags_horizontal = 3
+theme_override_colors/default_color = Color(0.79, 0.82, 0.9, 1)
+theme_override_font_sizes/normal_font_size = 14
+
+[node name="MainSplit" type="HBoxContainer" parent="RootPanel/ContentMargin/RootVBox"]
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 16
+
+[node name="ControlsPanel" type="PanelContainer" parent="RootPanel/ContentMargin/RootVBox/MainSplit"]
+custom_minimum_size = Vector2(320, 0)
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("2")
+
+[node name="ControlColumn" type="VBoxContainer" parent="RootPanel/ContentMargin/RootVBox/MainSplit/ControlsPanel"]
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+
+[node name="ControlsTitle" type="Label" parent="RootPanel/ContentMargin/RootVBox/MainSplit/ControlsPanel/ControlColumn"]
+text = "EntityData Controls"
+theme_override_font_sizes/font_size = 18
+
+[node name="ControlsHelp" type="Label" parent="RootPanel/ContentMargin/RootVBox/MainSplit/ControlsPanel/ControlColumn"]
+text = "Choose an EntityData archetype, make adjustments, and save them back to disk. Changes apply immediately to the live resource in memory."
+autowrap_mode = 3
+theme_override_colors/font_color = Color(0.76, 0.79, 0.9, 1)
+theme_override_font_sizes/font_size = 14
+
+[node name="LoadButton" type="Button" parent="RootPanel/ContentMargin/RootVBox/MainSplit/ControlsPanel/ControlColumn"]
+unique_name_in_owner = true
+text = "Load EntityData"
+
+[node name="LoadedFileLabel" type="Label" parent="RootPanel/ContentMargin/RootVBox/MainSplit/ControlsPanel/ControlColumn"]
+unique_name_in_owner = true
+text = "No EntityData loaded"
+autowrap_mode = 3
+
+[node name="SaveButton" type="Button" parent="RootPanel/ContentMargin/RootVBox/MainSplit/ControlsPanel/ControlColumn"]
+unique_name_in_owner = true
+text = "Save EntityData"
+
+[node name="InspectorPanel" type="PanelContainer" parent="RootPanel/ContentMargin/RootVBox/MainSplit"]
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("2")
+
+[node name="InspectorContent" type="VBoxContainer" parent="RootPanel/ContentMargin/RootVBox/MainSplit/InspectorPanel"]
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+
+[node name="InspectorTitle" type="Label" parent="RootPanel/ContentMargin/RootVBox/MainSplit/InspectorPanel/InspectorContent"]
+text = "Component Inspector"
+theme_override_font_sizes/font_size = 18
+
+[node name="InspectorHelp" type="Label" parent="RootPanel/ContentMargin/RootVBox/MainSplit/InspectorPanel/InspectorContent"]
+text = "Properties mirror the exported fields defined on each component resource. Spin up the System Testbed to validate runtime behaviour after editing."
+autowrap_mode = 3
+theme_override_colors/font_color = Color(0.76, 0.79, 0.9, 1)
+theme_override_font_sizes/font_size = 14
+
+[node name="ScrollContainer" type="ScrollContainer" parent="RootPanel/ContentMargin/RootVBox/MainSplit/InspectorPanel/InspectorContent"]
 size_flags_horizontal = 3
 size_flags_vertical = 3
 scroll_horizontal = false
 
-[node name="ComponentDisplay" type="VBoxContainer" parent="HBoxContainer/ScrollContainer"]
+[node name="ComponentDisplay" type="VBoxContainer" parent="RootPanel/ContentMargin/RootVBox/MainSplit/InspectorPanel/InspectorContent/ScrollContainer"]
+unique_name_in_owner = true
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="FileDialog" type="FileDialog" parent="."]
+[node name="EntityFileDialog" type="FileDialog" parent="."]
+unique_name_in_owner = true
 title = "Select EntityData Resource"
 file_mode = 0
 access = 2

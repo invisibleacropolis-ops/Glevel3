@@ -10,11 +10,11 @@ const PROPERTY_EXCLUSIONS := {
 
 var current_entity_data: EntityData
 
-@onready var file_dialog: FileDialog = $FileDialog
-@onready var loaded_file_label: Label = $HBoxContainer/VBoxContainer/LoadedFileLabel
-@onready var component_display: VBoxContainer = $HBoxContainer/ScrollContainer/ComponentDisplay
-@onready var load_button: Button = $HBoxContainer/VBoxContainer/LoadButton
-@onready var save_button: Button = $HBoxContainer/VBoxContainer/SaveButton
+@onready var file_dialog: FileDialog = %EntityFileDialog
+@onready var loaded_file_label: Label = %LoadedFileLabel
+@onready var component_display: VBoxContainer = %ComponentDisplay
+@onready var load_button: Button = %LoadButton
+@onready var save_button: Button = %SaveButton
 
 const ULTEnums := preload("res://src/globals/ULTEnums.gd")
 
@@ -26,6 +26,8 @@ func _ready() -> void:
     file_dialog.access = FileDialog.ACCESS_FILESYSTEM
     file_dialog.file_mode = FileDialog.FILE_MODE_OPEN_FILE
     file_dialog.filters = PackedStringArray(["*.tres ; EntityData Resources"])
+    load_button.tooltip_text = "Browse the filesystem for an EntityData resource."
+    save_button.tooltip_text = "Persist the active EntityData resource to disk."
     loaded_file_label.text = "No EntityData loaded"
     save_button.disabled = true
     _render_components()
@@ -157,8 +159,8 @@ func _build_bool_editor(resource: Resource, property_name: String, value: Varian
     """Creates a toggle for boolean properties."""
     var check_box := CheckBox.new()
     check_box.button_pressed = bool(value)
-    check_box.toggled.connect(func(pressed: bool) -> void:
-        _on_property_changed(pressed, resource, property_name)
+    check_box.toggled.connect(
+        _on_bool_editor_toggled.bind(resource, property_name)
     )
     return check_box
 
@@ -180,9 +182,8 @@ func _build_enum_editor(resource: Resource, property_name: String, value: Varian
         if int(value) == id:
             selected_index = options.item_count - 1
     options.select(selected_index)
-    options.item_selected.connect(func(item_index: int) -> void:
-        var selected_id := options.get_item_id(item_index)
-        _on_property_changed(int(selected_id), resource, property_name)
+    options.item_selected.connect(
+        _on_enum_item_selected.bind(options, resource, property_name)
     )
     return options
 
@@ -198,12 +199,8 @@ func _build_numeric_editor(resource: Resource, property_name: String, value: Var
     else:
         spin_box.step = 0.1
         spin_box.value = float(value)
-    spin_box.value_changed.connect(func(new_value: float) -> void:
-        var coerced := new_value
-        if property_type == TYPE_INT:
-            coerced = int(round(new_value))
-            spin_box.value = coerced
-        _on_property_changed(coerced, resource, property_name)
+    spin_box.value_changed.connect(
+        _on_numeric_value_changed.bind(spin_box, property_type, resource, property_name)
     )
     return spin_box
 
@@ -212,11 +209,11 @@ func _build_string_editor(resource: Resource, property_name: String, value: Vari
     var line_edit := LineEdit.new()
     line_edit.text = str(value)
     line_edit.placeholder_text = "Enter %s" % property_name
-    line_edit.text_submitted.connect(func(new_text: String) -> void:
-        _commit_string_value(line_edit, new_text, resource, property_name, property_type)
+    line_edit.text_submitted.connect(
+        _on_line_edit_submitted.bind(line_edit, resource, property_name, property_type)
     )
-    line_edit.focus_exited.connect(func() -> void:
-        _commit_string_value(line_edit, line_edit.text, resource, property_name, property_type)
+    line_edit.focus_exited.connect(
+        _on_line_edit_focus_exited.bind(line_edit, resource, property_name, property_type)
     )
     return line_edit
 
@@ -226,21 +223,14 @@ func _build_variant_editor(resource: Resource, property_name: String, value: Var
     text_edit.custom_minimum_size = Vector2(0, 120)
     text_edit.wrap_mode = TextEdit.WRAP_WORD_SMART
     text_edit.text = var_to_str(value)
-    text_edit.focus_exited.connect(func() -> void:
-        var trimmed := text_edit.text.strip_edges()
-        if trimmed.is_empty():
-            push_warning("Value for %s cannot be empty." % property_name)
-            text_edit.text = var_to_str(resource.get(property_name))
-            return
-        var parsed_value := str_to_var(trimmed)
-        if parsed_value == null and trimmed.to_lower() != "null":
-            push_warning("Failed to parse value for %s. Use Godot variant syntax (e.g. [] or {\"key\": value})." % property_name)
-            text_edit.text = var_to_str(resource.get(property_name))
-            return
-        _on_property_changed(parsed_value, resource, property_name)
-        text_edit.text = var_to_str(resource.get(property_name))
+    text_edit.focus_exited.connect(
+        _on_variant_editor_focus_exited.bind(text_edit, resource, property_name)
     )
     return text_edit
+
+func _on_bool_editor_toggled(pressed: bool, resource: Resource, property_name: String) -> void:
+    """Routes boolean editor changes to the resource."""
+    _on_property_changed(pressed, resource, property_name)
 
 func _commit_string_value(
     line_edit: LineEdit,
@@ -255,6 +245,44 @@ func _commit_string_value(
         final_value = StringName(new_text)
     _on_property_changed(final_value, resource, property_name)
     line_edit.text = str(resource.get(property_name))
+
+func _on_line_edit_submitted(
+    new_text: String,
+    line_edit: LineEdit,
+    resource: Resource,
+    property_name: String,
+    property_type: int
+) -> void:
+    """Commits line edit input when Enter is pressed."""
+    _commit_string_value(line_edit, new_text, resource, property_name, property_type)
+
+func _on_line_edit_focus_exited(
+    line_edit: LineEdit,
+    resource: Resource,
+    property_name: String,
+    property_type: int
+) -> void:
+    """Persists line edit changes when focus leaves the control."""
+    _commit_string_value(line_edit, line_edit.text, resource, property_name, property_type)
+
+func _on_variant_editor_focus_exited(
+    text_edit: TextEdit,
+    resource: Resource,
+    property_name: String
+) -> void:
+    """Parses multi-line Variant editors when focus changes."""
+    var trimmed := text_edit.text.strip_edges()
+    if trimmed.is_empty():
+        push_warning("Value for %s cannot be empty." % property_name)
+        text_edit.text = var_to_str(resource.get(property_name))
+        return
+    var parsed_value := str_to_var(trimmed)
+    if parsed_value == null and trimmed.to_lower() != "null":
+        push_warning("Failed to parse value for %s. Use Godot variant syntax (e.g. [] or {\"key\": value})." % property_name)
+        text_edit.text = var_to_str(resource.get(property_name))
+        return
+    _on_property_changed(parsed_value, resource, property_name)
+    text_edit.text = var_to_str(resource.get(property_name))
 
 func _format_resource_label(resource: Resource) -> String:
     """Builds a human-readable caption for nested resource references."""
@@ -285,6 +313,20 @@ func _add_section_separator() -> void:
     spacer.custom_minimum_size = Vector2(0, 12)
     component_display.add_child(spacer)
 
+func _on_numeric_value_changed(
+    new_value: float,
+    spin_box: SpinBox,
+    property_type: int,
+    resource: Resource,
+    property_name: String
+) -> void:
+    """Normalises numeric editor input and propagates the change."""
+    var coerced := new_value
+    if property_type == TYPE_INT:
+        coerced = int(round(new_value))
+        spin_box.value = coerced
+    _on_property_changed(coerced, resource, property_name)
+
 func _on_property_changed(new_value: Variant, resource: Resource, property_name: String) -> void:
     """Updates the given resource and logs the change for traceability."""
     if resource == null:
@@ -295,6 +337,16 @@ func _on_property_changed(new_value: Variant, resource: Resource, property_name:
         resource.resource_path,
         str(new_value),
     ])
+
+func _on_enum_item_selected(
+    item_index: int,
+    options: OptionButton,
+    resource: Resource,
+    property_name: String
+) -> void:
+    """Handles OptionButton changes for enum exports."""
+    var selected_id := options.get_item_id(item_index)
+    _on_property_changed(int(selected_id), resource, property_name)
 
 func _on_save_button_pressed() -> void:
     """Persists the active EntityData resource to disk."""

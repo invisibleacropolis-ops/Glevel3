@@ -1,0 +1,29 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://tests/scripts/debug/OscillatingEntity.gd" id="1"]
+[ext_resource type="Resource" path="res://assets/entity_archetypes/GoblinArcher_EntityData.tres" id="2"]
+
+[sub_resource type="BoxMesh" id="1"]
+size = Vector3(0.8, 0.8, 0.8)
+
+[sub_resource type="BoxShape3D" id="2"]
+size = Vector3(0.8, 0.8, 0.8)
+
+[node name="OscillatingEntity3D" type="Node3D"]
+script = ExtResource("1")
+entity_data = ExtResource("2")
+oscillation_axis = Vector3(1, 0, 0.2)
+oscillation_amplitude = 1.5
+health_wave_amplitude = 16
+
+[node name="Visual" type="MeshInstance3D" parent="."]
+mesh = SubResource("1")
+material_override = null
+
+[node name="Hitbox" type="Area3D" parent="."]
+monitoring = false
+monitorable = true
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Hitbox"]
+shape = SubResource("2")
+
