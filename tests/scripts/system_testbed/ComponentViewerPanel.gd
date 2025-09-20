@@ -20,7 +20,8 @@ const _IGNORED_PROPERTY_NAMES := {
 
 var _testbed_root: SYSTEM_TESTBED_SCRIPT
 var _current_target: ENTITY_SCRIPT
-var _active_manifest: Dictionary[StringName, Resource] = {}
+var _active_manifest: Dictionary = {}
+#: Maps component keys to duplicated resources for the current inspection target.
 var _property_bindings: Array[Dictionary] = []
 
 func _ready() -> void:
