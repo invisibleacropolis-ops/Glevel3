@@ -114,6 +114,11 @@ unique_name_in_owner = true
 text = "Inspect the live scene graph here."
 autowrap_mode = 3
 
+[node name="DeleteSelectedButton" type="Button" parent="RootPanel/MainHBox/LeftColumn/SceneInspectorPanel/SceneInspectorContent/SceneInspectorScroll/SceneInspectorBody"]
+unique_name_in_owner = true
+text = "Delete Selected"
+size_flags_horizontal = 3
+
 [node name="ComponentViewerPanel" type="PanelContainer" parent="RootPanel/MainHBox"]
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -134,10 +139,12 @@ size_flags_vertical = 3
 scroll_horizontal = false
 
 [node name="ComponentViewerBody" type="VBoxContainer" parent="RootPanel/MainHBox/ComponentViewerPanel/ComponentViewerContent/ComponentViewerScroll"]
+unique_name_in_owner = true
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
 [node name="ComponentViewerPlaceholder" type="Label" parent="RootPanel/MainHBox/ComponentViewerPanel/ComponentViewerContent/ComponentViewerScroll/ComponentViewerBody"]
+unique_name_in_owner = true
 text = "Component data will appear here."
 autowrap_mode = 3
 
