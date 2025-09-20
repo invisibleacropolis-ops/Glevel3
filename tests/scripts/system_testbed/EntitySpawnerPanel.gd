@@ -108,9 +108,9 @@ func _get_selected_archetype_id() -> String:
     var selected_index := _archetype_selector.get_selected()
     if selected_index < 0:
         return ""
-    var metadata := _archetype_selector.get_item_metadata(selected_index)
+    var metadata: Variant = _archetype_selector.get_item_metadata(selected_index)
     if metadata is String:
-        return metadata
+        return metadata as String
     return ""
 
 func _resolve_test_environment() -> Node:
