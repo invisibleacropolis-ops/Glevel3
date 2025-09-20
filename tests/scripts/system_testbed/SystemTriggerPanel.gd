@@ -13,6 +13,8 @@ const EVENT_BUS_SCRIPT := preload("res://src/globals/EventBus.gd")
 
 const GOBLIN_ARCHER_ARCHETYPE_ID := "GoblinArcher_EntityData.tres"
 const HEALTH_POTION_ITEM_ID := "Health Potion"
+const FIRE_DAMAGE_AMOUNT := 10
+const FIRE_DAMAGE_TYPE := "fire"
 
 @onready var _placeholder_label: Label = %SystemTriggerPlaceholder
 @onready var _actions_container: VBoxContainer = %SystemTriggerActions
@@ -317,7 +319,7 @@ func _on_apply_damage_pressed() -> void:
     if not _combat_system.has_method("apply_damage"):
         push_warning("Test_CombatSystem is missing apply_damage(); trigger skipped.")
         return
-    _combat_system.apply_damage(target, 10, "fire")
+    _combat_system.apply_damage(target, FIRE_DAMAGE_AMOUNT, FIRE_DAMAGE_TYPE)
 
 func _on_spawn_goblin_pressed() -> void:
     """Spawns the Goblin Archer archetype into the test environment."""
