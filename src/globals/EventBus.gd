@@ -33,6 +33,18 @@ const SIGNAL_CONTRACTS := {
             "timestamp": TYPE_FLOAT,
         },
     },
+    &"entity_damaged": {
+        "description": "CombatSystem notification that an entity has taken damage.",
+        "required_keys": {
+            "entity_id": [TYPE_STRING, TYPE_STRING_NAME],
+            "amount": TYPE_INT,
+        },
+        "optional_keys": {
+            "damage_type": [TYPE_STRING, TYPE_STRING_NAME],
+            "source_id": [TYPE_STRING, TYPE_STRING_NAME],
+            "metadata": TYPE_DICTIONARY,
+        },
+    },
     &"entity_killed": {
         "description": "CombatSystem notification that an entity has been removed "
             + "from play. Downstream systems such as quests, loot, or meta "
@@ -98,6 +110,18 @@ const SIGNAL_CONTRACTS := {
             "modifiers": TYPE_DICTIONARY,
         },
     },
+    &"status_effect_applied": {
+        "description": "Emitted when a status effect is applied to an entity.",
+        "required_keys": {
+            "entity_id": [TYPE_STRING, TYPE_STRING_NAME],
+            "effect_name": [TYPE_STRING, TYPE_STRING_NAME],
+        },
+        "optional_keys": {
+            "duration": TYPE_INT,
+            "source_id": [TYPE_STRING, TYPE_STRING_NAME],
+            "metadata": TYPE_DICTIONARY,
+        },
+    },
 }
 
 ## Emitted whenever DebugSystem reports an entity snapshot.
@@ -107,6 +131,17 @@ const SIGNAL_CONTRACTS := {
 ## - Optional "timestamp" (float): Monotonic timestamp indicating when the sample was captured.
 @warning_ignore("unused_signal")
 signal debug_stats_reported(data: Dictionary)
+
+## Emitted when CombatSystem applies damage to an entity.
+## Required payload keys:
+## - "entity_id" (String or StringName): Identifier of the damaged entity.
+## - "amount" (int): Amount of damage dealt to the entity.
+## Optional payload keys:
+## - "damage_type" (String or StringName): Damage type (physical, fire, etc.).
+## - "source_id" (String or StringName): Identifier of the attacker.
+## - "metadata" (Dictionary): Arbitrary supplemental data for combat logs.
+@warning_ignore("unused_signal")
+signal entity_damaged(data: Dictionary)
 
 ## Emitted when CombatSystem determines an entity has been removed from play.
 ## Required payload keys:
@@ -162,6 +197,17 @@ signal day_passed(data: Dictionary)
 ## - "modifiers" (Dictionary): The modifiers of the effect that ended.
 @warning_ignore("unused_signal")
 signal status_effect_ended(data: Dictionary)
+
+## Emitted when a status effect is applied to an entity.
+## Required payload keys:
+## - "entity_id" (String or StringName): Identifier of the affected entity.
+## - "effect_name" (String or StringName): Name of the status effect applied.
+## Optional payload keys:
+## - "duration" (int): Number of turns or seconds the effect should last.
+## - "source_id" (String or StringName): Identifier of the source applying the effect.
+## - "metadata" (Dictionary): Supplemental data for UI or analytics.
+@warning_ignore("unused_signal")
+signal status_effect_applied(data: Dictionary)
 
 func _ready() -> void:
     # This node is intended to be added as an autoload singleton.

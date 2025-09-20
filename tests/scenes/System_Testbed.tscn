@@ -328,9 +328,56 @@ autowrap_mode = 3
 theme_override_colors/font_color = Color(0.76, 0.79, 0.9, 1)
 theme_override_font_sizes/font_size = 13
 
-[node name="ApplyFireDamageButton" type="Button" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/TargetActionSection"]
+
+[node name="AttackControls" type="HBoxContainer" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/TargetActionSection"]
+theme_override_constants/separation = 8
+
+[node name="AttackDamageLabel" type="Label" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/TargetActionSection/AttackControls"]
+text = "Damage"
+theme_override_colors/font_color = Color(0.76, 0.79, 0.9, 1)
+theme_override_font_sizes/font_size = 13
+
+[node name="AttackDamageSpinner" type="SpinBox" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/TargetActionSection/AttackControls"]
 unique_name_in_owner = true
-text = "Apply 10 Fire Damage to Target"
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 14
+allow_lesser = true
+allow_greater = true
+step = 1.0
+value = 10.0
+
+[node name="AttackTargetButton" type="Button" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/TargetActionSection/AttackControls"]
+unique_name_in_owner = true
+text = "Attack Target for 10 Damage"
+size_flags_horizontal = 3
+
+[node name="StatusEffectControls" type="HBoxContainer" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/TargetActionSection"]
+theme_override_constants/separation = 8
+
+[node name="StatusEffectLabel" type="Label" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/TargetActionSection/StatusEffectControls"]
+text = "Status Effect"
+theme_override_colors/font_color = Color(0.76, 0.79, 0.9, 1)
+theme_override_font_sizes/font_size = 13
+
+[node name="StatusEffectNameField" type="LineEdit" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/TargetActionSection/StatusEffectControls"]
+unique_name_in_owner = true
+size_flags_horizontal = 3
+placeholder_text = "e.g. Burning"
+theme_override_font_sizes/font_size = 14
+
+[node name="StatusEffectDurationSpinner" type="SpinBox" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/TargetActionSection/StatusEffectControls"]
+unique_name_in_owner = true
+size_flags_horizontal = 3
+allow_lesser = true
+allow_greater = true
+min_value = 1.0
+step = 1.0
+value = 3.0
+tooltip_text = "Number of turns the effect should persist."
+
+[node name="AssignStatusEffectButton" type="Button" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/TargetActionSection/StatusEffectControls"]
+unique_name_in_owner = true
+text = "Assign Status Effect"
 size_flags_horizontal = 3
 
 [node name="GiveHealthPotionButton" type="Button" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/TargetActionSection"]

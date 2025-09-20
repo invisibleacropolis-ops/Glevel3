@@ -58,12 +58,17 @@ Follow these steps to satisfy the sprint validation requirement:
 3. **Target the goblin.** Click the entity in the Scene Inspector tree. The
    System Trigger status label will switch to `Active target: <Name>` and the
    trigger buttons will unlock.
-4. **Apply damage.** Press **Apply 10 Fire Damage to Target**. Watch the
-   Component Viewer to confirm the health field decreases and check the Event
-   Bus Log for `entity_damaged` or related signals emitted by the combat stub.
-5. **Optional kill flow.** Press **Kill Target** to fire the mock lethal path
-   and then click **Emit 'entity_killed' Signal** to broadcast a manual replay.
-6. **Reset log.** Use **Clear Log** before the next experiment to keep captures
+4. **Attack the target.** Set the damage value in the spinner and press
+   **Attack <Target Name> for X Damage**. Watch the Component Viewer to confirm
+   stats update and verify the Event Bus Log records an `entity_damaged`
+   payload from the combat stub.
+5. **Optional status effect test.** Provide an effect name, choose its
+   duration, and click **Assign <Effect> (...) to <Target>**. The Event Bus Log
+   will capture the emitted `status_effect_applied` dictionary.
+6. **Optional kill flow.** Press **Kill <Target Name>** to fire the mock lethal
+   path and then click **Emit 'entity_killed' Signal** to broadcast a manual
+   replay.
+7. **Reset log.** Use **Clear Log** before the next experiment to keep captures
    focused.
 
 If any panel fails to update, open the Developer Console (<kbd>~</kbd>) and run

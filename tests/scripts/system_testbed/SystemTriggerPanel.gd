@@ -13,15 +13,21 @@ const EVENT_BUS_SCRIPT := preload("res://src/globals/EventBus.gd")
 
 const GOBLIN_ARCHER_ARCHETYPE_ID := "GoblinArcher_EntityData.tres"
 const HEALTH_POTION_ITEM_ID := "Health Potion"
-const FIRE_DAMAGE_AMOUNT := 10
-const FIRE_DAMAGE_TYPE := "fire"
+const DEFAULT_ATTACK_DAMAGE := 10
+const DEFAULT_ATTACK_DAMAGE_TYPE := "physical"
+const DEFAULT_STATUS_EFFECT_NAME := "Burning"
+const DEFAULT_STATUS_EFFECT_DURATION := 3
 
 @onready var _placeholder_label: Label = %SystemTriggerPlaceholder
 @onready var _actions_container: VBoxContainer = %SystemTriggerActions
 @onready var _spawn_goblin_button: Button = %SpawnGoblinArcherButton
-@onready var _apply_damage_button: Button = %ApplyFireDamageButton
+@onready var _attack_button: Button = %AttackTargetButton
+@onready var _attack_damage_field: SpinBox = %AttackDamageSpinner
 @onready var _kill_target_button: Button = %KillTargetButton
 @onready var _give_health_potion_button: Button = %GiveHealthPotionButton
+@onready var _assign_status_effect_button: Button = %AssignStatusEffectButton
+@onready var _status_effect_name_field: LineEdit = %StatusEffectNameField
+@onready var _status_effect_duration_field: SpinBox = %StatusEffectDurationSpinner
 @onready var _combat_system: TEST_COMBAT_SYSTEM_SCRIPT = %TestCombatSystem
 @onready var _inventory_system: TEST_INVENTORY_SYSTEM_SCRIPT = %TestInventorySystem
 @onready var _entity_spawner_panel: ENTITY_SPAWNER_PANEL_SCRIPT = %EntitySpawnerPanel
@@ -44,6 +50,9 @@ func _ready() -> void:
     _update_button_states()
     _configure_event_bus_controls()
     _update_placeholder_visibility()
+    _refresh_attack_button_label()
+    _refresh_status_effect_button_label()
+    _refresh_kill_button_label()
 
 func _wire_buttons() -> void:
     """Safely connects UI button presses to their handlers."""
@@ -52,10 +61,18 @@ func _wire_buttons() -> void:
     else:
         push_warning("SystemTriggerPanel missing SpawnGoblinArcherButton; spawn trigger disabled.")
 
-    if is_instance_valid(_apply_damage_button):
-        _apply_damage_button.pressed.connect(_on_apply_damage_pressed)
+    if is_instance_valid(_attack_button):
+        _attack_button.pressed.connect(_on_attack_target_pressed)
     else:
-        push_warning("SystemTriggerPanel missing ApplyFireDamageButton; damage trigger disabled.")
+        push_warning("SystemTriggerPanel missing AttackTargetButton; attack trigger disabled.")
+
+    if is_instance_valid(_attack_damage_field):
+        _attack_damage_field.value_changed.connect(
+            func(_value: float) -> void:
+                _refresh_attack_button_label()
+        )
+    else:
+        push_warning("SystemTriggerPanel missing AttackDamageSpinner; attack trigger will use default damage.")
 
     if is_instance_valid(_kill_target_button):
         _kill_target_button.pressed.connect(_on_kill_target_pressed)
@@ -66,6 +83,29 @@ func _wire_buttons() -> void:
         _give_health_potion_button.pressed.connect(_on_give_health_potion_pressed)
     else:
         push_warning("SystemTriggerPanel missing GiveHealthPotionButton; inventory trigger disabled.")
+
+    if is_instance_valid(_assign_status_effect_button):
+        _assign_status_effect_button.pressed.connect(_on_assign_status_effect_pressed)
+    else:
+        push_warning("SystemTriggerPanel missing AssignStatusEffectButton; status effect trigger disabled.")
+
+    if is_instance_valid(_status_effect_name_field):
+        _status_effect_name_field.text_changed.connect(
+            func(_text: String) -> void:
+                _refresh_status_effect_button_label()
+        )
+        if _status_effect_name_field.text.is_empty():
+            _status_effect_name_field.text = DEFAULT_STATUS_EFFECT_NAME
+    else:
+        push_warning("SystemTriggerPanel missing StatusEffectNameField; status effect trigger requires manual effect name entry.")
+
+    if is_instance_valid(_status_effect_duration_field):
+        _status_effect_duration_field.value_changed.connect(
+            func(_value: float) -> void:
+                _refresh_status_effect_button_label()
+        )
+    else:
+        push_warning("SystemTriggerPanel missing StatusEffectDurationSpinner; status effect trigger will use default duration.")
 
     if is_instance_valid(_emit_event_button):
         _emit_event_button.pressed.connect(_on_emit_event_pressed)
@@ -307,19 +347,97 @@ func _resolve_primary_type(expected_rule: Variant) -> int:
         return int(expected_rule[0])
     return int(expected_rule)
 
-func _on_apply_damage_pressed() -> void:
-    """Invokes the temporary combat system to simulate a fire damage event."""
+func _on_attack_target_pressed() -> void:
+    """Invokes the temporary combat system to simulate an attack event."""
     var target := _get_active_target()
     if target == null:
-        push_warning("Select an entity in the Scene Inspector before applying damage.")
+        push_warning("Select an entity in the Scene Inspector before attacking.")
         return
     if not is_instance_valid(_combat_system):
-        push_warning("Test_CombatSystem node is unavailable; cannot apply damage.")
+        push_warning("Test_CombatSystem node is unavailable; cannot attack target.")
         return
-    if not _combat_system.has_method("apply_damage"):
-        push_warning("Test_CombatSystem is missing apply_damage(); trigger skipped.")
+    if not _combat_system.has_method("attack_target"):
+        push_warning("Test_CombatSystem is missing attack_target(); trigger skipped.")
         return
-    _combat_system.apply_damage(target, FIRE_DAMAGE_AMOUNT, FIRE_DAMAGE_TYPE)
+
+    var amount := _get_attack_damage_amount()
+    if amount < 0:
+        push_warning("Attack damage must be zero or greater.")
+        return
+
+    _combat_system.attack_target(target, amount, DEFAULT_ATTACK_DAMAGE_TYPE)
+
+func _get_attack_damage_amount() -> int:
+    if is_instance_valid(_attack_damage_field):
+        return int(round(_attack_damage_field.value))
+    return DEFAULT_ATTACK_DAMAGE
+
+func _refresh_attack_button_label() -> void:
+    if not is_instance_valid(_attack_button):
+        return
+    var amount := _get_attack_damage_amount()
+    var target := _get_active_target()
+    var target_label := "Target"
+    if is_instance_valid(target):
+        target_label = target.name
+    _attack_button.text = "Attack %s for %d Damage" % [target_label, amount]
+
+func _on_assign_status_effect_pressed() -> void:
+    """Invokes the temporary combat system to assign a status effect."""
+    var target := _get_active_target()
+    if target == null:
+        push_warning("Select an entity in the Scene Inspector before assigning status effects.")
+        return
+    if not is_instance_valid(_combat_system):
+        push_warning("Test_CombatSystem node is unavailable; cannot assign status effects.")
+        return
+    if not _combat_system.has_method("assign_status_effect"):
+        push_warning("Test_CombatSystem is missing assign_status_effect(); trigger skipped.")
+        return
+
+    var effect_name := _get_status_effect_name()
+    if effect_name.is_empty():
+        push_warning("Enter a status effect name before assigning it to the target.")
+        return
+
+    var duration := _get_status_effect_duration()
+    if duration < 1:
+        push_warning("Status effect duration must be at least 1 turn.")
+        return
+
+    _combat_system.assign_status_effect(target, effect_name, duration)
+
+func _get_status_effect_name() -> String:
+    if is_instance_valid(_status_effect_name_field):
+        return _status_effect_name_field.text.strip_edges()
+    return DEFAULT_STATUS_EFFECT_NAME
+
+func _get_status_effect_duration() -> int:
+    if is_instance_valid(_status_effect_duration_field):
+        return int(round(max(_status_effect_duration_field.value, 1)))
+    return DEFAULT_STATUS_EFFECT_DURATION
+
+func _refresh_status_effect_button_label() -> void:
+    if not is_instance_valid(_assign_status_effect_button):
+        return
+    var effect_name := _get_status_effect_name()
+    if effect_name.is_empty():
+        effect_name = DEFAULT_STATUS_EFFECT_NAME
+    var duration := _get_status_effect_duration()
+    var target := _get_active_target()
+    var target_label := "Target"
+    if is_instance_valid(target):
+        target_label = target.name
+    _assign_status_effect_button.text = "Assign %s (%d turns) to %s" % [effect_name, duration, target_label]
+
+func _refresh_kill_button_label() -> void:
+    if not is_instance_valid(_kill_target_button):
+        return
+    var target := _get_active_target()
+    if is_instance_valid(target):
+        _kill_target_button.text = "Kill %s" % target.name
+    else:
+        _kill_target_button.text = "Kill Target"
 
 func _on_spawn_goblin_pressed() -> void:
     """Spawns the Goblin Archer archetype into the test environment."""
@@ -467,15 +585,26 @@ func _update_button_states() -> void:
     var has_target := is_instance_valid(_get_active_target())
     if is_instance_valid(_spawn_goblin_button):
         _spawn_goblin_button.disabled = not is_instance_valid(_resolve_entity_spawner_panel())
-    if is_instance_valid(_apply_damage_button):
-        _apply_damage_button.disabled = not has_target
+    if is_instance_valid(_attack_button):
+        _attack_button.disabled = not has_target
+    if is_instance_valid(_attack_damage_field):
+        _set_control_enabled(_attack_damage_field, has_target)
     if is_instance_valid(_kill_target_button):
         _kill_target_button.disabled = not has_target
     if is_instance_valid(_give_health_potion_button):
         _give_health_potion_button.disabled = not has_target or _resolve_inventory_system() == null
+    if is_instance_valid(_assign_status_effect_button):
+        _assign_status_effect_button.disabled = not has_target
+    if is_instance_valid(_status_effect_name_field):
+        _set_control_enabled(_status_effect_name_field, has_target)
+    if is_instance_valid(_status_effect_duration_field):
+        _set_control_enabled(_status_effect_duration_field, has_target)
     if is_instance_valid(_emit_event_button):
         _emit_event_button.disabled = not EVENT_BUS_SCRIPT.is_singleton_ready() or _event_selector.item_count == 0
     _update_target_status_label()
+    _refresh_attack_button_label()
+    _refresh_status_effect_button_label()
+    _refresh_kill_button_label()
 
 func _update_target_status_label() -> void:
     """Reflects the currently selected entity in the status label."""
