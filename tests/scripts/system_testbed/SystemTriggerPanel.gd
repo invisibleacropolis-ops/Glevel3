@@ -11,7 +11,6 @@ const TEST_INVENTORY_SYSTEM_SCRIPT := preload("res://tests/scripts/system_testbe
 const ENTITY_SPAWNER_PANEL_SCRIPT := preload("res://tests/scripts/system_testbed/EntitySpawnerPanel.gd")
 const EVENT_BUS_SCRIPT := preload("res://src/globals/EventBus.gd")
 
-const GOBLIN_ARCHER_ARCHETYPE_ID := "GoblinArcher_EntityData.tres"
 const HEALTH_POTION_ITEM_ID := "Health Potion"
 const DEFAULT_ATTACK_DAMAGE := 10
 const DEFAULT_ATTACK_DAMAGE_TYPE := "physical"
@@ -20,7 +19,7 @@ const DEFAULT_STATUS_EFFECT_DURATION := 3
 
 @onready var _placeholder_label: Label = %SystemTriggerPlaceholder
 @onready var _actions_container: VBoxContainer = %SystemTriggerActions
-@onready var _spawn_goblin_button: Button = %SpawnGoblinArcherButton
+@onready var _spawn_selected_button: Button = %SpawnSelectedArchetypeButton
 @onready var _attack_button: Button = %AttackTargetButton
 @onready var _attack_damage_field: SpinBox = %AttackDamageSpinner
 @onready var _kill_target_button: Button = %KillTargetButton
@@ -47,19 +46,21 @@ func _ready() -> void:
     _testbed_root = _resolve_testbed_root()
     _wire_buttons()
     _subscribe_to_target_updates()
+    _subscribe_to_spawner_updates()
     _update_button_states()
     _configure_event_bus_controls()
     _update_placeholder_visibility()
+    _refresh_spawn_selected_button_label()
     _refresh_attack_button_label()
     _refresh_status_effect_button_label()
     _refresh_kill_button_label()
 
 func _wire_buttons() -> void:
     """Safely connects UI button presses to their handlers."""
-    if is_instance_valid(_spawn_goblin_button):
-        _spawn_goblin_button.pressed.connect(_on_spawn_goblin_pressed)
+    if is_instance_valid(_spawn_selected_button):
+        _spawn_selected_button.pressed.connect(_on_spawn_selected_pressed)
     else:
-        push_warning("SystemTriggerPanel missing SpawnGoblinArcherButton; spawn trigger disabled.")
+        push_warning("SystemTriggerPanel missing SpawnSelectedArchetypeButton; spawn trigger disabled.")
 
     if is_instance_valid(_attack_button):
         _attack_button.pressed.connect(_on_attack_target_pressed)
@@ -120,6 +121,16 @@ func _subscribe_to_target_updates() -> void:
         return
     if not testbed.active_target_entity_changed.is_connected(_on_active_target_entity_changed):
         testbed.active_target_entity_changed.connect(_on_active_target_entity_changed)
+
+func _subscribe_to_spawner_updates() -> void:
+    """Listens for archetype selection changes to keep spawn shortcuts in sync."""
+    var spawner := _resolve_entity_spawner_panel()
+    if spawner == null:
+        return
+    if spawner.has_signal("archetype_selection_changed") and not spawner.archetype_selection_changed.is_connected(_on_archetype_selection_changed):
+        spawner.archetype_selection_changed.connect(_on_archetype_selection_changed)
+        _refresh_spawn_selected_button_label()
+        _update_button_states()
 
 func _resolve_testbed_root() -> SYSTEM_TESTBED_SCRIPT:
     """Caches the SystemTestbed instance that tracks the active entity selection."""
@@ -269,6 +280,9 @@ func _add_payload_field(signal_name: String, key: StringName, expected_rule: Var
         "toggle": include_toggle,
         "signal": signal_name,
     }
+
+func _on_archetype_selection_changed(_archetype_id: String) -> void:
+    _update_button_states()
 
 func _create_editor_control(key: StringName, expected_rule: Variant) -> Control:
     var primary_type := _resolve_primary_type(expected_rule)
@@ -439,15 +453,22 @@ func _refresh_kill_button_label() -> void:
     else:
         _kill_target_button.text = "Kill Target"
 
-func _on_spawn_goblin_pressed() -> void:
-    """Spawns the Goblin Archer archetype into the test environment."""
+func _on_spawn_selected_pressed() -> void:
+    """Spawns the currently highlighted archetype into the test environment."""
     var spawner := _resolve_entity_spawner_panel()
     if spawner == null:
         push_warning("SystemTriggerPanel could not locate EntitySpawnerPanel; spawn trigger disabled.")
         return
-    var entity := spawner.spawn_entity_by_id(GOBLIN_ARCHER_ARCHETYPE_ID)
+    if not spawner.has_method("get_selected_archetype_id"):
+        push_warning("EntitySpawnerPanel is missing get_selected_archetype_id(); spawn trigger disabled.")
+        return
+    var archetype_id := spawner.get_selected_archetype_id()
+    if archetype_id.strip_edges().is_empty():
+        push_warning("Select an archetype in the Entity Spawner before using the shortcut.")
+        return
+    var entity := spawner.spawn_entity_by_id(archetype_id)
     if entity == null:
-        push_warning("Failed to spawn %s via EntitySpawnerPanel." % GOBLIN_ARCHER_ARCHETYPE_ID)
+        push_warning("Failed to spawn %s via EntitySpawnerPanel." % archetype_id)
 
 func _on_give_health_potion_pressed() -> void:
     """Invokes the temporary inventory system to hand the target a health potion."""
@@ -583,8 +604,12 @@ func _on_active_target_entity_changed(_target: Node) -> void:
 func _update_button_states() -> void:
     """Enables target-dependent triggers only when a selection exists."""
     var has_target := is_instance_valid(_get_active_target())
-    if is_instance_valid(_spawn_goblin_button):
-        _spawn_goblin_button.disabled = not is_instance_valid(_resolve_entity_spawner_panel())
+    if is_instance_valid(_spawn_selected_button):
+        var spawner := _resolve_entity_spawner_panel()
+        var can_spawn := false
+        if spawner != null and spawner.has_method("get_selected_archetype_id"):
+            can_spawn = not spawner.get_selected_archetype_id().strip_edges().is_empty()
+        _spawn_selected_button.disabled = not can_spawn
     if is_instance_valid(_attack_button):
         _attack_button.disabled = not has_target
     if is_instance_valid(_attack_damage_field):
@@ -602,9 +627,27 @@ func _update_button_states() -> void:
     if is_instance_valid(_emit_event_button):
         _emit_event_button.disabled = not EVENT_BUS_SCRIPT.is_singleton_ready() or _event_selector.item_count == 0
     _update_target_status_label()
+    _refresh_spawn_selected_button_label()
     _refresh_attack_button_label()
     _refresh_status_effect_button_label()
     _refresh_kill_button_label()
+
+func _refresh_spawn_selected_button_label() -> void:
+    if not is_instance_valid(_spawn_selected_button):
+        return
+    var spawner := _resolve_entity_spawner_panel()
+    if spawner == null:
+        _spawn_selected_button.text = "Spawn Selected Archetype"
+        return
+    var label := ""
+    if spawner.has_method("get_selected_archetype_display_label"):
+        label = spawner.get_selected_archetype_display_label()
+    if label.strip_edges().is_empty() and spawner.has_method("get_selected_archetype_id"):
+        label = spawner.get_selected_archetype_id()
+    if label.strip_edges().is_empty():
+        _spawn_selected_button.text = "Spawn Selected Archetype"
+    else:
+        _spawn_selected_button.text = "Spawn %s" % label
 
 func _update_target_status_label() -> void:
     """Reflects the currently selected entity in the status label."""

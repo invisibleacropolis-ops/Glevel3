@@ -310,9 +310,9 @@ autowrap_mode = 3
 theme_override_colors/font_color = Color(0.76, 0.79, 0.9, 1)
 theme_override_font_sizes/font_size = 13
 
-[node name="SpawnGoblinArcherButton" type="Button" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/SpawnerSection"]
+[node name="SpawnSelectedArchetypeButton" type="Button" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/SpawnerSection"]
 unique_name_in_owner = true
-text = "Spawn Goblin Archer"
+text = "Spawn Selected Archetype"
 size_flags_horizontal = 3
 
 [node name="TargetActionSection" type="VBoxContainer" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions"]
