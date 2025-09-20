@@ -114,7 +114,10 @@ func _spawn_entity(archetype_id: String) -> Node:
         _update_status("%s is not an EntityData resource." % archetype_id)
         return null
 
-    var entity_data: EntityData = base_resource.duplicate(true)
+    var entity_data: EntityData = _prepare_entity_data(base_resource)
+    if entity_data == null:
+        _update_status("Failed to duplicate entity manifest for %s." % archetype_id)
+        return null
     var entity_scene: PackedScene = load(ENTITY_SCENE_PATH)
     if entity_scene == null:
         _update_status("Base Entity.tscn could not be loaded.")
@@ -127,7 +130,10 @@ func _spawn_entity(archetype_id: String) -> Node:
         _update_status("Base entity scene does not provide the Entity script.")
         return null
 
-    entity_instance.entity_data = entity_data
+    if entity_instance.has_method("assign_entity_data"):
+        entity_instance.assign_entity_data(entity_data)
+    else:
+        entity_instance.entity_data = entity_data
     if entity_data.display_name != "":
         entity_instance.name = entity_data.display_name
     else:
@@ -142,6 +148,31 @@ func _spawn_entity(archetype_id: String) -> Node:
     environment.add_child(entity_instance)
     _update_status("Spawned %s into TestEnvironment." % entity_instance.name)
     return entity_instance
+
+func _prepare_entity_data(template: EntityData) -> EntityData:
+    """Clones ``template`` while ensuring each component resource is unique."""
+    if template == null:
+        return null
+    if template.has_method("duplicate_with_components"):
+        var duplicate: EntityData = template.duplicate_with_components()
+        if duplicate != null:
+            return duplicate
+
+    var fallback: EntityData = template.duplicate(true) as EntityData
+    if fallback == null:
+        return null
+
+    var manifest: Dictionary[StringName, Resource] = fallback.list_components()
+    for component_key in manifest.keys():
+        var component: Resource = manifest.get(component_key)
+        if component == null:
+            continue
+        var component_copy: Resource = component.duplicate(true)
+        if component_copy == null:
+            continue
+        fallback.add_component(component_key, component_copy)
+
+    return fallback
 
 func _get_selected_archetype_id() -> String:
     """Returns the asset key for the currently highlighted archetype."""

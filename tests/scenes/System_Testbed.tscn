@@ -259,6 +259,8 @@ size_flags_horizontal = 3
 theme_override_styles/panel = SubResource("2")
 script = ExtResource("4")
 theme_override_styles/panel = SubResource("2")
+attack_damage_type = &"physical"
+health_potion_item_id = &"lesser_health_potion"
 
 [node name="SystemTriggerContent" type="VBoxContainer" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel"]
 layout_mode = 2
