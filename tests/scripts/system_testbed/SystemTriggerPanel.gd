@@ -11,12 +11,15 @@ const TEST_INVENTORY_SYSTEM_SCRIPT := preload("res://tests/scripts/system_testbe
 const ENTITY_SPAWNER_PANEL_SCRIPT := preload("res://tests/scripts/system_testbed/EntitySpawnerPanel.gd")
 const EVENT_BUS_SCRIPT := preload("res://src/globals/EventBus.gd")
 
+<<<<<<< Updated upstream
 const HEALTH_POTION_ITEM_ID := "Health Potion"
 const DEFAULT_ATTACK_DAMAGE := 10
 const DEFAULT_ATTACK_DAMAGE_TYPE := "physical"
 const DEFAULT_STATUS_EFFECT_NAME := "Burning"
 const DEFAULT_STATUS_EFFECT_DURATION := 3
 
+=======
+>>>>>>> Stashed changes
 @onready var _placeholder_label: Label = %SystemTriggerPlaceholder
 @onready var _actions_container: VBoxContainer = %SystemTriggerActions
 @onready var _spawn_selected_button: Button = %SpawnSelectedArchetypeButton
