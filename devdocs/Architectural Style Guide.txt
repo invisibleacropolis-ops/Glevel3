@@ -47,45 +47,54 @@ consistent across systems.
 An Entity is the fundamental game object in Project Chimera. It represents any actor or interactive object in the game world. In Godot's terms, an entity is a Node in the scene tree that acts as a generic container. Its behavior and properties are not defined by its script's class but are composed entirely from the data attached to it.1
 The identity and functionality of an entity are determined at runtime by a master EntityData resource. This resource is the "digital DNA" of the object, serving as a manifest that links the entity's identity to its modular data Components.1
 
+Runtime nodes instantiate this data through `Entity.gd`, a lightweight `Node3D` wrapper that joins the canonical `entities` group, synchronises metadata for debug tooling, and mirrors the manifest's runtime identifier even when the data asset is swapped at run time.【F:src/entities/Entity.gd†L1-L47】
+
 Implementation: EntityData.gd
 
-The following script is the mandatory base template for the EntityData resource. All entity archetypes (e.g., GoblinArcher.tres) will be saved instances of this resource type.
+The production script is the authoritative template for every manifest. Only minor, backwards-compatible extensions should ever be required. Keep the following facets intact:
 
-GDScript
-
-
+```
 # res://src/core/EntityData.gd
-#
-# The digital DNA of every object in the game world. This Resource acts as a
-# manifest, linking an entity's identity to its modular data Components.
-# Adherence to this data contract is critical for all systems.
-
-class_name EntityData
 extends Resource
+class_name EntityData
 
-## A unique identifier for this specific entity instance, persistent within a single World Run.
-## Essential for saving, loading, and tracking specific entities for quests and narrative state.
+const ULTEnums := preload("res://src/globals/ULTEnums.gd")
+
 @export var entity_id: String = ""
-
-## The player-facing, in-game name of the entity (e.g., "Grak the Fierce").
 @export var display_name: String = ""
-
-## A broad category classification for high-level system filtering.
-## See ULTEnums.gd for possible values (e.g., EntityType.MONSTER).
-@export var entity_type: int # Enum: EntityType
-
-## The unique ID that links to the base archetype resource used for this entity's generation.
-## Crucial for informing AI behavior and other procedural systems.
+@export var entity_type: ULTEnums.EntityType = ULTEnums.EntityType.NPC
 @export var archetype_id: String = ""
 
-## The core of the compositional design. This dictionary holds references to
-## all attached Component Resources, keyed by a string identifier (e.g., "stats").
-## Keys MUST correspond to the constants defined in ULTEnums.gd (e.g., ComponentKeys.STATS).
-@export var components: Dictionary = {}
+@export var components: Dictionary[StringName, Resource] = {}:
+    set(value):
+        _invalid_component_warnings.clear()
+        _components = _sanitize_component_manifest(value)
+    get:
+        return _components
 
-The components dictionary is the lynchpin of the entire architecture. While its flexibility is a key feature, the use of plain string keys (e.g., "stats", "inventory") introduces a potential source of runtime errors from typos. To mitigate this, this guide establishes a strict convention: all dictionary keys used to store and retrieve components must be defined as constants in a global ULTEnums.gd script. This provides the flexibility of a dictionary while adding a layer of safety and code-completion support, preventing a common class of errors.
+func add_component(key: Variant, component: Resource) -> void:
+    ...
 
-2025 implementation update: the production script now normalizes every component key into a `StringName` and mirrors the entry under that canonical key. Backwards-compatibility shims still accept legacy string keys so existing `.tres` assets remain valid, but new content must store and query values via `ULTEnums.ComponentKeys` and the helper methods exposed on `EntityData`. Always call `add_component()` / `remove_component()` when mutating manifests and `get_component()` / `has_component()` for lookups so the validation guard `ULTEnums.is_valid_component_key()` can reject unknown keys at the boundary.【F:src/core/EntityData.gd†L24-L74】【F:src/globals/ULTEnums.gd†L31-L92】 Use `list_components()` when systems need a defensive snapshot for iteration—the method returns a `StringName` keyed dictionary safe for read-only inspection.【F:src/core/EntityData.gd†L64-L74】
+func get_component(key: Variant) -> Resource:
+    ...
+
+func ensure_runtime_entity_id(preferred_hint: StringName = StringName()) -> StringName:
+    ...
+
+static func generate_runtime_entity_id(preferred_hint: StringName = StringName()) -> StringName:
+    ...
+
+static func reset_runtime_entity_ids() -> void:
+    ...
+```
+
+Practical implications for system and content authors:
+
+* **Canonical key enforcement.** All component lookups must use the `StringName` constants from `ULTEnums.ComponentKeys`. The manifest setter normalises arbitrary input, but relying on implicit conversion in gameplay code risks silent mismatches when refactors rename keys.【F:src/core/EntityData.gd†L33-L70】
+* **Inspector-friendly data entry.** Designers still interact with a standard exported dictionary in the inspector. The setter converts legacy string keys and ignores non-`Component` payloads, emitting one warning per invalid key so corrupted test data remains visible without log spam.【F:src/core/EntityData.gd†L39-L52】【F:src/core/EntityData.gd†L147-L179】
+* **Runtime identifier registry.** `ensure_runtime_entity_id()` reserves unique identifiers per manifest while mirroring the resolved value back into `entity_id`. Systems that spawn temporary nodes without manifests must call the static `generate_runtime_entity_id()` helper. Always trigger `EntityData.reset_runtime_entity_ids()` when restarting a world so canonical IDs (e.g., `goblin_archer`) become available again.【F:src/core/EntityData.gd†L186-L224】
+* **Read-only iteration contract.** `list_components()` returns a shallow copy for safe iteration. Never mutate that snapshot—use `add_component()` / `remove_component()` so the sanitiser and warning bookkeeping remain in sync.【F:src/core/EntityData.gd†L116-L129】
+
 
 2.2 The Component: The Atomic Unit of Data (extends Resource)
 
@@ -357,33 +366,79 @@ Step 2: Create Entity Data (TestDummy.tres)
 2. Save the file as TestDummy.tres.
 3. Select TestDummy.tres. In the Inspector, configure its properties:
 	* Display Name: "Test Dummy"
-	* Components: Click the property to expand it. Set the Size to 1.
-	* A new key-value pair will appear. Set the Key (Type String) to "stats".
-	* For the Value (Type Variant), click <empty> and select Load. Find and select the TestDummyStats.tres file you created in Step 1.
+	* Entity Type: NPC (matches the default enum value expected by early systems).
+	* Components: Expand the property and set Size to 1.
+	* A new key-value pair will appear. Set the Key to `stats` — the inspector stores it as a `StringName`, satisfying `ULTEnums.ComponentKeys.STATS`.
+	* For the Value field, click <empty> and select Load. Choose the TestDummyStats.tres file from Step 1.
+	* Confirm that the dictionary entry displays the Component resource type icon; if it does not, remove the entry and try again to avoid manifest corruption.
 
 Step 3: Build the Test Scene (Sprint1_Validation.tscn)
 
 1. Create a new scene (Scene > New Scene).
-2. Add a Node as the root. Rename it to Sprint1Validation.
-3. Add another Node as a child of the root. Rename it to Entity. This will represent our test entity.
+2. Add a Node3D as the root. Rename it to Sprint1Validation.
+3. Add another Node3D as a child of the root. Rename it to Entity. This will represent our test entity and will host the script from the next step.
 4. Save the scene as Sprint1_Validation.tscn in the /tests/ directory.
 
 Step 4: Implement the Entity Node Script
 
-1. Select the Entity node and attach a new script to it. Save it as Entity.gd in /src/entities/.
-2. Edit the script with the following code. This script's only jobs are to hold the EntityData resource and add the node to the correct group.
-GDScript
+1. Select the runtime Entity node and attach a new script to it. Save it as `src/entities/Entity.gd`.
+2. Replace the template with the current canonical implementation:
+
+```
 # res://src/entities/Entity.gd
+extends Node3D
 class_name Entity
-extends Node
 
 @export var entity_data: EntityData
 
-func _ready() -> void:
-    # Add this node to the "entities" group so that Systems can find it.
-    add_to_group("entities")
+var entity_id: StringName:
+    get:
+        if entity_data != null and not entity_data.entity_id.is_empty():
+            return StringName(entity_data.entity_id)
+        if has_meta("entity_id"):
+            var via_meta: Variant = get_meta("entity_id")
+            if via_meta is StringName:
+                return via_meta
+            if via_meta is String:
+                return StringName(via_meta)
+        return StringName(name)
 
-3. Back in the editor, with the Entity node selected, find the "Entity Data" property in the Inspector. Drag the TestDummy.tres resource from the FileSystem dock into this slot.
+func _ready() -> void:
+    add_to_group("entities")
+    if entity_data == null:
+        push_warning("Entity node instantiated without EntityData. Assign a manifest before running systems.")
+    _synchronise_entity_metadata()
+
+func assign_entity_data(data: EntityData) -> void:
+    entity_data = data
+    _synchronise_entity_metadata()
+
+func get_entity_id() -> StringName:
+    return entity_id
+
+func _synchronise_entity_metadata() -> void:
+    var resolved_id: StringName
+    if entity_data == null:
+        if has_meta("entity_id"):
+            var via_meta: Variant = get_meta("entity_id")
+            if via_meta is StringName:
+                resolved_id = via_meta
+            elif via_meta is String:
+                resolved_id = StringName(via_meta)
+        if resolved_id == StringName():
+            resolved_id = EntityData.generate_runtime_entity_id(StringName(name))
+    else:
+        resolved_id = entity_data.ensure_runtime_entity_id(StringName(name))
+    set_meta("entity_id", resolved_id)
+```
+
+3. Back in the editor, with the Entity node selected, locate the **Entity Data** property in the Inspector and assign the `TestDummy.tres` resource.
+
+Implementation notes:
+
+* The node now extends `Node3D` to participate in 3D test scenes. Systems should continue to treat it as an opaque container and query data through `entity_data`.
+* The computed `entity_id` getter mirrors the manifest, falling back to stored metadata or the node name. This allows debug tooling to retrieve a consistent identifier even if the manifest is temporarily missing.
+* `assign_entity_data()` is the sanctioned mutation path. Always call it (instead of writing to `entity_data` directly) so the helper refreshes cached metadata and syncs the runtime identifier.
 
 Step 5: Add the System (DebugSystem)
 
