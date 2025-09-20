@@ -60,11 +60,15 @@ The SystemTriggerPanel is the interactive heart of the testbed. Its buttons prov
 ---------------------------------------------
 | |"Spawn Goblin Archer" | |EntitySpawner | |_spawn_entity | |Takes archetype_id string (e.g., "GoblinArcher_EntityData.tres"). |
 ---------------------------------------------
-| |"Apply 10 Fire Damage" | |CombatSystem | |apply_damage | |Requires a selected target entity. Function signature: (target: Node, damage: int, type: String). |
+| |"Attack Target" | |CombatSystem | |attack_target | |Requires a selected target entity. Damage amount comes from the UI spinner. Function signature: (target: Node, amount: int, damage_type: String). |
 ---------------------------------------------
 | |"Give 'Health Potion'" | |InventorySystem | |add_item_to_entity | |Requires a selected target entity. Function signature: (target: Node, item_id: String). |
 ---------------------------------------------
-| |"Emit 'entity_killed'" | |EventBus | |emit_signal | |Payload dictionary must match the contract defined in EventBus.gd: {"entity_id": String, "entity_data": EntityData, "killer_id": String}.1 |
+| |"Assign Status Effect" | |CombatSystem | |assign_status_effect | |Requires a selected target entity plus effect name and duration. Function signature: (target: Node, effect_name: String, duration: int). |
+---------------------------------------------
+| |"Kill Target" | |CombatSystem | |kill_target | |Requires a selected target entity. Emits the EventBus `entity_killed` payload with killer metadata. |
+---------------------------------------------
+| |"Emit 'entity_killed'" | |EventBus | |emit_signal | |Payload dictionary must match EventBus.gd: {"entity_id": String} plus optional keys (`killer_id`, `archetype_id`, `entity_type`, `components`). |
 
 Section 2: The Debugging Suite: Enhancing In-Situ Visibility
 
