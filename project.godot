@@ -22,6 +22,8 @@ ULTEnums="*res://src/globals/ULTEnums.gd"
 EventBus="*res://src/globals/EventBus.gd"
 AssetRegistry="*res://src/globals/AssetRegistry.gd"
 ModuleRegistry="*res://src/globals/ModuleRegistry.gd"
+EntityInspectorOverlay="*res://src/debug/entity_inspector/EntityInspectorOverlay.tscn"
+DeveloperConsole="*res://src/debug/developer_console/DeveloperConsole.tscn"
 
 [global]
 
