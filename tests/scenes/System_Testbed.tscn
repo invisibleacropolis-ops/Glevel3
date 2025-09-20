@@ -361,7 +361,7 @@ allow_lesser = true
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Attack Target for 10 Damage"
+text = "You must select a damage value before triggering an attack."
 
 [node name="StatusEffectControls" type="HBoxContainer" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/TargetActionSection"]
 layout_mode = 2
@@ -378,7 +378,7 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 14
-placeholder_text = "e.g. Burning"
+placeholder_text = "You must select a status effect name before assigning it to the target."
 
 [node name="StatusEffectDurationSpinner" type="SpinBox" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/TargetActionSection/StatusEffectControls"]
 unique_name_in_owner = true
@@ -394,13 +394,13 @@ allow_lesser = true
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Assign Status Effect"
+text = "You must select a status effect name before assigning it to the target."
 
 [node name="GiveHealthPotionButton" type="Button" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/TargetActionSection"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Give 'Health Potion' to Target"
+text = "You must select an item identifier before granting inventory items."
 
 [node name="KillTargetButton" type="Button" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/TargetActionSection"]
 unique_name_in_owner = true
