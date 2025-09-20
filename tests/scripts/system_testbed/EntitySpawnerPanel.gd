@@ -16,17 +16,31 @@ var _test_environment: Node
 
 func _ready() -> void:
     """Initialises the archetype list and wires UI interactions."""
-    _spawn_button.pressed.connect(_on_spawn_button_pressed)
-    _archetype_selector.item_selected.connect(_on_archetype_selected)
+    _wire_ui_signals()
     _populate_archetype_selector()
+
+func _wire_ui_signals() -> void:
+    """Connects UI signals when the expected child controls exist."""
+    if not is_instance_valid(_spawn_button):
+        push_warning("Spawn button was not found; spawning is disabled until the scene is fully instantiated.")
+    else:
+        _spawn_button.pressed.connect(_on_spawn_button_pressed)
+
+    if not is_instance_valid(_archetype_selector):
+        push_warning("Archetype selector was not found; spawning is disabled until the scene is fully instantiated.")
+    else:
+        _archetype_selector.item_selected.connect(_on_archetype_selected)
 
 func _populate_archetype_selector() -> void:
     """Builds the dropdown options from the AssetRegistry catalog."""
+    if not is_instance_valid(_archetype_selector):
+        push_warning("Cannot populate archetype selector because the control is missing.")
+        return
     _archetype_selector.clear()
     var registry := AssetRegistry
     if registry == null:
-        _status_label.text = "AssetRegistry autoload not available."
-        _spawn_button.disabled = true
+        _update_status("AssetRegistry autoload not available.")
+        _set_spawn_button_enabled(false)
         return
 
     var entries := _collect_archetype_keys(registry.get_asset_catalog())
@@ -42,50 +56,50 @@ func _populate_archetype_selector() -> void:
         _archetype_selector.set_item_metadata(index, entry)
 
     if _archetype_selector.item_count == 0:
-        _status_label.text = "No EntityData resources found in entity_archetypes."
-        _spawn_button.disabled = true
+        _update_status("No EntityData resources found in entity_archetypes.")
+        _set_spawn_button_enabled(false)
         return
 
     _archetype_selector.select(0)
-    _spawn_button.disabled = false
-    _status_label.text = "Select an archetype and press Spawn to instantiate an entity."
+    _set_spawn_button_enabled(true)
+    _update_status("Select an archetype and press Spawn to instantiate an entity.")
 
 func _on_archetype_selected(_item_index: int) -> void:
     """Enables spawning once a valid archetype selection exists."""
     var has_selection := _get_selected_archetype_id() != ""
-    _spawn_button.disabled = not has_selection
+    _set_spawn_button_enabled(has_selection)
 
 func _on_spawn_button_pressed() -> void:
     """Instantiates the selected archetype into the TestEnvironment node."""
     var archetype_id := _get_selected_archetype_id()
     if archetype_id == "":
-        _status_label.text = "Select an archetype before spawning."
+        _update_status("Select an archetype before spawning.")
         return
 
     var registry := AssetRegistry
     if registry == null:
-        _status_label.text = "AssetRegistry is unavailable."
+        _update_status("AssetRegistry is unavailable.")
         return
 
     var base_resource := registry.get_asset(archetype_id)
     if base_resource == null:
-        _status_label.text = "Unable to locate resource for %s." % archetype_id
+        _update_status("Unable to locate resource for %s." % archetype_id)
         return
     if not (base_resource is EntityData):
-        _status_label.text = "%s is not an EntityData resource." % archetype_id
+        _update_status("%s is not an EntityData resource." % archetype_id)
         return
 
     var entity_data: EntityData = base_resource.duplicate(true)
     var entity_scene: PackedScene = load(ENTITY_SCENE_PATH)
     if entity_scene == null:
-        _status_label.text = "Base Entity.tscn could not be loaded."
+        _update_status("Base Entity.tscn could not be loaded.")
         return
 
     var entity_instance := entity_scene.instantiate()
     if not (entity_instance is Entity):
         if entity_instance != null:
             entity_instance.queue_free()
-        _status_label.text = "Base entity scene does not provide the Entity script."
+        _update_status("Base entity scene does not provide the Entity script.")
         return
 
     entity_instance.entity_data = entity_data
@@ -97,11 +111,11 @@ func _on_spawn_button_pressed() -> void:
     var environment := _resolve_test_environment()
     if environment == null:
         entity_instance.queue_free()
-        _status_label.text = "TestEnvironment node is missing from the scene."
+        _update_status("TestEnvironment node is missing from the scene.")
         return
 
     environment.add_child(entity_instance)
-    _status_label.text = "Spawned %s into TestEnvironment." % entity_instance.name
+    _update_status("Spawned %s into TestEnvironment." % entity_instance.name)
 
 func _get_selected_archetype_id() -> String:
     """Returns the asset key for the currently highlighted archetype."""
@@ -136,3 +150,13 @@ func _collect_archetype_keys(catalog: Dictionary) -> Array[String]:
             continue
         entries.append(asset_key)
     return entries
+
+func _set_spawn_button_enabled(is_enabled: bool) -> void:
+    """Safely toggles the Spawn button when it exists in the scene tree."""
+    if is_instance_valid(_spawn_button):
+        _spawn_button.disabled = not is_enabled
+
+func _update_status(message: String) -> void:
+    """Safely writes a status message to the UI label when available."""
+    if is_instance_valid(_status_label):
+        _status_label.text = message
