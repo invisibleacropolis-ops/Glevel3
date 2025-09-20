@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="StatsComponent" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/components/StatsComponent.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+job_id = &"warrior"
+job_title = "Skeleton Warrior"
+health = 45
+max_health = 45
+action_points = 3
+max_action_points = 3
+strength = 4
+speed = 2
+armor_rating = 3
+combat_training = 3
+inventory_items = Array[StringName]([&"rusty_sword"])
