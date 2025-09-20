@@ -2,16 +2,17 @@ extends PanelContainer
 class_name SceneInspectorPanel
 """Displays and manages live entities spawned into the System Testbed."""
 
-const Entity := preload("res://src/entities/Entity.gd")
+const ENTITY_SCRIPT := preload("res://src/entities/Entity.gd")
+const SYSTEM_TESTBED_SCRIPT := preload("res://tests/scripts/system_testbed/SystemTestbed.gd")
 
 @onready var _tree: Tree = %SceneInspectorTree
 @onready var _placeholder_label: Label = %SceneInspectorPlaceholder
 
 var _test_environment: Node
-var _testbed_root: SystemTestbed
+var _testbed_root: SYSTEM_TESTBED_SCRIPT
 var _tree_root: TreeItem
 var _entity_items: Dictionary = {}
-var _current_selection: Entity
+var _current_selection: ENTITY_SCRIPT
 
 func _ready() -> void:
     """Wires selection hooks and seeds the inspector with current entities."""
@@ -35,7 +36,7 @@ func _resolve_test_environment() -> Node:
     var current_scene := get_tree().get_current_scene()
     if current_scene == null:
         return null
-    _testbed_root = current_scene as SystemTestbed
+    _testbed_root = current_scene as SYSTEM_TESTBED_SCRIPT
     _test_environment = current_scene.get_node_or_null("TestEnvironment")
     return _test_environment
 
@@ -65,7 +66,7 @@ func _track_entity(node: Node) -> void:
     if not _is_entity(node):
         return
 
-    var entity := node as Entity
+    var entity := node as ENTITY_SCRIPT
     var key := entity.get_instance_id()
     if _entity_items.has(key):
         return
@@ -82,7 +83,7 @@ func _untrack_entity(node: Node) -> void:
     if not _is_entity(node):
         return
 
-    var entity := node as Entity
+    var entity := node as ENTITY_SCRIPT
     var key := entity.get_instance_id()
     if _entity_items.has(key):
         var item: TreeItem = _entity_items[key]
@@ -110,7 +111,7 @@ func _on_tree_item_selected() -> void:
     var item := _tree.get_selected()
     if item == null:
         return
-    var entity := item.get_metadata(0) as Entity
+    var entity := item.get_metadata(0) as ENTITY_SCRIPT
     if not is_instance_valid(entity):
         _tree.deselect_all()
         _set_active_target(null)
@@ -123,11 +124,11 @@ func _on_tree_nothing_selected() -> void:
     _current_selection = null
     _set_active_target(null)
 
-func _set_active_target(target: Entity) -> void:
+func _set_active_target(target: ENTITY_SCRIPT) -> void:
     """Pushes the selection to the testbed root for other panels to consume."""
     if _testbed_root == null or not is_instance_valid(_testbed_root):
         var current_scene := get_tree().get_current_scene()
-        _testbed_root = current_scene as SystemTestbed
+        _testbed_root = current_scene as SYSTEM_TESTBED_SCRIPT
     if _testbed_root != null:
         _testbed_root.active_target_entity = target
 
@@ -149,9 +150,9 @@ func _ensure_tree_root() -> TreeItem:
 
 func _is_entity(node: Node) -> bool:
     """Validates that a node is an Entity instance with display metadata."""
-    return node is Entity
+    return node is ENTITY_SCRIPT
 
-func _format_entity_label(entity: Entity) -> String:
+func _format_entity_label(entity: ENTITY_SCRIPT) -> String:
     """Builds the label text presented in the inspector tree."""
     if entity == null:
         return "Unknown Entity"
