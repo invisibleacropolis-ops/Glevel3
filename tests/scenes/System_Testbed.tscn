@@ -289,21 +289,65 @@ size_flags_vertical = 3
 [node name="SystemTriggerActions" type="VBoxContainer" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody"]
 unique_name_in_owner = true
 size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="TargetActionSection" type="VBoxContainer" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions"]
 theme_override_constants/separation = 6
 
-[node name="ApplyFireDamageButton" type="Button" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions"]
+[node name="TargetActionsLabel" type="Label" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/TargetActionSection"]
+text = "Targeted Combat Harness"
+theme_override_font_sizes/font_size = 16
+
+[node name="TargetActionsHelp" type="Label" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/TargetActionSection"]
+text = "Use these utilities to exercise the temporary combat hooks against the selected entity."
+autowrap_mode = 3
+theme_override_colors/font_color = Color(0.76, 0.79, 0.9, 1)
+theme_override_font_sizes/font_size = 13
+
+[node name="ApplyFireDamageButton" type="Button" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/TargetActionSection"]
 unique_name_in_owner = true
 text = "Apply 10 Fire Damage to Target"
 size_flags_horizontal = 3
 
-[node name="KillTargetButton" type="Button" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions"]
+[node name="KillTargetButton" type="Button" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/TargetActionSection"]
 unique_name_in_owner = true
 text = "Kill Target"
 size_flags_horizontal = 3
 
-[node name="EmitEntityKilledButton" type="Button" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions"]
+[node name="ActionDivider" type="HSeparator" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions"]
+
+[node name="EventTriggerSection" type="VBoxContainer" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions"]
+theme_override_constants/separation = 8
+
+[node name="EventTriggerLabel" type="Label" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/EventTriggerSection"]
+text = "Event Bus Triggers"
+theme_override_font_sizes/font_size = 16
+
+[node name="EventTriggerHelp" type="Label" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/EventTriggerSection"]
+text = "Select any EventBus signal, configure its payload, and emit it to validate downstream listeners."
+autowrap_mode = 3
+theme_override_colors/font_color = Color(0.76, 0.79, 0.9, 1)
+theme_override_font_sizes/font_size = 13
+
+[node name="EventSelector" type="OptionButton" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/EventTriggerSection"]
 unique_name_in_owner = true
-text = "Emit 'entity_killed' Signal"
+size_flags_horizontal = 3
+
+[node name="EventDescriptionLabel" type="Label" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/EventTriggerSection"]
+unique_name_in_owner = true
+text = "Select an EventBus signal to configure its payload."
+autowrap_mode = 3
+theme_override_font_sizes/font_size = 13
+
+[node name="PayloadEditor" type="VBoxContainer" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/EventTriggerSection"]
+unique_name_in_owner = true
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="EmitEventButton" type="Button" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/EventTriggerSection"]
+unique_name_in_owner = true
+text = "Emit EventBus Signal"
 size_flags_horizontal = 3
 
 [node name="SystemTriggerPlaceholder" type="Label" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody"]
