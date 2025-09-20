@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://tests/scripts/system_testbed/EntitySpawnerPanel.gd" id="1"]
 [ext_resource type="Script" path="res://tests/scripts/system_testbed/SceneInspectorPanel.gd" id="2"]
@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://tests/scripts/system_testbed/SystemTriggerPanel.gd" id="4"]
 [ext_resource type="Script" path="res://tests/scripts/system_testbed/EventBusLogPanel.gd" id="5"]
 [ext_resource type="Script" path="res://tests/scripts/system_testbed/SystemTestbed.gd" id="6"]
+[ext_resource type="Script" path="res://tests/scripts/system_testbed/Test_CombatSystem.gd" id="7"]
 
 [node name="System_Testbed" type="Control"]
 anchors_preset = 15
@@ -25,6 +26,10 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 
 [node name="TestEnvironment" type="Node" parent="."]
+
+[node name="TestCombatSystem" type="Node" parent="."]
+unique_name_in_owner = true
+script = ExtResource("7")
 
 [node name="MainHBox" type="HBoxContainer" parent="RootPanel"]
 anchors_preset = 15
@@ -177,6 +182,26 @@ scroll_horizontal = false
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
+[node name="SystemTriggerActions" type="VBoxContainer" parent="RootPanel/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody"]
+unique_name_in_owner = true
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="ApplyFireDamageButton" type="Button" parent="RootPanel/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions"]
+unique_name_in_owner = true
+text = "Apply 10 Fire Damage to Target"
+size_flags_horizontal = 3
+
+[node name="KillTargetButton" type="Button" parent="RootPanel/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions"]
+unique_name_in_owner = true
+text = "Kill Target"
+size_flags_horizontal = 3
+
+[node name="EmitEntityKilledButton" type="Button" parent="RootPanel/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions"]
+unique_name_in_owner = true
+text = "Emit 'entity_killed' Signal"
+size_flags_horizontal = 3
+
 [node name="SystemTriggerPlaceholder" type="Label" parent="RootPanel/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody"]
 text = "Trigger gameplay systems from this panel."
 autowrap_mode = 3
@@ -203,6 +228,13 @@ scroll_horizontal = false
 [node name="EventBusLogBody" type="VBoxContainer" parent="RootPanel/MainHBox/RightColumn/EventBusLogPanel/EventBusLogContent/EventBusLogScroll"]
 size_flags_horizontal = 3
 size_flags_vertical = 3
+
+[node name="EventBusLogOutput" type="RichTextLabel" parent="RootPanel/MainHBox/RightColumn/EventBusLogPanel/EventBusLogContent/EventBusLogScroll/EventBusLogBody"]
+unique_name_in_owner = true
+size_flags_horizontal = 3
+size_flags_vertical = 3
+scroll_active = true
+selection_enabled = true
 
 [node name="EventBusLogPlaceholder" type="Label" parent="RootPanel/MainHBox/RightColumn/EventBusLogPanel/EventBusLogContent/EventBusLogScroll/EventBusLogBody"]
 text = "Recent EventBus activity will be displayed here."
