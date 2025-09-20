@@ -2,6 +2,11 @@ extends Resource
 class_name EntityData
 
 const ULTEnums := preload("res://src/globals/ULTEnums.gd")
+## Tracks runtime entity identifiers claimed during the current world session.
+static var _runtime_entity_ids: Dictionary[StringName, bool] = {}
+## Maps resource instance ids to their reserved runtime identifier so repeated
+## synchronisation calls do not mutate previously generated ids.
+static var _runtime_claims_by_resource: Dictionary[int, StringName] = {}
 ## Tracks manifest keys that have already reported invalid component payloads so we
 ## do not spam logs when the same corrupted entry is queried repeatedly.
 var _invalid_component_warnings: Dictionary[String, bool] = {}
@@ -176,4 +181,84 @@ func _report_invalid_component_type(normalized_key: StringName, value: Variant) 
 
 ## Returns true when the supplied value is a Component resource instance.
 func _is_component_resource(candidate: Variant) -> bool:
-	return candidate is Component
+        return candidate is Component
+
+## Ensures this manifest owns a unique runtime identifier and returns it.
+##
+## Systems duplicate archetype resources aggressively, so authoring data may
+## ship with a shared ``entity_id`` seed such as ``"goblin_archer"``. Calling
+## this method normalises the seed, reserves a unique suffix when necessary, and
+## stores the resolved identifier back onto the resource so future saves persist
+## the runtime-friendly value if desired.
+func ensure_runtime_entity_id(preferred_hint: StringName = StringName()) -> StringName:
+        var resource_id: int = get_instance_id()
+        if _runtime_claims_by_resource.has(resource_id):
+                var cached: StringName = _runtime_claims_by_resource[resource_id]
+                entity_id = String(cached)
+                return cached
+
+        var initial_seed: String = String(entity_id).strip_edges()
+        if initial_seed.is_empty():
+                initial_seed = _derive_preferred_seed(
+                        String(preferred_hint),
+                        archetype_id,
+                        display_name,
+                )
+
+        var claimed: StringName = _claim_runtime_identifier(initial_seed)
+        _runtime_claims_by_resource[resource_id] = claimed
+        entity_id = String(claimed)
+        return claimed
+
+## Generates a unique runtime identifier without requiring an EntityData
+## instance. This is primarily used by Entity nodes that may briefly exist
+## without an attached manifest but still require an id for debug tooling.
+static func generate_runtime_entity_id(preferred_hint: StringName = StringName()) -> StringName:
+        var seed: String = _derive_preferred_seed(String(preferred_hint))
+        return _claim_runtime_identifier(seed)
+
+## Clears the runtime registry. World reset flows should call this so newly
+## spawned entities can reclaim canonical ids like ``goblin_archer`` again.
+static func reset_runtime_entity_ids() -> void:
+        _runtime_entity_ids.clear()
+        _runtime_claims_by_resource.clear()
+
+static func _derive_preferred_seed(
+        preferred_hint: String,
+        archetype_hint: String = "",
+        display_hint: String = "",
+) -> String:
+        var candidates := [
+                preferred_hint.strip_edges(),
+                archetype_hint.strip_edges(),
+                display_hint.strip_edges(),
+        ]
+        for candidate in candidates:
+                if candidate.is_empty():
+                        continue
+                var normalised := candidate.to_snake_case()
+                if not normalised.is_empty():
+                        return normalised
+        return "entity"
+
+static func _claim_runtime_identifier(raw_seed: String) -> StringName:
+        var seed := raw_seed.strip_edges()
+        if seed.is_empty():
+                seed = "entity"
+        var normalised := seed.to_snake_case()
+        if normalised.is_empty():
+                normalised = "entity"
+
+        var candidate := StringName(normalised)
+        if not _runtime_entity_ids.has(candidate):
+                _runtime_entity_ids[candidate] = true
+                return candidate
+
+        var suffix := 2
+        while true:
+                var suffixed_string := "%s_%d" % [normalised, suffix]
+                var suffixed := StringName(suffixed_string)
+                if not _runtime_entity_ids.has(suffixed):
+                        _runtime_entity_ids[suffixed] = true
+                        return suffixed
+                suffix += 1
