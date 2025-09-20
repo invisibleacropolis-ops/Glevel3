@@ -15,6 +15,7 @@ const BASE_ITEM_SCRIPT := preload("res://src/core/BaseItem.gd")
 ##   - "item_resource": BaseItem (the actual item resource)
 ##   - "quantity": int (number of items in this stack)
 @export var items: Array[Dictionary] = []
+@export var owner_entity_id: StringName = &""
 
 ## Adds an item to the inventory, handling stacking if the item already exists.
 func add_item(item_resource: BaseItem, quantity: int = 1) -> void:
@@ -46,7 +47,7 @@ func add_item(item_resource: BaseItem, quantity: int = 1) -> void:
     var event_payload = {
         "item_id": item_resource.item_id,
         "quantity": quantity,
-        "owner_id": name, # Assuming the component's owner node has a unique name
+        "owner_id": owner_entity_id,
         "source": &"inventory_component_add", # Or a more specific source if known
         # "metadata": item_resource.metadata # If BaseItem had metadata
     }
@@ -111,7 +112,8 @@ func _get_event_bus() -> Node:
         if singleton is Node:
             return singleton
 
-    var scene_tree := get_tree()
+    var main_loop := Engine.get_main_loop()
+    var scene_tree := main_loop as SceneTree
     if scene_tree == null:
         return null
 

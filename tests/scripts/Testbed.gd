@@ -95,7 +95,7 @@ func _render_components() -> void:
 
 func _render_resource_properties(resource: Resource, resource_name: String, indent_level: int = 0) -> void:
     """Builds property rows for every exported member on the supplied resource."""
-    var exclusions := PROPERTY_EXCLUSIONS.get(resource_name, [])
+    var exclusions: Array = PROPERTY_EXCLUSIONS.get(resource_name, []) as Array
     for property_info in resource.get_script().get_script_property_list():
         var property_name: String = property_info.get("name", "")
         if property_name == "":
@@ -134,7 +134,7 @@ func _create_editor_for_property(resource: Resource, property_info: Dictionary) 
     var property_type: int = property_info.get("type", TYPE_NIL)
     var hint: int = property_info.get("hint", PROPERTY_HINT_NONE)
     var hint_string: String = property_info.get("hint_string", "")
-    var value := resource.get(property_name)
+    var value: Variant = resource.get(property_name)
 
     match property_type:
         TYPE_BOOL:
@@ -221,7 +221,7 @@ func _build_variant_editor(resource: Resource, property_name: String, value: Var
     """Creates a text editor that serialises complex Variant data."""
     var text_edit := TextEdit.new()
     text_edit.custom_minimum_size = Vector2(0, 120)
-    text_edit.wrap_mode = TextEdit.WRAP_WORD_SMART
+    text_edit.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
     text_edit.text = var_to_str(value)
     text_edit.focus_exited.connect(
         _on_variant_editor_focus_exited.bind(text_edit, resource, property_name)
@@ -276,7 +276,7 @@ func _on_variant_editor_focus_exited(
         push_warning("Value for %s cannot be empty." % property_name)
         text_edit.text = var_to_str(resource.get(property_name))
         return
-    var parsed_value := str_to_var(trimmed)
+    var parsed_value: Variant = str_to_var(trimmed)
     if parsed_value == null and trimmed.to_lower() != "null":
         push_warning("Failed to parse value for %s. Use Godot variant syntax (e.g. [] or {\"key\": value})." % property_name)
         text_edit.text = var_to_str(resource.get(property_name))
