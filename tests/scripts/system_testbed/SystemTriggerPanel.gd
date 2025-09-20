@@ -7,13 +7,22 @@ The status label mirrors the currently selected entity so it is obvious when tri
 
 const SYSTEM_TESTBED_SCRIPT := preload("res://tests/scripts/system_testbed/SystemTestbed.gd")
 const TEST_COMBAT_SYSTEM_SCRIPT := preload("res://tests/scripts/system_testbed/Test_CombatSystem.gd")
+const TEST_INVENTORY_SYSTEM_SCRIPT := preload("res://tests/scripts/system_testbed/Test_InventorySystem.gd")
+const ENTITY_SPAWNER_PANEL_SCRIPT := preload("res://tests/scripts/system_testbed/EntitySpawnerPanel.gd")
 const EVENT_BUS_SCRIPT := preload("res://src/globals/EventBus.gd")
+
+const GOBLIN_ARCHER_ARCHETYPE_ID := "GoblinArcher_EntityData.tres"
+const HEALTH_POTION_ITEM_ID := "Health Potion"
 
 @onready var _placeholder_label: Label = %SystemTriggerPlaceholder
 @onready var _actions_container: VBoxContainer = %SystemTriggerActions
+@onready var _spawn_goblin_button: Button = %SpawnGoblinArcherButton
 @onready var _apply_damage_button: Button = %ApplyFireDamageButton
 @onready var _kill_target_button: Button = %KillTargetButton
+@onready var _give_health_potion_button: Button = %GiveHealthPotionButton
 @onready var _combat_system: TEST_COMBAT_SYSTEM_SCRIPT = %TestCombatSystem
+@onready var _inventory_system: TEST_INVENTORY_SYSTEM_SCRIPT = %TestInventorySystem
+@onready var _entity_spawner_panel: ENTITY_SPAWNER_PANEL_SCRIPT = %EntitySpawnerPanel
 @onready var _target_status_label: Label = %TargetStatusLabel
 @onready var _event_selector: OptionButton = %EventSelector
 @onready var _event_description_label: Label = %EventDescriptionLabel
@@ -36,6 +45,11 @@ func _ready() -> void:
 
 func _wire_buttons() -> void:
     """Safely connects UI button presses to their handlers."""
+    if is_instance_valid(_spawn_goblin_button):
+        _spawn_goblin_button.pressed.connect(_on_spawn_goblin_pressed)
+    else:
+        push_warning("SystemTriggerPanel missing SpawnGoblinArcherButton; spawn trigger disabled.")
+
     if is_instance_valid(_apply_damage_button):
         _apply_damage_button.pressed.connect(_on_apply_damage_pressed)
     else:
@@ -45,6 +59,11 @@ func _wire_buttons() -> void:
         _kill_target_button.pressed.connect(_on_kill_target_pressed)
     else:
         push_warning("SystemTriggerPanel missing KillTargetButton; kill trigger disabled.")
+
+    if is_instance_valid(_give_health_potion_button):
+        _give_health_potion_button.pressed.connect(_on_give_health_potion_pressed)
+    else:
+        push_warning("SystemTriggerPanel missing GiveHealthPotionButton; inventory trigger disabled.")
 
     if is_instance_valid(_emit_event_button):
         _emit_event_button.pressed.connect(_on_emit_event_pressed)
@@ -67,6 +86,32 @@ func _resolve_testbed_root() -> SYSTEM_TESTBED_SCRIPT:
     var current_scene := get_tree().get_current_scene()
     _testbed_root = current_scene as SYSTEM_TESTBED_SCRIPT
     return _testbed_root
+
+func _resolve_entity_spawner_panel() -> ENTITY_SPAWNER_PANEL_SCRIPT:
+    """Safely resolves the EntitySpawnerPanel used by spawn triggers."""
+    if is_instance_valid(_entity_spawner_panel):
+        return _entity_spawner_panel
+    var current_scene := get_tree().get_current_scene()
+    if current_scene == null:
+        return null
+    var candidate := current_scene.find_child("EntitySpawnerPanel", true, false)
+    if candidate is ENTITY_SPAWNER_PANEL_SCRIPT:
+        _entity_spawner_panel = candidate
+        return _entity_spawner_panel
+    return null
+
+func _resolve_inventory_system() -> TEST_INVENTORY_SYSTEM_SCRIPT:
+    """Safely resolves the temporary inventory harness for item triggers."""
+    if is_instance_valid(_inventory_system):
+        return _inventory_system
+    var current_scene := get_tree().get_current_scene()
+    if current_scene == null:
+        return null
+    var candidate := current_scene.find_child("TestInventorySystem", true, false)
+    if candidate is TEST_INVENTORY_SYSTEM_SCRIPT:
+        _inventory_system = candidate
+        return _inventory_system
+    return null
 
 func _get_active_target() -> Node:
     """Retrieves the currently selected entity from the SystemTestbed."""
@@ -274,6 +319,31 @@ func _on_apply_damage_pressed() -> void:
         return
     _combat_system.apply_damage(target, 10, "fire")
 
+func _on_spawn_goblin_pressed() -> void:
+    """Spawns the Goblin Archer archetype into the test environment."""
+    var spawner := _resolve_entity_spawner_panel()
+    if spawner == null:
+        push_warning("SystemTriggerPanel could not locate EntitySpawnerPanel; spawn trigger disabled.")
+        return
+    var entity := spawner.spawn_entity_by_id(GOBLIN_ARCHER_ARCHETYPE_ID)
+    if entity == null:
+        push_warning("Failed to spawn %s via EntitySpawnerPanel." % GOBLIN_ARCHER_ARCHETYPE_ID)
+
+func _on_give_health_potion_pressed() -> void:
+    """Invokes the temporary inventory system to hand the target a health potion."""
+    var target := _get_active_target()
+    if target == null:
+        push_warning("Select an entity in the Scene Inspector before granting inventory items.")
+        return
+    var inventory := _resolve_inventory_system()
+    if inventory == null:
+        push_warning("Test_InventorySystem node is unavailable; cannot grant items.")
+        return
+    if not inventory.has_method("add_item_to_entity"):
+        push_warning("Test_InventorySystem is missing add_item_to_entity(); trigger skipped.")
+        return
+    inventory.add_item_to_entity(target, HEALTH_POTION_ITEM_ID)
+
 func _on_kill_target_pressed() -> void:
     """Invokes the temporary combat system to simulate a kill."""
     var target := _get_active_target()
@@ -393,10 +463,14 @@ func _on_active_target_entity_changed(_target: Node) -> void:
 func _update_button_states() -> void:
     """Enables target-dependent triggers only when a selection exists."""
     var has_target := is_instance_valid(_get_active_target())
+    if is_instance_valid(_spawn_goblin_button):
+        _spawn_goblin_button.disabled = not is_instance_valid(_resolve_entity_spawner_panel())
     if is_instance_valid(_apply_damage_button):
         _apply_damage_button.disabled = not has_target
     if is_instance_valid(_kill_target_button):
         _kill_target_button.disabled = not has_target
+    if is_instance_valid(_give_health_potion_button):
+        _give_health_potion_button.disabled = not has_target or _resolve_inventory_system() == null
     if is_instance_valid(_emit_event_button):
         _emit_event_button.disabled = not EVENT_BUS_SCRIPT.is_singleton_ready() or _event_selector.item_count == 0
     _update_target_status_label()
