@@ -72,35 +72,43 @@ func _on_archetype_selected(_item_index: int) -> void:
 func _on_spawn_button_pressed() -> void:
     """Instantiates the selected archetype into the TestEnvironment node."""
     var archetype_id := _get_selected_archetype_id()
-    if archetype_id == "":
+    _spawn_entity(archetype_id)
+
+func spawn_entity_by_id(archetype_id: String) -> Node:
+    """Public helper allowing other panels to spawn archetypes directly."""
+    return _spawn_entity(archetype_id)
+
+func _spawn_entity(archetype_id: String) -> Node:
+    """Instantiates ``archetype_id`` when the supporting resources are available."""
+    if archetype_id.strip_edges() == "":
         _update_status("Select an archetype before spawning.")
-        return
+        return null
 
     var registry := AssetRegistry
     if registry == null:
         _update_status("AssetRegistry is unavailable.")
-        return
+        return null
 
     var base_resource := registry.get_asset(archetype_id)
     if base_resource == null:
         _update_status("Unable to locate resource for %s." % archetype_id)
-        return
+        return null
     if not (base_resource is ENTITY_DATA_SCRIPT):
         _update_status("%s is not an EntityData resource." % archetype_id)
-        return
+        return null
 
     var entity_data: EntityData = base_resource.duplicate(true)
     var entity_scene: PackedScene = load(ENTITY_SCENE_PATH)
     if entity_scene == null:
         _update_status("Base Entity.tscn could not be loaded.")
-        return
+        return null
 
     var entity_instance := entity_scene.instantiate()
     if not (entity_instance is ENTITY_SCRIPT):
         if entity_instance != null:
             entity_instance.queue_free()
         _update_status("Base entity scene does not provide the Entity script.")
-        return
+        return null
 
     entity_instance.entity_data = entity_data
     if entity_data.display_name != "":
@@ -112,10 +120,11 @@ func _on_spawn_button_pressed() -> void:
     if environment == null:
         entity_instance.queue_free()
         _update_status("TestEnvironment node is missing from the scene.")
-        return
+        return null
 
     environment.add_child(entity_instance)
     _update_status("Spawned %s into TestEnvironment." % entity_instance.name)
+    return entity_instance
 
 func _get_selected_archetype_id() -> String:
     """Returns the asset key for the currently highlighted archetype."""

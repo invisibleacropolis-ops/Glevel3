@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://tests/scripts/system_testbed/EntitySpawnerPanel.gd" id="1"]
 [ext_resource type="Script" path="res://tests/scripts/system_testbed/SceneInspectorPanel.gd" id="2"]
@@ -7,6 +7,7 @@
 [ext_resource type="Script" path="res://tests/scripts/system_testbed/EventBusLogPanel.gd" id="5"]
 [ext_resource type="Script" path="res://tests/scripts/system_testbed/SystemTestbed.gd" id="6"]
 [ext_resource type="Script" path="res://tests/scripts/system_testbed/Test_CombatSystem.gd" id="7"]
+[ext_resource type="Script" path="res://tests/scripts/system_testbed/Test_InventorySystem.gd" id="8"]
 
 [sub_resource type="StyleBoxFlat" id="1"]
 bg_color = Color(0.11, 0.12, 0.16, 1)
@@ -55,6 +56,10 @@ theme_override_styles/panel = SubResource("1")
 [node name="TestCombatSystem" type="Node" parent="."]
 unique_name_in_owner = true
 script = ExtResource("7")
+
+[node name="TestInventorySystem" type="Node" parent="."]
+unique_name_in_owner = true
+script = ExtResource("8")
 
 [node name="RootMargin" type="MarginContainer" parent="RootPanel"]
 anchors_preset = 15
@@ -118,6 +123,7 @@ size_flags_vertical = 3
 theme_override_constants/separation = 12
 
 [node name="EntitySpawnerPanel" type="PanelContainer" parent="RootPanel/RootMargin/RootVBox/MainHBox/LeftColumn"]
+unique_name_in_owner = true
 size_flags_horizontal = 3
 size_flags_vertical = 3
 script = ExtResource("1")
@@ -291,6 +297,24 @@ unique_name_in_owner = true
 size_flags_horizontal = 3
 theme_override_constants/separation = 12
 
+[node name="SpawnerSection" type="VBoxContainer" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions"]
+theme_override_constants/separation = 6
+
+[node name="SpawnerLabel" type="Label" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/SpawnerSection"]
+text = "Spawner Shortcuts"
+theme_override_font_sizes/font_size = 16
+
+[node name="SpawnerHelp" type="Label" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/SpawnerSection"]
+text = "Quickly instantiate archetypes defined in the Asset Registry."
+autowrap_mode = 3
+theme_override_colors/font_color = Color(0.76, 0.79, 0.9, 1)
+theme_override_font_sizes/font_size = 13
+
+[node name="SpawnGoblinArcherButton" type="Button" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/SpawnerSection"]
+unique_name_in_owner = true
+text = "Spawn Goblin Archer"
+size_flags_horizontal = 3
+
 [node name="TargetActionSection" type="VBoxContainer" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions"]
 theme_override_constants/separation = 6
 
@@ -307,6 +331,11 @@ theme_override_font_sizes/font_size = 13
 [node name="ApplyFireDamageButton" type="Button" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/TargetActionSection"]
 unique_name_in_owner = true
 text = "Apply 10 Fire Damage to Target"
+size_flags_horizontal = 3
+
+[node name="GiveHealthPotionButton" type="Button" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/TargetActionSection"]
+unique_name_in_owner = true
+text = "Give 'Health Potion' to Target"
 size_flags_horizontal = 3
 
 [node name="KillTargetButton" type="Button" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/TargetActionSection"]
