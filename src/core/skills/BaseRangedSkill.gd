@@ -1,4 +1,4 @@
-extends "res://src/core/Skill.gd"
+extends "res://src/components/Skill.gd"
 class_name BaseRangedSkill
 
 ## A specialized Skill resource for the Ranged category.

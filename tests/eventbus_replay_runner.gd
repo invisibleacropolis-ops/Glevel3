@@ -109,7 +109,7 @@ func _run() -> void:
 
     if args["export_log_path"] is String and not String(args["export_log_path"]).is_empty():
         var export_path := _normalize_path(String(args["export_log_path"]))
-        var export_error := harness_root.call("export_log", export_path)
+        var export_error: int = int(harness_root.call("export_log", export_path))
         if export_error != OK:
             var export_message := "Failed to export harness log to %s (error %s)." % [
                 export_path,
@@ -126,7 +126,7 @@ func _run() -> void:
                 "path": export_path,
             })
 
-    var combined_log_text := log_label.get_parsed_text()
+    var combined_log_text: String = log_label.get_parsed_text()
     if args["echo_log"]:
         _emit_json({
             "type": "eventbus_replay_echo",
@@ -228,7 +228,7 @@ func _load_replay_entries(path: String) -> Dictionary:
             ]
         }
 
-    var data := json.data
+    var data: Variant = json.data
     if typeof(data) != TYPE_ARRAY:
         return {"error": "Replay JSON root must be an array of dictionaries."}
 
@@ -324,7 +324,7 @@ func _parse_success_entry(message: String, timestamp: String) -> Dictionary:
     var payload_split := message.find(" with payload ")
     if payload_split == -1:
         payload_split = message.length()
-    var signal_name := message.substr("Replayed ".length, payload_split - "Replayed ".length)
+    var signal_name := message.substr("Replayed ".length(), payload_split - "Replayed ".length())
     return {
         "type": "eventbus_replay_entry",
         "timestamp": timestamp,
@@ -337,7 +337,7 @@ func _parse_failure_entry(message: String, timestamp: String) -> Dictionary:
     var payload_split := message.find(" with payload ")
     if payload_split == -1:
         payload_split = message.length()
-    var signal_name := message.substr("Failed to replay ".length, payload_split - "Failed to replay ".length)
+    var signal_name := message.substr("Failed to replay ".length(), payload_split - "Failed to replay ".length())
     return {
         "type": "eventbus_replay_entry",
         "timestamp": timestamp,
