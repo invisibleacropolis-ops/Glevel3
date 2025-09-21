@@ -13,6 +13,7 @@ var _test_environment: Node
 var _testbed_root: SYSTEM_TESTBED_SCRIPT
 var _tree_root: TreeItem
 var _entity_items: Dictionary = {}
+var _entity_watchers: Dictionary = {}
 var _current_selection: ENTITY_SCRIPT
 
 func _ready() -> void:
@@ -50,6 +51,7 @@ func _rebuild_tree() -> void:
     _tree.clear()
     _tree_root = null
     _entity_items.clear()
+    _clear_entity_watchers()
 
     if _test_environment == null:
         _placeholder_label.text = "TestEnvironment node is missing from the scene."
@@ -83,6 +85,7 @@ func _track_entity(node: Node) -> void:
     item.set_metadata(0, entity)
     item.set_tooltip_text(0, entity.get_path())
     _entity_items[key] = item
+    _watch_entity_data(entity)
     _update_placeholder_visibility()
 
 func _untrack_entity(node: Node) -> void:
@@ -97,6 +100,7 @@ func _untrack_entity(node: Node) -> void:
         if item != null:
             item.free()
         _entity_items.erase(key)
+    _unwatch_entity_data(key)
 
     if _current_selection == entity:
         _current_selection = null
@@ -168,9 +172,84 @@ func _format_entity_label(entity: ENTITY_SCRIPT) -> String:
     """Builds the label text presented in the inspector tree."""
     if entity == null:
         return "Unknown Entity"
-    if entity.entity_data != null and not entity.entity_data.display_name.is_empty():
-        return entity.entity_data.display_name
+    var entity_id := _resolve_entity_id(entity)
+    var archetype_label := _resolve_archetype_label(entity)
+    if archetype_label.is_empty():
+        archetype_label = entity.name
+    if entity_id.is_empty():
+        return archetype_label
+    return "%s [%s]" % [archetype_label, entity_id]
+
+func _resolve_entity_id(entity: ENTITY_SCRIPT) -> String:
+    if entity == null:
+        return ""
+    var via_method: StringName = entity.get_entity_id()
+    if via_method != StringName():
+        return String(via_method)
+    if entity.entity_data != null and not entity.entity_data.entity_id.is_empty():
+        return entity.entity_data.entity_id
+    if entity.has_meta("entity_id"):
+        var via_meta: Variant = entity.get_meta("entity_id")
+        if via_meta is StringName:
+            return String(via_meta)
+        if via_meta is String:
+            return via_meta
+    return ""
+
+func _resolve_archetype_label(entity: ENTITY_SCRIPT) -> String:
+    if entity == null:
+        return ""
+    var data := entity.entity_data
+    if data != null:
+        if not data.archetype_id.is_empty():
+            return data.archetype_id
+        if not data.display_name.is_empty():
+            return data.display_name
     return entity.name
+
+func _watch_entity_data(entity: ENTITY_SCRIPT) -> void:
+    if entity == null:
+        return
+    var key := entity.get_instance_id()
+    var data: Resource = entity.entity_data
+    if data == null:
+        return
+    if _entity_watchers.has(key):
+        var existing: Dictionary = _entity_watchers[key]
+        var previous_data: Resource = existing.get("data")
+        var previous_callable: Callable = existing.get("callable")
+        if previous_data == data:
+            return
+        if is_instance_valid(previous_data) and previous_data.changed.is_connected(previous_callable):
+            previous_data.changed.disconnect(previous_callable)
+    var callback := Callable(self, "_on_entity_data_changed").bind(key)
+    data.changed.connect(callback, Object.CONNECT_REFERENCE_COUNTED)
+    _entity_watchers[key] = {"data": data, "callable": callback}
+
+func _unwatch_entity_data(key: int) -> void:
+    if not _entity_watchers.has(key):
+        return
+    var entry: Dictionary = _entity_watchers[key]
+    var data: Resource = entry.get("data")
+    var callback: Callable = entry.get("callable")
+    if is_instance_valid(data) and data.changed.is_connected(callback):
+        data.changed.disconnect(callback)
+    _entity_watchers.erase(key)
+
+func _clear_entity_watchers() -> void:
+    for key in _entity_watchers.keys():
+        _unwatch_entity_data(key)
+
+func _on_entity_data_changed(instance_id: int) -> void:
+    if not _entity_items.has(instance_id):
+        return
+    var item: TreeItem = _entity_items[instance_id]
+    if item == null:
+        return
+    var entity := item.get_metadata(0) as ENTITY_SCRIPT
+    if not is_instance_valid(entity):
+        return
+    item.set_text(0, _format_entity_label(entity))
 
 func _update_delete_button_state() -> void:
     """Enables the deletion button only when a valid entity is selected."""
