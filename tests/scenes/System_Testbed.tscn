@@ -35,15 +35,26 @@ corner_radius_bottom_left = 8
 
 [node name="System_Testbed" type="Control"]
 layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
+anchor_right = 1.227
+anchor_bottom = 1.37
+offset_left = 149.0
+offset_top = 50.0
+offset_right = -307.84
+offset_bottom = 305.4
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(1, 0.759999)
 script = ExtResource("6")
 
 [node name="RootPanel" type="PanelContainer" parent="."]
-layout_mode = 0
-anchor_right = 1.0
-anchor_bottom = 1.0
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 0.811
+anchor_bottom = 0.726
+offset_right = 0.0114746
+offset_bottom = -0.36377
+grow_horizontal = 2
+grow_vertical = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_styles/panel = SubResource("1")
@@ -258,7 +269,6 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_styles/panel = SubResource("2")
 script = ExtResource("4")
-theme_override_styles/panel = SubResource("2")
 attack_damage_type = &"physical"
 health_potion_item_id = &"lesser_health_potion"
 
@@ -287,71 +297,66 @@ theme_override_colors/font_color = Color(0.84, 0.67, 0.49, 1)
 theme_override_font_sizes/font_size = 14
 text = "No active entity selected."
 
-[node name="SystemTriggerScroll" type="ScrollContainer" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent"]
+[node name="SystemTriggerBody" type="VBoxContainer" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="SystemTriggerBody" type="VBoxContainer" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-
-[node name="SystemTriggerActions" type="VBoxContainer" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody"]
+[node name="SystemTriggerActions" type="VBoxContainer" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerBody"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 12
 
-[node name="SpawnerSection" type="VBoxContainer" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions"]
+[node name="SpawnerSection" type="VBoxContainer" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerBody/SystemTriggerActions"]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="SpawnerLabel" type="Label" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/SpawnerSection"]
+[node name="SpawnerLabel" type="Label" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerBody/SystemTriggerActions/SpawnerSection"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
 text = "Spawner Shortcuts"
 
-[node name="SpawnerHelp" type="Label" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/SpawnerSection"]
+[node name="SpawnerHelp" type="Label" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerBody/SystemTriggerActions/SpawnerSection"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.76, 0.79, 0.9, 1)
 theme_override_font_sizes/font_size = 13
 text = "Quickly instantiate archetypes defined in the Asset Registry."
 autowrap_mode = 3
 
-[node name="SpawnSelectedArchetypeButton" type="Button" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/SpawnerSection"]
+[node name="SpawnSelectedArchetypeButton" type="Button" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerBody/SystemTriggerActions/SpawnerSection"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Spawn Selected Archetype"
 
-[node name="TargetActionSection" type="VBoxContainer" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions"]
+[node name="TargetActionSection" type="VBoxContainer" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerBody/SystemTriggerActions"]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="TargetActionsLabel" type="Label" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/TargetActionSection"]
+[node name="TargetActionsLabel" type="Label" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerBody/SystemTriggerActions/TargetActionSection"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
 text = "Targeted Combat Harness"
 
-[node name="TargetActionsHelp" type="Label" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/TargetActionSection"]
+[node name="TargetActionsHelp" type="Label" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerBody/SystemTriggerActions/TargetActionSection"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.76, 0.79, 0.9, 1)
 theme_override_font_sizes/font_size = 13
 text = "Use these utilities to exercise the temporary combat hooks against the selected entity."
 autowrap_mode = 3
 
-[node name="AttackControls" type="HBoxContainer" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/TargetActionSection"]
+[node name="AttackControls" type="HBoxContainer" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerBody/SystemTriggerActions/TargetActionSection"]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="AttackDamageLabel" type="Label" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/TargetActionSection/AttackControls"]
+[node name="AttackDamageLabel" type="Label" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerBody/SystemTriggerActions/TargetActionSection/AttackControls"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.76, 0.79, 0.9, 1)
 theme_override_font_sizes/font_size = 13
 text = "Damage"
 
-[node name="AttackDamageSpinner" type="SpinBox" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/TargetActionSection/AttackControls"]
+[node name="AttackDamageSpinner" type="SpinBox" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerBody/SystemTriggerActions/TargetActionSection/AttackControls"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -359,30 +364,30 @@ value = 10.0
 allow_greater = true
 allow_lesser = true
 
-[node name="AttackTargetButton" type="Button" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/TargetActionSection/AttackControls"]
+[node name="AttackTargetButton" type="Button" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerBody/SystemTriggerActions/TargetActionSection/AttackControls"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 text = "You must select a damage value before triggering an attack."
 
-[node name="StatusEffectControls" type="HBoxContainer" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/TargetActionSection"]
+[node name="StatusEffectControls" type="HBoxContainer" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerBody/SystemTriggerActions/TargetActionSection"]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="StatusEffectLabel" type="Label" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/TargetActionSection/StatusEffectControls"]
+[node name="StatusEffectLabel" type="Label" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerBody/SystemTriggerActions/TargetActionSection/StatusEffectControls"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.76, 0.79, 0.9, 1)
 theme_override_font_sizes/font_size = 13
 text = "Status Effect"
 
-[node name="StatusEffectNameField" type="LineEdit" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/TargetActionSection/StatusEffectControls"]
+[node name="StatusEffectNameField" type="LineEdit" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerBody/SystemTriggerActions/TargetActionSection/StatusEffectControls"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 14
 placeholder_text = "You must select a status effect name before assigning it to the target."
 
-[node name="StatusEffectDurationSpinner" type="SpinBox" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/TargetActionSection/StatusEffectControls"]
+[node name="StatusEffectDurationSpinner" type="SpinBox" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerBody/SystemTriggerActions/TargetActionSection/StatusEffectControls"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -392,69 +397,69 @@ value = 3.0
 allow_greater = true
 allow_lesser = true
 
-[node name="AssignStatusEffectButton" type="Button" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/TargetActionSection/StatusEffectControls"]
+[node name="AssignStatusEffectButton" type="Button" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerBody/SystemTriggerActions/TargetActionSection/StatusEffectControls"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 text = "You must select a status effect name before assigning it to the target."
 
-[node name="GiveHealthPotionButton" type="Button" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/TargetActionSection"]
+[node name="GiveHealthPotionButton" type="Button" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerBody/SystemTriggerActions/TargetActionSection"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 text = "You must select an item identifier before granting inventory items."
 
-[node name="KillTargetButton" type="Button" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/TargetActionSection"]
+[node name="KillTargetButton" type="Button" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerBody/SystemTriggerActions/TargetActionSection"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Kill Target"
 
-[node name="ActionDivider" type="HSeparator" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions"]
+[node name="ActionDivider" type="HSeparator" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerBody/SystemTriggerActions"]
 layout_mode = 2
 
-[node name="EventTriggerSection" type="VBoxContainer" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions"]
+[node name="EventTriggerSection" type="VBoxContainer" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerBody/SystemTriggerActions"]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="EventTriggerLabel" type="Label" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/EventTriggerSection"]
+[node name="EventTriggerLabel" type="Label" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerBody/SystemTriggerActions/EventTriggerSection"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
 text = "Event Bus Triggers"
 
-[node name="EventTriggerHelp" type="Label" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/EventTriggerSection"]
+[node name="EventTriggerHelp" type="Label" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerBody/SystemTriggerActions/EventTriggerSection"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.76, 0.79, 0.9, 1)
 theme_override_font_sizes/font_size = 13
 text = "Select any EventBus signal, configure its payload, and emit it to validate downstream listeners."
 autowrap_mode = 3
 
-[node name="EventSelector" type="OptionButton" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/EventTriggerSection"]
+[node name="EventSelector" type="OptionButton" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerBody/SystemTriggerActions/EventTriggerSection"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="EventDescriptionLabel" type="Label" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/EventTriggerSection"]
+[node name="EventDescriptionLabel" type="Label" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerBody/SystemTriggerActions/EventTriggerSection"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 13
 text = "Select an EventBus signal to configure its payload."
 autowrap_mode = 3
 
-[node name="PayloadEditor" type="VBoxContainer" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/EventTriggerSection"]
+[node name="PayloadEditor" type="VBoxContainer" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerBody/SystemTriggerActions/EventTriggerSection"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/separation = 8
 
-[node name="EmitEventButton" type="Button" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody/SystemTriggerActions/EventTriggerSection"]
+[node name="EmitEventButton" type="Button" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerBody/SystemTriggerActions/EventTriggerSection"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Emit EventBus Signal"
 
-[node name="SystemTriggerPlaceholder" type="Label" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerScroll/SystemTriggerBody"]
+[node name="SystemTriggerPlaceholder" type="Label" parent="RootPanel/RootMargin/RootVBox/MainHBox/RightColumn/SystemTriggerPanel/SystemTriggerContent/SystemTriggerBody"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Trigger gameplay systems from this panel."
