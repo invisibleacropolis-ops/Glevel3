@@ -73,11 +73,11 @@ func _rebuild_for_entity(entity: ENTITY_SCRIPT) -> void:
     if entity == null or not is_instance_valid(entity):
         _show_placeholder("Select an entity to inspect component data.")
         return
-    var data := entity.entity_data
+    var data: EntityData = entity.entity_data
     if data == null:
         _show_placeholder("The selected entity does not expose EntityData.")
         return
-    var manifest := data.list_components()
+    var manifest: Dictionary = data.list_components()
     if manifest.is_empty():
         _show_placeholder("The selected entity has no registered components.")
         return
