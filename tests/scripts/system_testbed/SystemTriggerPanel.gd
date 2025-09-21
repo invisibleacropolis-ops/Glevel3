@@ -10,6 +10,8 @@ const TEST_COMBAT_SYSTEM_SCRIPT := preload("res://tests/scripts/system_testbed/T
 const TEST_INVENTORY_SYSTEM_SCRIPT := preload("res://tests/scripts/system_testbed/Test_InventorySystem.gd")
 const ENTITY_SPAWNER_PANEL_SCRIPT := preload("res://tests/scripts/system_testbed/EntitySpawnerPanel.gd")
 const EVENT_BUS_SCRIPT := preload("res://src/globals/EventBus.gd")
+const ENTITY_SCRIPT := preload("res://src/entities/Entity.gd")
+const ENTITY_DATA_SCRIPT := preload("res://src/core/EntityData.gd")
 
 @onready var _placeholder_label: Label = %SystemTriggerPlaceholder
 @onready var _actions_container: VBoxContainer = %SystemTriggerActions
@@ -434,9 +436,7 @@ func _refresh_attack_button_label() -> void:
 		_attack_button.text = _attack_damage_type_missing_message()
 		return
 	var target := _get_active_target()
-	var target_label := "Target"
-	if is_instance_valid(target):
-		target_label = target.name
+	var target_label := _format_target_label(target)
 	_attack_button.text = "Attack %s for %d Damage" % [target_label, int(amount)]
 
 func _on_assign_status_effect_pressed() -> void:
@@ -506,9 +506,7 @@ func _refresh_status_effect_button_label() -> void:
 		_assign_status_effect_button.text = "Status effect duration must be at least 1 turn."
 		return
 	var target := _get_active_target()
-	var target_label := "Target"
-	if is_instance_valid(target):
-		target_label = target.name
+	var target_label := _format_target_label(target)
 	_assign_status_effect_button.text = "Assign %s (%d turns) to %s" % [effect_name, duration, target_label]
 
 func _refresh_inventory_button_label() -> void:
@@ -518,9 +516,7 @@ func _refresh_inventory_button_label() -> void:
 		_give_health_potion_button.text = _inventory_item_missing_message()
 		return
 	var target := _get_active_target()
-	var target_label := "Target"
-	if is_instance_valid(target):
-		target_label = target.name
+	var target_label := _format_target_label(target)
 	_give_health_potion_button.text = "Give '%s' to %s" % [String(health_potion_item_id), target_label]
 
 func _refresh_kill_button_label() -> void:
@@ -528,7 +524,7 @@ func _refresh_kill_button_label() -> void:
 		return
 	var target := _get_active_target()
 	if is_instance_valid(target):
-		_kill_target_button.text = "Kill %s" % target.name
+		_kill_target_button.text = "Kill %s" % _format_target_label(target)
 	else:
 		_kill_target_button.text = "Kill Target"
 
@@ -716,6 +712,79 @@ func _update_button_states() -> void:
 	_refresh_kill_button_label()
 	_refresh_inventory_button_label()
 
+func _format_target_label(target: Node, fallback: String = "Target") -> String:
+	var descriptor := _build_entity_descriptor(target)
+	if descriptor.is_empty():
+		return fallback
+	return descriptor
+
+func _build_entity_descriptor(target: Node) -> String:
+	if not is_instance_valid(target):
+		return ""
+	var entity_id := _resolve_entity_id(target)
+	var archetype_label := _resolve_archetype_label(target)
+	if archetype_label.is_empty():
+		archetype_label = target.name
+	if entity_id.is_empty():
+		return archetype_label
+	return "%s [%s]" % [archetype_label, entity_id]
+
+func _resolve_entity_id(target: Node) -> String:
+	if not is_instance_valid(target):
+		return ""
+	if target is ENTITY_SCRIPT:
+		var entity := target as ENTITY_SCRIPT
+		var via_property: StringName = entity.get_entity_id()
+		if via_property != StringName():
+			return String(via_property)
+	if target.has_method("get_entity_id"):
+		var via_method: Variant = target.call("get_entity_id")
+		if via_method is StringName:
+			return String(via_method)
+		if via_method is String:
+			return via_method
+	if target.has_meta("entity_id"):
+		var via_meta: Variant = target.get_meta("entity_id")
+		if via_meta is StringName:
+			return String(via_meta)
+		if via_meta is String:
+			return via_meta
+	var data := _extract_entity_data(target)
+	if data != null and not data.entity_id.is_empty():
+		return data.entity_id
+	return ""
+
+func _resolve_archetype_label(target: Node) -> String:
+	var data := _extract_entity_data(target)
+	if data != null:
+		if not data.archetype_id.is_empty():
+			return data.archetype_id
+		if not data.display_name.is_empty():
+			return data.display_name
+	if target is ENTITY_SCRIPT:
+		return (target as ENTITY_SCRIPT).name
+	return target.name
+
+func _extract_entity_data(target: Node) -> ENTITY_DATA_SCRIPT:
+	if not is_instance_valid(target):
+		return null
+	if target is ENTITY_SCRIPT:
+		var entity := target as ENTITY_SCRIPT
+		if entity.entity_data is ENTITY_DATA_SCRIPT:
+			return entity.entity_data
+	var via_property: Variant = target.get("entity_data")
+	if via_property is ENTITY_DATA_SCRIPT:
+		return via_property
+	if target.has_method("get_entity_data"):
+		var via_method: Variant = target.call("get_entity_data")
+		if via_method is ENTITY_DATA_SCRIPT:
+			return via_method
+	if target.has_meta("entity_data"):
+		var via_meta: Variant = target.get_meta("entity_data")
+		if via_meta is ENTITY_DATA_SCRIPT:
+			return via_meta
+	return null
+
 func _refresh_spawn_selected_button_label() -> void:
 	if not is_instance_valid(_spawn_selected_button):
 		return
@@ -739,7 +808,7 @@ func _update_target_status_label() -> void:
 		return
 	var target := _get_active_target()
 	if is_instance_valid(target):
-		_target_status_label.text = "Active target: %s" % target.name
+		_target_status_label.text = "Active target: %s" % _format_target_label(target)
 		_target_status_label.add_theme_color_override("font_color", Color(0.7, 0.88, 0.76))
 	else:
 		_target_status_label.text = "No active entity selected."
