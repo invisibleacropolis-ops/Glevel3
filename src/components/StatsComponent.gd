@@ -294,7 +294,14 @@ func restore_action_points(amount: int) -> void:
 
 
 func add_status(effect: StringName, is_long_term: bool = false) -> void:
-    """Adds a status effect to the appropriate list if it is not already present."""
+    """Adds a status effect tag to the appropriate list if it is not already present.
+
+    StatusSystem.apply_status_effect() calls this helper after inserting a
+    duplicated ``StatusFX`` into StatusComponent so downstream systems and UI
+    widgets can inspect the entity's current conditions without dereferencing
+    resources. Designers can also author starting conditions directly in the
+    inspector and the arrays remain unique per effect identifier.
+    """
     var normalized := StringName(effect)
     var target := long_term_statuses if is_long_term else short_term_statuses
     if normalized in target:
@@ -307,7 +314,11 @@ func add_status(effect: StringName, is_long_term: bool = false) -> void:
 
 
 func remove_status(effect: StringName) -> void:
-    """Removes a status effect from both short and long term lists."""
+    """Removes a status effect tag from both short and long term lists.
+
+    StatusSystem invokes this when an effect expires so HUD panels and save
+    systems stay synchronized with the canonical runtime modifiers.
+    """
     var normalized := StringName(effect)
     if normalized in short_term_statuses:
         short_term_statuses.erase(normalized)

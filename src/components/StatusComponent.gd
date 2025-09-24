@@ -7,39 +7,86 @@ class_name StatusComponent
 @export var long_term_effects: Array[StatusFX] = []
 
 ## Adds a status effect to the appropriate list if it is not already present.
-func add_effect(effect: StatusFX, is_long_term: bool = false) -> void:
+##
+## Returns the stored ``StatusFX`` instance so callers can mutate the runtime
+## copy (e.g., overriding duration) without touching the source asset. The
+## component duplicates the resource before insertion so each entity tracks its
+## own timers and modifier bundles independently.
+func add_effect(effect: StatusFX, is_long_term: bool = false) -> StatusFX:
     if effect == null:
         push_warning("Attempted to add a null status effect.")
-        return
+        return null
 
-    var target_array = long_term_effects if is_long_term else short_term_effects
+    var target_array: Array[StatusFX] = long_term_effects if is_long_term else short_term_effects
+    var effect_name := effect.effect_name
 
-    if effect in target_array:
-        # TODO: Add logic to refresh duration if effects can be re-applied
-        return
+    var existing_index := _find_effect_index(effect_name, target_array)
+    if existing_index != -1:
+        return target_array[existing_index]
 
-    target_array.append(effect.duplicate())
+    var stored_effect: StatusFX = effect.duplicate(true)
+    target_array.append(stored_effect)
+
+    if is_long_term:
+        long_term_effects = target_array
+    else:
+        short_term_effects = target_array
+
+    return stored_effect
 
 ## Removes a status effect from both short and long term lists.
 func remove_effect(effect_to_remove: StatusFX) -> void:
     if effect_to_remove == null:
         return
 
-    if effect_to_remove in short_term_effects:
-        short_term_effects.erase(effect_to_remove)
+    var short_term := short_term_effects
+    var long_term := long_term_effects
 
-    if effect_to_remove in long_term_effects:
-        long_term_effects.erase(effect_to_remove)
+    _erase_effect_instance(effect_to_remove, short_term)
+    _erase_effect_instance(effect_to_remove, long_term)
+
+    short_term_effects = short_term
+    long_term_effects = long_term
 
 ## A helper to remove an effect by its name.
 func remove_effect_by_name(effect_name: StringName) -> void:
     if effect_name == &"":
         return
 
-    for i in range(short_term_effects.size() - 1, -1, -1):
-        if short_term_effects[i].effect_name == effect_name:
-            short_term_effects.remove_at(i)
+    var short_term := short_term_effects
+    var long_term := long_term_effects
 
-    for i in range(long_term_effects.size() - 1, -1, -1):
-        if long_term_effects[i].effect_name == effect_name:
-            long_term_effects.remove_at(i)
+    _erase_effect_by_name(effect_name, short_term)
+    _erase_effect_by_name(effect_name, long_term)
+
+    short_term_effects = short_term
+    long_term_effects = long_term
+
+
+func _find_effect_index(effect_name: StringName, pool: Array[StatusFX]) -> int:
+    if effect_name == StringName():
+        return -1
+    for index in range(pool.size()):
+        var candidate: StatusFX = pool[index]
+        if candidate != null and candidate.effect_name == effect_name:
+            return index
+    return -1
+
+
+func _erase_effect_instance(effect: StatusFX, pool: Array[StatusFX]) -> void:
+    if effect == null:
+        return
+    var index := pool.find(effect)
+    if index != -1:
+        pool.remove_at(index)
+        return
+    _erase_effect_by_name(effect.effect_name, pool)
+
+
+func _erase_effect_by_name(effect_name: StringName, pool: Array[StatusFX]) -> void:
+    if effect_name == StringName():
+        return
+    for i in range(pool.size() - 1, -1, -1):
+        var candidate: StatusFX = pool[i]
+        if candidate != null and candidate.effect_name == effect_name:
+            pool.remove_at(i)
