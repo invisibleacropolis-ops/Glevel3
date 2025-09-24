@@ -72,7 +72,7 @@ The Architectural Style Guide mandates composition over inheritance, a strict da
 - **Immediate guidance:**
   1. Replace direct node access with `EntityData` lookups: iterate `Entity` nodes, call `entity.entity_data.get_component(ULTEnums.ComponentKeys.STATUS)` to fetch `StatusComponent` resources, and operate on their arrays.
   2. Emit `status_effect_applied`/`status_effect_ended` via `emit_event()` rather than direct bus usage to maintain the abstraction.
-  3. Reconcile stat adjustments by applying modifiers to the owning `StatsComponent` resource (`apply_stat_mod` or equivalent) rather than assuming node methods exist. Where helper methods are missing, extend `StatsComponent` with pure-data utilities instead of referencing scene nodes.
+  3. Reconcile stat adjustments by applying modifiers to the owning `StatsComponent` resource (`apply_modifiers()` / `revert_modifiers()` with `apply_stat_mod()` kept for legacy callers) rather than assuming node methods exist. Where helper methods are missing, extend `StatsComponent` with pure-data utilities instead of referencing scene nodes.
   4. Document how new effects enter `StatusComponent` (likely through quest/combat systems) and ensure they duplicate `StatusFX` resources before storage, as flagged by the TODO block.
 
 ## 6. Diagnostics & Tooling
