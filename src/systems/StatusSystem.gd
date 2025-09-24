@@ -1,82 +1,151 @@
 extends "res://src/systems/System.gd"
 class_name StatusSystem
 
-## Manages the duration and application of status effects on entities.
-## Subscribes to turn_passed and day_passed events to update effect timers.
+const ULTEnums := preload("res://src/globals/ULTEnums.gd")
+
+## Manages lifecycle events for short- and long-term status effects using the
+## canonical EntityData -> Component pipeline defined in the architectural guide.
 
 func _ready() -> void:
     subscribe_event(&"turn_passed", Callable(self, "_on_turn_passed"))
     subscribe_event(&"day_passed", Callable(self, "_on_day_passed"))
 
-func _on_turn_passed(payload: Dictionary) -> void:
-    # TODO: Implement a way to get all entities in the game world.
-    # For example, if you have a global EntityManager, you might call:
-    # var entities = EntityManager.get_all_entities()
-    var entities: Array = get_tree().get_nodes_in_group("entities") # Placeholder: Assuming entities are in a group named "entities"
+func _on_turn_passed(_payload: Dictionary) -> void:
+    _process_status_groups(true)
 
-    for entity in entities:
-        if not entity.has_node("StatusComponent") or not entity.has_node("StatsComponent"):
+func _on_day_passed(_payload: Dictionary) -> void:
+    _process_status_groups(false)
+
+## Resolves timed status effects for every entity discovered through the
+## canonical "entities" group, operating purely on EntityData components.
+func _process_status_groups(is_short_term: bool) -> void:
+    var entity_nodes := get_tree().get_nodes_in_group("entities")
+    for entity_node in entity_nodes:
+        var entity: Entity = entity_node as Entity
+        if entity == null:
             continue
 
-        var status_component: StatusComponent = entity.get_node("StatusComponent")
-        var stats_component: StatsComponent = entity.get_node("StatsComponent")
-
-        _process_effects(entity, stats_component, status_component.short_term_effects, stats_component.short_term_statuses, true)
-
-func _on_day_passed(payload: Dictionary) -> void:
-    # TODO: Implement a way to get all entities in the game world.
-    # For example, if you have a global EntityManager, you might call:
-    # var entities = EntityManager.get_all_entities()
-    var entities: Array = get_tree().get_nodes_in_group("entities") # Placeholder: Assuming entities are in a group named "entities"
-
-    for entity in entities:
-        if not entity.has_node("StatusComponent") or not entity.has_node("StatsComponent"):
+        var entity_data: EntityData = entity.entity_data
+        if entity_data == null:
             continue
 
-        var status_component: StatusComponent = entity.get_node("StatusComponent")
-        var stats_component: StatsComponent = entity.get_node("StatsComponent")
+        if not entity_data.has_component(ULTEnums.ComponentKeys.STATUS):
+            continue
+        if not entity_data.has_component(ULTEnums.ComponentKeys.STATS):
+            continue
 
-        _process_effects(entity, stats_component, status_component.long_term_effects, stats_component.long_term_statuses, false)
+        var status_component: StatusComponent = entity_data.get_component(ULTEnums.ComponentKeys.STATUS)
+        var stats_component: StatsComponent = entity_data.get_component(ULTEnums.ComponentKeys.STATS)
+        if status_component == null or stats_component == null:
+            continue
 
-func _process_effects(entity: Node, stats_component: StatsComponent, effects_array: Array[StatusFX], status_names_array: Array[StringName], is_short_term: bool) -> void:
-    var effects_to_remove: Array[StatusFX] = []
+        var entity_id := entity_data.ensure_runtime_entity_id(StringName(entity.name))
+        _process_effects(entity_id, status_component, stats_component, is_short_term)
 
-    for effect in effects_array:
+## Ticks down effect durations, removes expired entries, and emits lifecycle
+## events for downstream systems.
+func _process_effects(
+    entity_id: StringName,
+    status_component: StatusComponent,
+    stats_component: StatsComponent,
+    is_short_term: bool
+) -> void:
+    var effects: Array[StatusFX] = status_component.short_term_effects if is_short_term else status_component.long_term_effects
+    if effects.is_empty():
+        return
+
+    var removal_indices: Array[int] = []
+    for index in range(effects.size()):
+        var effect: StatusFX = effects[index]
+        if effect == null:
+            removal_indices.append(index)
+            continue
+
         if effect.duration_in_turns > 0:
             effect.duration_in_turns -= 1
-        
+
         if effect.duration_in_turns <= 0:
-            effects_to_remove.append(effect)
+            removal_indices.append(index)
 
-    for effect in effects_to_remove:
-        effects_array.erase(effect)
-        # Also remove from StatsComponent's list of status names
-        if effect.effect_name in status_names_array:
-            status_names_array.erase(effect.effect_name)
+    if removal_indices.is_empty():
+        return
 
-        # Revert modifiers
-        var inverted_modifiers: Dictionary = {}
-        for key in effect.modifiers.keys():
-            var value = effect.modifiers[key]
-            if typeof(value) == TYPE_INT or typeof(value) == TYPE_FLOAT:
-                inverted_modifiers[key] = -value
-            # TODO: Handle other types of modifiers if they are not simple numeric changes
-            # For example, if a modifier adds a trait, you'd need to remove it here.
+    for i in range(removal_indices.size() - 1, -1, -1):
+        var effect_index := removal_indices[i]
+        if effect_index < 0 or effect_index >= effects.size():
+            continue
 
-        if not inverted_modifiers.is_empty():
-            stats_component.apply_stat_mod(inverted_modifiers)
+        var expired_effect: StatusFX = effects[effect_index]
+        effects.remove_at(effect_index)
 
-        # Emit an event that the status effect has ended
-        emit_event(&"status_effect_ended", {
-            "entity_id": entity.name, # Assuming entity.name is a unique identifier
-            "effect_name": effect.effect_name,
-            "reason": &"expired",
-            "modifiers": effect.modifiers # Provide the original modifiers for context
-        })
+        if expired_effect == null:
+            continue
 
+        _synchronise_status_tags(stats_component, expired_effect)
+        _revert_effect_modifiers(stats_component, expired_effect)
+        _emit_effect_ended(entity_id, expired_effect)
 
-# TODO: Consider how new status effects are added.
-# When a new status effect is added to an entity, ensure:
-# 1. The StatusFX resource is duplicated before being added to StatusComponent.short_term_effects or long_term_effects.
-# 2. The effect.effect_name is added to StatsComponent.short_term_statuses or long_term_statuses.
-# This synchronization is crucial for the system to work correctly.
+    if is_short_term:
+        status_component.short_term_effects = effects
+    else:
+        status_component.long_term_effects = effects
+
+## Synchronises the StatsComponent's status tag arrays with the effect removal.
+func _synchronise_status_tags(stats_component: StatsComponent, effect: StatusFX) -> void:
+    if effect == null or effect.effect_name == StringName():
+        return
+    stats_component.remove_status(effect.effect_name)
+
+## Builds and applies an inverse modifier payload so StatsComponent rolls back
+## passive adjustments applied while the status effect was active.
+func _revert_effect_modifiers(stats_component: StatsComponent, effect: StatusFX) -> void:
+    var modifiers := effect.modifiers
+    if modifiers == null or modifiers.is_empty():
+        return
+
+    var inverse: Dictionary = {}
+    for key in modifiers.keys():
+        var value := modifiers[key]
+        match key:
+            "add_short_status", "add_long_status":
+                if value is Array:
+                    var removal: Array = []
+                    if inverse.has("remove_status"):
+                        removal = inverse["remove_status"]
+                    for status in value:
+                        removal.append(status)
+                    inverse["remove_status"] = removal
+            "traits_to_add":
+                if value is Array:
+                    var traits_to_remove: Array = []
+                    if inverse.has("traits_to_remove"):
+                        traits_to_remove = inverse["traits_to_remove"]
+                    for trait in value:
+                        traits_to_remove.append(trait)
+                    inverse["traits_to_remove"] = traits_to_remove
+            "traits_to_remove":
+                if value is Array:
+                    var traits_to_add: Array = []
+                    if inverse.has("traits_to_add"):
+                        traits_to_add = inverse["traits_to_add"]
+                    for trait in value:
+                        traits_to_add.append(trait)
+                    inverse["traits_to_add"] = traits_to_add
+            _:
+                if typeof(value) == TYPE_INT or typeof(value) == TYPE_FLOAT:
+                    inverse[key] = -value
+
+    if inverse.is_empty():
+        return
+
+    stats_component.apply_stat_mod(inverse)
+
+## Broadcasts the canonical status_effect_ended payload via the shared EventBus.
+func _emit_effect_ended(entity_id: StringName, effect: StatusFX) -> void:
+    var payload := {
+        "entity_id": entity_id,
+        "effect_name": effect.effect_name,
+        "reason": &"expired",
+        "modifiers": effect.modifiers,
+    }
+    emit_event(&"status_effect_ended", payload)
