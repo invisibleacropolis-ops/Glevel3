@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3 uid="uid://2a4ngr6lofas"]
+[gd_scene load_steps=13 format=3 uid="uid://2a4ngr6lofas"]
 
 [ext_resource type="Script" uid="uid://7anl1j2f403d" path="res://tests/scripts/system_testbed/EntitySpawnerPanel.gd" id="1"]
 [ext_resource type="Script" uid="uid://c33fqs1qjg6n3" path="res://tests/scripts/system_testbed/SceneInspectorPanel.gd" id="2"]
@@ -8,6 +8,8 @@
 [ext_resource type="Script" uid="uid://betxb4hnnwq7k" path="res://tests/scripts/system_testbed/SystemTestbed.gd" id="6"]
 [ext_resource type="Script" uid="uid://dlfjswpw1pilg" path="res://tests/scripts/system_testbed/Test_CombatSystem.gd" id="7"]
 [ext_resource type="Script" uid="uid://dgjh1n6pa0gnq" path="res://tests/scripts/system_testbed/Test_InventorySystem.gd" id="8"]
+[ext_resource type="Script" uid="uid://cicbw2b0mj141" path="res://src/systems/StatusSystem.gd" id="9"]
+[ext_resource type="Script" uid="uid://ca25c54cd45k6" path="res://tests/scripts/system_testbed/StatusSystemValidator.gd" id="10"]
 
 [sub_resource type="StyleBoxFlat" id="1"]
 content_margin_left = 12.0
@@ -538,6 +540,7 @@ theme_override_font_sizes/font_size = 14
 text = "Tip: Select an entity in the Scene Inspector to unlock damage triggers and component editing."
 
 [node name="TestEnvironment" type="Node" parent="."]
+unique_name_in_owner = true
 
 [node name="TestCombatSystem" type="Node" parent="."]
 unique_name_in_owner = true
@@ -546,3 +549,11 @@ script = ExtResource("7")
 [node name="TestInventorySystem" type="Node" parent="."]
 unique_name_in_owner = true
 script = ExtResource("8")
+
+[node name="StatusSystem" type="Node" parent="."]
+unique_name_in_owner = true
+script = ExtResource("9")
+
+[node name="StatusSystemValidator" type="Node" parent="."]
+unique_name_in_owner = true
+script = ExtResource("10")
