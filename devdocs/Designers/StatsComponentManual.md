@@ -94,4 +94,4 @@ Each section groups related properties. "Common range" records the values most b
 
 ## Runtime helpers
 
-The component exposes convenience methods for common stat mutations: `apply_damage()`, `heal()`, `spend_energy()`, `restore_energy()`, `spend_action_points()`, `restore_action_points()`, status and trait mutators, a bundled `apply_stat_mod()` helper, and `reset_for_new_run()` to refresh per-run resources.【F:src/components/StatsComponent.gd†L174-L308】 Use these utilities instead of rewriting bespoke logic so downstream systems inherit the same clamping rules described above.
+The component exposes convenience methods for common stat mutations: `apply_damage()`, `heal()`, `spend_energy()`, `restore_energy()`, `spend_action_points()`, `restore_action_points()`, status and trait mutators, bundled `apply_modifiers()` / `revert_modifiers()` helpers (with `apply_stat_mod()` retained for compatibility), and `reset_for_new_run()` to refresh per-run resources.【F:src/components/StatsComponent.gd†L174-L452】 Use these utilities instead of rewriting bespoke logic so downstream systems inherit the same clamping rules described above.

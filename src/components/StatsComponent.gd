@@ -330,7 +330,7 @@ func remove_trait(trait_name: StringName) -> void:
         traits.erase(normalized)
 
 
-func apply_stat_mod(modifiers: Dictionary) -> void:
+func apply_modifiers(modifiers: Dictionary) -> void:
     """Applies a bundle of runtime stat adjustments (damage, heals, AP shifts, tags, etc.)."""
     if modifiers.is_empty():
         return
@@ -379,6 +379,73 @@ func apply_stat_mod(modifiers: Dictionary) -> void:
     if modifiers.has("traits_to_remove"):
         for trait_name in modifiers["traits_to_remove"]:
             remove_trait(StringName(trait_name))
+
+
+func apply_stat_mod(modifiers: Dictionary) -> void:
+    """Legacy helper retained for backwards compatibility. Prefer apply_modifiers()."""
+    apply_modifiers(modifiers)
+
+
+func get_inverse_modifiers(modifiers: Dictionary) -> Dictionary:
+    """Builds an inverse payload that reverts adjustments applied by ``apply_modifiers``."""
+    if modifiers.is_empty():
+        return {}
+
+    var inverse: Dictionary = {}
+    for key in modifiers.keys():
+        var value := modifiers[key]
+        if value == null:
+            continue
+
+        match key:
+            "damage":
+                var heal_amount := int(value)
+                if heal_amount > 0:
+                    inverse["heal"] = int(inverse.get("heal", 0)) + heal_amount
+            "heal":
+                var damage_amount := int(value)
+                if damage_amount > 0:
+                    inverse["damage"] = int(inverse.get("damage", 0)) + damage_amount
+            "energy_delta", "action_points_delta", "xp_delta", "level_delta":
+                var numeric_delta := int(value)
+                if numeric_delta != 0:
+                    inverse[key] = int(inverse.get(key, 0)) - numeric_delta
+            "add_short_status", "add_long_status":
+                if value is Array:
+                    var removal: Array[StringName] = []
+                    if inverse.has("remove_status"):
+                        removal = inverse["remove_status"]
+                    for status in value:
+                        removal.append(StringName(status))
+                    inverse["remove_status"] = removal
+            "traits_to_add":
+                if value is Array:
+                    var traits_to_remove: Array[StringName] = []
+                    if inverse.has("traits_to_remove"):
+                        traits_to_remove = inverse["traits_to_remove"]
+                    for trait in value:
+                        traits_to_remove.append(StringName(trait))
+                    inverse["traits_to_remove"] = traits_to_remove
+            "traits_to_remove":
+                if value is Array:
+                    var traits_to_add: Array[StringName] = []
+                    if inverse.has("traits_to_add"):
+                        traits_to_add = inverse["traits_to_add"]
+                    for trait in value:
+                        traits_to_add.append(StringName(trait))
+                    inverse["traits_to_add"] = traits_to_add
+            _:
+                continue
+
+    return inverse
+
+
+func revert_modifiers(modifiers: Dictionary) -> void:
+    """Reapplies the inverse of ``modifiers`` so passive status effects can cleanly expire."""
+    var inverse := get_inverse_modifiers(modifiers)
+    if inverse.is_empty():
+        return
+    apply_modifiers(inverse)
 
 
 func reset_for_new_run() -> void:

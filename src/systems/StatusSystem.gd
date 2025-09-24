@@ -102,43 +102,7 @@ func _revert_effect_modifiers(stats_component: StatsComponent, effect: StatusFX)
     var modifiers := effect.modifiers
     if modifiers == null or modifiers.is_empty():
         return
-
-    var inverse: Dictionary = {}
-    for key in modifiers.keys():
-        var value := modifiers[key]
-        match key:
-            "add_short_status", "add_long_status":
-                if value is Array:
-                    var removal: Array = []
-                    if inverse.has("remove_status"):
-                        removal = inverse["remove_status"]
-                    for status in value:
-                        removal.append(status)
-                    inverse["remove_status"] = removal
-            "traits_to_add":
-                if value is Array:
-                    var traits_to_remove: Array = []
-                    if inverse.has("traits_to_remove"):
-                        traits_to_remove = inverse["traits_to_remove"]
-                    for trait in value:
-                        traits_to_remove.append(trait)
-                    inverse["traits_to_remove"] = traits_to_remove
-            "traits_to_remove":
-                if value is Array:
-                    var traits_to_add: Array = []
-                    if inverse.has("traits_to_add"):
-                        traits_to_add = inverse["traits_to_add"]
-                    for trait in value:
-                        traits_to_add.append(trait)
-                    inverse["traits_to_add"] = traits_to_add
-            _:
-                if typeof(value) == TYPE_INT or typeof(value) == TYPE_FLOAT:
-                    inverse[key] = -value
-
-    if inverse.is_empty():
-        return
-
-    stats_component.apply_stat_mod(inverse)
+    stats_component.revert_modifiers(modifiers)
 
 ## Broadcasts the canonical status_effect_ended payload via the shared EventBus.
 func _emit_effect_ended(entity_id: StringName, effect: StatusFX) -> void:
