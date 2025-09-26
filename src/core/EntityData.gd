@@ -38,13 +38,13 @@ var _components: Dictionary[StringName, Component] = {}
 
 ## Exposed manifest of component resources keyed by canonical identifiers.
 ##
-## The exported dictionary is now strongly typed so the Inspector knows each
-## value expects a Component resource, enabling drag-and-drop authoring from the
-## FileSystem dock. The internal `_components` cache still normalises keys to
-## `StringName` for stable lookups while tolerating legacy manifest data. The
-## getter exposes the live manifest so existing editor tooling and tests that
-## expect direct dictionary access continue to function.
-@export var components: Dictionary[StringName, Component] = {}:
+## The Inspector currently serialises dictionary edits without generic type
+## metadata, so we export this property as an untyped ``Dictionary`` and perform
+## validation in the setter. The internal `_components` cache still normalises
+## keys to `StringName` for stable lookups while tolerating legacy manifest data.
+## The getter exposes the live manifest so existing editor tooling and tests
+## that expect direct dictionary access continue to function.
+@export var components := {}:
     set(value):
         _invalid_component_warnings.clear()
         _components = _sanitize_component_manifest(value)
