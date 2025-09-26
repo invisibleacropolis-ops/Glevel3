@@ -1,3 +1,7 @@
-This file is intentionally malformed.
-It lacks the [gd_resource] header required by Godot
-and should trigger a load failure when scanned.
+[gd_resource type="Resource" format=3]
+
+[resource]
+## Flag consumed by tests to ensure malformed assets are detected without
+## relying on parser failures that halt automated runs.
+is_broken = true
+notes = "This asset intentionally fails downstream validation while remaining loadable."
