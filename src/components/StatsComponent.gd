@@ -6,12 +6,34 @@ class_name StatsComponent
 ## Runtime systems mutate these values in response to gameplay.
 
 const JOB_COMPONENT_SCRIPT_PATH := "res://src/components/JobComponent.gd"
+const Trait := preload("res://src/components/Trait.gd")
+const Skill := preload("res://src/components/Skill.gd")
+const JobStatBonus := preload("res://src/jobs/JobStatBonus.gd")
+const JobTrainingBonus := preload("res://src/jobs/JobTrainingBonus.gd")
 var _job_component_script: GDScript = null
+var _job_component_internal: Resource = null
+var _job_component_monitor: Resource = null
+var _active_job_resource: Resource = null
+var _applied_job_snapshot: Dictionary = {}
+var _active_job_subresources: Array[Resource] = []
 
 ## Optional JobComponent resource that layers profession data on top of baseline stats.
 ## Attach a JobComponent to reuse this StatsComponent across multiple archetypes.
 @export_group("Job Assignment")
-@export var job_component: Resource
+@export var job_component: Resource:
+    get:
+        return _job_component_internal
+    set(value):
+        if _job_component_internal == value:
+            return
+        _remove_job_bonuses()
+        if _job_component_monitor != null and _job_component_monitor.has_signal("changed") and _job_component_monitor.changed.is_connected(Callable(self, "_on_job_component_changed")):
+            _job_component_monitor.changed.disconnect(Callable(self, "_on_job_component_changed"))
+        _job_component_internal = value
+        _job_component_monitor = _job_component_internal
+        if _job_component_monitor != null and _job_component_monitor.has_signal("changed") and not _job_component_monitor.changed.is_connected(Callable(self, "_on_job_component_changed")):
+            _job_component_monitor.changed.connect(Callable(self, "_on_job_component_changed"))
+        _apply_job_bonuses()
 
 ## ---- Vital Resources ----
 ## Current health pool. When this reaches 0 the entity is considered defeated.
@@ -222,16 +244,224 @@ func _job_component_snapshot() -> Variant:
 
 
 func _get_job_component() -> Resource:
-    if job_component == null:
+    if _job_component_internal == null:
         return null
     if _job_component_script == null:
         _job_component_script = load(JOB_COMPONENT_SCRIPT_PATH)
     if _job_component_script == null:
         return null
-    if job_component.get_script() != _job_component_script:
+    if _job_component_internal.get_script() != _job_component_script:
         push_warning("StatsComponent.job_component expects a JobComponent resource.")
         return null
-    return job_component
+    return _job_component_internal
+
+
+func _apply_job_bonuses() -> void:
+    _applied_job_snapshot.clear()
+
+    var component: Resource = _get_job_component()
+    if component == null:
+        return
+    if not component.has_method("get_primary_job"):
+        return
+
+    var job: Resource = component.get_primary_job()
+    if job == null:
+        return
+
+    var stat_deltas: Dictionary[StringName, int] = {}
+    if job.has_method("get_stat_bonuses"):
+        for bonus in job.get_stat_bonuses():
+            if bonus == null:
+                continue
+            if not (bonus is JobStatBonus):
+                continue
+            var property_name: StringName = bonus.stat_property
+            if property_name == StringName(""):
+                continue
+            var current_value: Variant = _get_numeric_property(property_name)
+            if current_value == null:
+                push_warning("Job %s references unknown stat '%s'." % [str(job.job_id), str(property_name)])
+                continue
+            var amount := int(bonus.amount)
+            if amount == 0:
+                continue
+            set(String(property_name), current_value + amount)
+            stat_deltas[property_name] = int(stat_deltas.get(property_name, 0)) + amount
+            _register_job_subresource(bonus)
+
+    var training_deltas: Dictionary[StringName, int] = {}
+    if job.has_method("get_training_bonuses"):
+        for bonus in job.get_training_bonuses():
+            if bonus == null:
+                continue
+            if not (bonus is JobTrainingBonus):
+                continue
+            var training_name: StringName = bonus.training_property
+            if training_name == StringName(""):
+                continue
+            var current_training: Variant = _get_numeric_property(training_name)
+            if current_training == null:
+                push_warning("Job %s references unknown training '%s'." % [str(job.job_id), str(training_name)])
+                continue
+            var training_amount := int(bonus.amount)
+            if training_amount == 0:
+                continue
+            set(String(training_name), current_training + training_amount)
+            training_deltas[training_name] = int(training_deltas.get(training_name, 0)) + training_amount
+            _register_job_subresource(bonus)
+
+    var applied_traits: Array[StringName] = []
+    if job.has_method("get_starting_traits"):
+        for trait_resource in job.get_starting_traits():
+            if trait_resource == null:
+                continue
+            var trait_id := _resolve_trait_id(trait_resource)
+            if trait_id == StringName(""):
+                push_warning("Job %s references a trait without an id." % [str(job.job_id)])
+                continue
+            if trait_id in traits:
+                continue
+            add_trait(trait_id)
+            applied_traits.append(trait_id)
+            _register_job_subresource(trait_resource)
+
+    _applied_job_snapshot = {
+        "stat_bonuses": stat_deltas,
+        "training_bonuses": training_deltas,
+        "starting_traits": applied_traits,
+        "starting_skills": _build_skill_snapshot(job),
+        "job_id": job.job_id,
+    }
+
+    _active_job_resource = job
+    if job.has_signal("changed") and not job.changed.is_connected(Callable(self, "_on_job_resource_changed")):
+        job.changed.connect(Callable(self, "_on_job_resource_changed"))
+
+
+func _remove_job_bonuses() -> void:
+    if _active_job_resource != null and _active_job_resource.has_signal("changed") and _active_job_resource.changed.is_connected(Callable(self, "_on_job_resource_changed")):
+        _active_job_resource.changed.disconnect(Callable(self, "_on_job_resource_changed"))
+    _active_job_resource = null
+    _clear_job_subresource_connections()
+
+    if _applied_job_snapshot.is_empty():
+        _applied_job_snapshot.clear()
+        return
+
+    var stat_deltas: Dictionary = _applied_job_snapshot.get("stat_bonuses", {})
+    for property_name in stat_deltas.keys():
+        var current_value_variant: Variant = _get_numeric_property(StringName(property_name))
+        if current_value_variant == null:
+            continue
+        set(String(property_name), current_value_variant - int(stat_deltas[property_name]))
+
+    var training_deltas: Dictionary = _applied_job_snapshot.get("training_bonuses", {})
+    for training_name in training_deltas.keys():
+        var current_training_variant: Variant = _get_numeric_property(StringName(training_name))
+        if current_training_variant == null:
+            continue
+        set(String(training_name), current_training_variant - int(training_deltas[training_name]))
+
+    var applied_traits: Array = _applied_job_snapshot.get("starting_traits", [])
+    for trait_id in applied_traits:
+        var normalized := StringName(trait_id)
+        if normalized in traits:
+            remove_trait(normalized)
+
+    _applied_job_snapshot.clear()
+
+
+func _refresh_job_bonuses() -> void:
+    var current_component: Resource = _job_component_internal
+    _remove_job_bonuses()
+    if current_component != null:
+        _apply_job_bonuses()
+
+
+func _on_job_resource_changed() -> void:
+    _refresh_job_bonuses()
+
+
+func _on_job_component_changed() -> void:
+    _refresh_job_bonuses()
+
+
+func _get_numeric_property(property_name: StringName) -> Variant:
+    if not _has_exported_property(property_name):
+        return null
+    var value: Variant = get(String(property_name))
+    var value_type := typeof(value)
+    if value_type != TYPE_INT and value_type != TYPE_FLOAT:
+        return null
+    return int(value)
+
+
+func _has_exported_property(property_name: StringName) -> bool:
+    if property_name == StringName(""):
+        return false
+    var normalized := String(property_name)
+    for property_info in get_property_list():
+        if property_info.get("name", "") == normalized:
+            return true
+    return false
+
+
+func _build_skill_snapshot(job: Resource) -> Array[Dictionary]:
+    if not job.has_method("get_starting_skills"):
+        return []
+    var snapshot: Array[Dictionary] = []
+    for skill in job.get_starting_skills():
+        if skill == null:
+            continue
+        if not (skill is Skill):
+            continue
+        snapshot.append({
+            "resource_path": skill.resource_path,
+            "skill_name": skill.skill_name,
+        })
+        _register_job_subresource(skill)
+    return snapshot
+
+
+func _resolve_trait_id(trait_resource: Resource) -> StringName:
+    if trait_resource == null:
+        return StringName("")
+    if trait_resource is Trait:
+        var typed_trait: Trait = trait_resource
+        var direct_id := typed_trait.trait_id.strip_edges()
+        if direct_id != "":
+            return StringName(direct_id)
+        if typed_trait.resource_path != "":
+            return StringName(typed_trait.resource_path.get_file().get_basename())
+        var display := typed_trait.display_name.strip_edges()
+        if display != "":
+            return StringName(display)
+    elif trait_resource.resource_path != "":
+        return StringName(trait_resource.resource_path.get_file().get_basename())
+    return StringName("")
+
+
+func _register_job_subresource(resource: Resource) -> void:
+    if resource == null:
+        return
+    if not resource.has_signal("changed"):
+        return
+    var callable := Callable(self, "_on_job_resource_changed")
+    if resource.changed.is_connected(callable):
+        return
+    resource.changed.connect(callable)
+    _active_job_subresources.append(resource)
+
+
+func _clear_job_subresource_connections() -> void:
+    var callable := Callable(self, "_on_job_resource_changed")
+    for resource in _active_job_subresources:
+        if resource == null:
+            continue
+        if resource.has_signal("changed") and resource.changed.is_connected(callable):
+            resource.changed.disconnect(callable)
+    _active_job_subresources.clear()
 
 
 func apply_damage(amount: int) -> void:
