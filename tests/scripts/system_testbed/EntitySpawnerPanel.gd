@@ -162,12 +162,12 @@ func _prepare_entity_data(template: EntityData) -> EntityData:
     if fallback == null:
         return null
 
-    var manifest: Dictionary[StringName, Resource] = fallback.list_components()
+    var manifest: Dictionary[StringName, Component] = fallback.list_components()
     for component_key in manifest.keys():
-        var component: Resource = manifest.get(component_key)
+        var component: Component = manifest.get(component_key)
         if component == null:
             continue
-        var component_copy: Resource = component.duplicate(true)
+        var component_copy: Component = component.duplicate(true) as Component
         if component_copy == null:
             continue
         fallback.add_component(component_key, component_copy)

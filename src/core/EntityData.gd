@@ -34,7 +34,7 @@ var _invalid_component_warnings: Dictionary[String, bool] = {}
 ## all attached Component Resources, keyed by a canonical StringName identifier
 ## (e.g., ComponentKeys.STATS).
 ## Keys MUST correspond to the constants defined in ULTEnums.gd (e.g., ComponentKeys.STATS).
-var _components: Dictionary[StringName, Resource] = {}
+var _components: Dictionary[StringName, Component] = {}
 
 ## Exposed manifest of component resources keyed by canonical identifiers.
 ##
@@ -44,7 +44,7 @@ var _components: Dictionary[StringName, Resource] = {}
 ## `StringName` for stable lookups while tolerating legacy manifest data. The
 ## getter exposes the live manifest so existing editor tooling and tests that
 ## expect direct dictionary access continue to function.
-@export var components := {}:
+@export var components: Dictionary[StringName, Component] = {}:
     set(value):
         _invalid_component_warnings.clear()
         _components = _sanitize_component_manifest(value)
@@ -53,7 +53,7 @@ var _components: Dictionary[StringName, Resource] = {}
 
 ## Registers or replaces a component using a canonical ComponentKeys identifier.
 ## Converts arbitrary string inputs to StringName before storage to ensure stable lookups.
-func add_component(key: Variant, component: Resource) -> void:
+func add_component(key: Variant, component: Component) -> void:
     assert(component != null, "EntityData.add_component requires a Component instance.")
     assert(
         _is_component_resource(component),
@@ -71,7 +71,7 @@ func add_component(key: Variant, component: Resource) -> void:
 
 ## Retrieves a component reference by its canonical key.
 ## Returns null if the key is not registered on this entity.
-func get_component(key: Variant) -> Resource:
+func get_component(key: Variant) -> Component:
     var normalized_key: StringName = _normalize_component_key(key)
     if not ULTEnums.is_valid_component_key(normalized_key):
         return null
@@ -100,7 +100,7 @@ func has_component(key: Variant) -> bool:
 
 ## Removes a component from the manifest and returns the detached resource.
 ## Returns null when no component was registered for the provided key.
-func remove_component(key: Variant) -> Resource:
+func remove_component(key: Variant) -> Component:
     var normalized_key: StringName = _normalize_component_key(key)
     if not ULTEnums.is_valid_component_key(normalized_key):
         return null
@@ -115,8 +115,8 @@ func remove_component(key: Variant) -> Resource:
 
 ## Produces a shallow copy of the component manifest for safe iteration.
 ## External systems must treat the returned dictionary as read-only metadata.
-func list_components() -> Dictionary[StringName, Resource]:
-    var manifest: Dictionary[StringName, Resource] = {}
+func list_components() -> Dictionary[StringName, Component]:
+    var manifest: Dictionary[StringName, Component] = {}
     for key in _components.keys():
         var normalized: StringName = _normalize_component_key(key)
         if not ULTEnums.is_valid_component_key(normalized):
@@ -144,8 +144,8 @@ func _locate_component_entry(normalized_key: StringName) -> Dictionary:
         entry["key"] = normalized_key
     return entry
 
-func _sanitize_component_manifest(raw_value: Variant) -> Dictionary[StringName, Resource]:
-    var sanitized: Dictionary[StringName, Resource] = {}
+func _sanitize_component_manifest(raw_value: Variant) -> Dictionary[StringName, Component]:
+    var sanitized: Dictionary[StringName, Component] = {}
     if raw_value == null:
         return sanitized
     if not (raw_value is Dictionary):
