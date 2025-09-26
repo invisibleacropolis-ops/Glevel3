@@ -2,8 +2,6 @@ extends "res://src/systems/System.gd"
 class_name ValidationLoop
 
 const ULTEnums = preload("res://src/globals/ULTEnums.gd")
-const EntityData = preload("res://src/core/EntityData.gd")
-const StatsComponent = preload("res://src/components/StatsComponent.gd")
 
 func _physics_process(_delta: float) -> void:
     var entities = get_tree().get_nodes_in_group("entities")

@@ -15,7 +15,7 @@ const ULTEnums := preload("res://src/globals/ULTEnums.gd")
 @export var target_type: ULTEnums.TargetType = ULTEnums.TargetType.ENEMY
 @export var initiative_modifier: int = 0
 @export var area_of_effect: int = 0
-@export var range: int = 0
+@export var range_tiles: int = 0
 
 @export_group("Status Effect")
 ## If this skill applies a status effect, define it here. Leave blank for no effect.

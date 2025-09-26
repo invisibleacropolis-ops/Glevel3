@@ -176,7 +176,7 @@ func _validate_short_term_lifecycle(
     var stats: STATS_COMPONENT_SCRIPT = context.get("stats")
     var status_component: STATUS_COMPONENT_SCRIPT = context.get("status_component")
     var entity_data: ENTITY_DATA_SCRIPT = context.get("entity_data")
-    var entity: ENTITY_SCRIPT = context.get("entity")
+    var entity_ref: ENTITY_SCRIPT = context.get("entity")
 
     var effect := STATUS_FX_SCRIPT.new()
     effect.effect_name = SHORT_TERM_EFFECT_NAME
@@ -212,8 +212,8 @@ func _validate_short_term_lifecycle(
         errors.append("Expected one status_effect_applied payload but captured %d." % applied_events.size())
     else:
         var payload := applied_events[0]
-        if payload.get("entity_id") != entity.get_entity_id():
-            errors.append("status_effect_applied entity_id mismatch; expected %s." % String(entity.get_entity_id()))
+        if payload.get("entity_id") != entity_ref.get_entity_id():
+            errors.append("status_effect_applied entity_id mismatch; expected %s." % String(entity_ref.get_entity_id()))
         if payload.get("effect_name") != SHORT_TERM_EFFECT_NAME:
             errors.append("status_effect_applied effect_name mismatch; expected %s." % String(SHORT_TERM_EFFECT_NAME))
         if payload.get("duration") != SHORT_TERM_DURATION:
@@ -241,8 +241,8 @@ func _validate_short_term_lifecycle(
         errors.append("Expected one status_effect_ended payload after expiration but captured %d." % ended_events.size())
     else:
         var ended_payload := ended_events[0]
-        if ended_payload.get("entity_id") != entity.get_entity_id():
-            errors.append("status_effect_ended entity_id mismatch; expected %s." % String(entity.get_entity_id()))
+        if ended_payload.get("entity_id") != entity_ref.get_entity_id():
+            errors.append("status_effect_ended entity_id mismatch; expected %s." % String(entity_ref.get_entity_id()))
         if ended_payload.get("effect_name") != SHORT_TERM_EFFECT_NAME:
             errors.append("status_effect_ended effect_name mismatch; expected %s." % String(SHORT_TERM_EFFECT_NAME))
         if ended_payload.get("reason") != StringName("expired_turn"):
@@ -390,11 +390,11 @@ func _log_results(results: Array[Dictionary]) -> void:
     for result in results:
         if result.is_empty():
             continue
-        var name: String = result.get("name", "Unnamed validation")
+        var result_name: String = result.get("name", "Unnamed validation")
         var passed: bool = result.get("passed", false)
         var status_label := "PASS" if passed else "FAIL"
-        print("[StatusSystemValidator] %s - %s" % [status_label, name])
+        print("[StatusSystemValidator] %s - %s" % [status_label, result_name])
         if not passed:
             var errors: Array = result.get("errors", [])
             for error in errors:
-                push_warning("[StatusSystemValidator] %s: %s" % [name, error])
+                push_warning("[StatusSystemValidator] %s: %s" % [result_name, error])

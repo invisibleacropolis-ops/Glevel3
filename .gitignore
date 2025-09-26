@@ -2,3 +2,6 @@
 .godot/*
 !.godot/global_script_class_cache.cfg
 /android/
+# Local Godot editor installation for automation harnesses
+/tools/godot4/
+/Godot_v*.zip
