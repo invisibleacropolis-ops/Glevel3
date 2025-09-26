@@ -154,9 +154,9 @@ func _prepare_entity_data(template: EntityData) -> EntityData:
     if template == null:
         return null
     if template.has_method("duplicate_with_components"):
-        var duplicate: EntityData = template.duplicate_with_components()
-        if duplicate != null:
-            return duplicate
+        var cloned_manifest: EntityData = template.duplicate_with_components()
+        if cloned_manifest != null:
+            return cloned_manifest
 
     var fallback: EntityData = template.duplicate(true) as EntityData
     if fallback == null:

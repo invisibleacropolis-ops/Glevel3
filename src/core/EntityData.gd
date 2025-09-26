@@ -214,8 +214,8 @@ func ensure_runtime_entity_id(preferred_hint: StringName = StringName()) -> Stri
 ## instance. This is primarily used by Entity nodes that may briefly exist
 ## without an attached manifest but still require an id for debug tooling.
 static func generate_runtime_entity_id(preferred_hint: StringName = StringName()) -> StringName:
-        var seed: String = _derive_preferred_seed(String(preferred_hint))
-        return _claim_runtime_identifier(seed)
+        var seed_hint: String = _derive_preferred_seed(String(preferred_hint))
+        return _claim_runtime_identifier(seed_hint)
 
 ## Clears the runtime registry. World reset flows should call this so newly
 ## spawned entities can reclaim canonical ids like ``goblin_archer`` again.
@@ -242,10 +242,10 @@ static func _derive_preferred_seed(
         return "entity"
 
 static func _claim_runtime_identifier(raw_seed: String) -> StringName:
-        var seed := raw_seed.strip_edges()
-        if seed.is_empty():
-                seed = "entity"
-        var normalised: String = seed.to_snake_case()
+        var stripped_seed := raw_seed.strip_edges()
+        if stripped_seed.is_empty():
+                stripped_seed = "entity"
+        var normalised: String = stripped_seed.to_snake_case()
         if normalised.is_empty():
                 normalised = "entity"
 
