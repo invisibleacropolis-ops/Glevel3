@@ -9,6 +9,6 @@ entity_id = "skeleton_warrior"
 display_name = "Skeleton Warrior"
 entity_type = 2
 archetype_id = "SkeletonWarrior"
-components = Dictionary[StringName, Resource]({
+components = Dictionary[StringName, Component]({
 &"stats": ExtResource("2")
 })
