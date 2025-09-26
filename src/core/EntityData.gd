@@ -34,17 +34,24 @@ var _invalid_component_warnings: Dictionary[String, bool] = {}
 ## all attached Component Resources, keyed by a canonical StringName identifier
 ## (e.g., ComponentKeys.STATS).
 ## Keys MUST correspond to the constants defined in ULTEnums.gd (e.g., ComponentKeys.STATS).
-var _components: Dictionary[StringName, Component] = {}
+var _components: Dictionary[StringName, Resource] = {}
 
 ## Exposed manifest of component resources keyed by canonical identifiers.
 ##
-## The exported dictionary is now strongly typed so the Inspector knows each
-## value expects a Component resource, enabling drag-and-drop authoring from the
-## FileSystem dock. The internal `_components` cache still normalises keys to
-## `StringName` for stable lookups while tolerating legacy manifest data. The
-## getter exposes the live manifest so existing editor tooling and tests that
-## expect direct dictionary access continue to function.
-@export var components: Dictionary[StringName, Component] = {}:
+## The inspector currently blocks drag-and-drop when a dictionary constrains its
+## value type to a custom script class, so the exported property accepts generic
+## Resource values. The setter immediately sanitises assignments, rejecting any
+## resource that does not inherit from Component. Internally `_components` still
+## caches entries using canonical StringName keys for stable lookups while
+## tolerating legacy manifest data. The getter exposes the live manifest so
+## existing editor tooling and tests that expect direct dictionary access
+## continue to function.
+# NOTE: Godot 4.4.1's inspector rejects drag-and-drop assignments when the
+# dictionary value type is constrained to a custom script class (Component).
+# Expose the manifest as Dictionary[StringName, Resource] so designers can
+# attach concrete Component resources in the editor while the setter still
+# sanitises entries to enforce the Component contract at runtime.
+@export var components: Dictionary[StringName, Resource] = {}:
     set(value):
         _invalid_component_warnings.clear()
         _components = _sanitize_component_manifest(value)
@@ -144,8 +151,8 @@ func _locate_component_entry(normalized_key: StringName) -> Dictionary:
         entry["key"] = normalized_key
     return entry
 
-func _sanitize_component_manifest(raw_value: Variant) -> Dictionary[StringName, Component]:
-    var sanitized: Dictionary[StringName, Component] = {}
+func _sanitize_component_manifest(raw_value: Variant) -> Dictionary[StringName, Resource]:
+    var sanitized: Dictionary[StringName, Resource] = {}
     if raw_value == null:
         return sanitized
     if not (raw_value is Dictionary):
