@@ -404,7 +404,7 @@ func get_inverse_modifiers(modifiers: Dictionary) -> Dictionary:
 
     var inverse: Dictionary = {}
     for key in modifiers.keys():
-        var value := modifiers[key]
+        var value: Variant = modifiers[key]
         if value == null:
             continue
 
@@ -426,24 +426,24 @@ func get_inverse_modifiers(modifiers: Dictionary) -> Dictionary:
                     var removal: Array[StringName] = []
                     if inverse.has("remove_status"):
                         removal = inverse["remove_status"]
-                    for status in value:
-                        removal.append(StringName(status))
+                    for status_name in value:
+                        removal.append(StringName(status_name))
                     inverse["remove_status"] = removal
             "traits_to_add":
                 if value is Array:
                     var traits_to_remove: Array[StringName] = []
                     if inverse.has("traits_to_remove"):
                         traits_to_remove = inverse["traits_to_remove"]
-                    for trait in value:
-                        traits_to_remove.append(StringName(trait))
+                    for trait_name in value:
+                        traits_to_remove.append(StringName(trait_name))
                     inverse["traits_to_remove"] = traits_to_remove
             "traits_to_remove":
                 if value is Array:
                     var traits_to_add: Array[StringName] = []
                     if inverse.has("traits_to_add"):
                         traits_to_add = inverse["traits_to_add"]
-                    for trait in value:
-                        traits_to_add.append(StringName(trait))
+                    for trait_name in value:
+                        traits_to_add.append(StringName(trait_name))
                     inverse["traits_to_add"] = traits_to_add
             _:
                 continue
