@@ -8,13 +8,11 @@
 
 Each section groups related properties. "Common range" records the values most builds fall into today; treat them as guidance rather than hard limits. Array and dictionary entries note expected counts plus the canonical key or value formats (e.g., `StringName`).
 
-## Identity and job metadata
+## Job composition
 
 | Property | Type | Description | Common range & notes |
 | --- | --- | --- | --- |
-| `job_id` | `StringName` | Stable identifier linking the character to a job or profession definition consumed by loadout and generator systems.【F:src/components/StatsComponent.gd†L8-L12】 | Leave empty for civilians. Combatants usually map to curated job IDs such as `&"scout"` or `&"medic"`. |
-| `job_title` | `String` | Localized presentation label for the current job selection.【F:src/components/StatsComponent.gd†L14-L16】 | Optional; when populated stays within 16–24 characters so UI fits standard cards. |
-| `job_pool_tags` | `Array[StringName]` | Ordered tags describing which job pools may offer this character during generation.【F:src/components/StatsComponent.gd†L18-L21】 | 1–3 tags during early campaigns, expanding to 5 as meta-progress unlocks broader pools.【F:BaseCharacterStats.md†L7-L22】 |
+| `job_component` | `JobComponent` | Optional reference to a modular job overlay that injects profession metadata, stat bonuses, skills, and traits on top of the baseline stats.【F:src/components/StatsComponent.gd†L8-L12】【F:src/components/JobComponent.gd†L1-L40】 | Leave unset for generic civilians. Starter archetypes normally bind a `JobComponent` with a single primary job; late-game entities may expose alternates for generators to roll between. |
 
 ## Vital resources and tactical economy
 
