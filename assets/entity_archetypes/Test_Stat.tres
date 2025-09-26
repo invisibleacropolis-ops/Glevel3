@@ -1,9 +1,9 @@
-[gd_resource type="Resource" script_class="StatsComponent" load_steps=2 format=3 uid="uid://0v4hcwmvoycm"]
+[gd_resource type="Resource" script_class="StatsComponent" load_steps=2 format=3 uid="uid://c46lsnxkp8s43"]
 
-[ext_resource type="Script" uid="uid://dxb7uo6uqq8dx" path="res://src/components/StatsComponent.gd" id="1_deb6f"]
+[ext_resource type="Script" uid="uid://dxb7uo6uqq8dx" path="res://src/components/StatsComponent.gd" id="1_33q5k"]
 
 [resource]
-script = ExtResource("1_deb6f")
+script = ExtResource("1_33q5k")
 job_id = &""
 job_title = ""
 job_pool_tags = Array[StringName]([])
