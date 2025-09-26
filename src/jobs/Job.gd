@@ -25,7 +25,7 @@ class_name Job
 @export var starting_skills: Array[StringName] = []
 
 ## Mapping of skill ids to option arrays unlocked by the job (e.g., tree choices).
-@export var skill_options: Dictionary[StringName, Array[StringName]] = {}
+@export var skill_options: Dictionary[StringName, Array] = {}
 
 @export_group("Traits")
 ## Trait identifiers always granted by the job.
@@ -37,9 +37,9 @@ class_name Job
 
 ## Returns a stable snapshot suitable for serialization or tests.
 func to_dictionary() -> Dictionary:
-    var options_snapshot: Dictionary[StringName, Array[StringName]] = {}
+    var options_snapshot: Dictionary[StringName, Array] = {}
     for skill_id in skill_options.keys():
-        var options: Array[StringName] = skill_options[skill_id]
+        var options: Array = skill_options[skill_id]
         options_snapshot[skill_id] = options.duplicate()
 
     return {
