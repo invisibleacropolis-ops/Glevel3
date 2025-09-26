@@ -5,17 +5,13 @@ class_name StatsComponent
 ## Every property is exported so designers can author archetypes directly in the Inspector.
 ## Runtime systems mutate these values in response to gameplay.
 
-## Runtime identifier that links the character to a Job or Profession definition resource.
-## Designers assign a stable key so generators can request "ninja" or "scientist" loadouts.
+const JOB_COMPONENT_SCRIPT_PATH := "res://src/components/JobComponent.gd"
+var _job_component_script: GDScript = null
+
+## Optional JobComponent resource that layers profession data on top of baseline stats.
+## Attach a JobComponent to reuse this StatsComponent across multiple archetypes.
 @export_group("Job Assignment")
-@export var job_id: StringName = StringName("")
-
-## Optional localized title to show in UI for the current Job selection.
-@export var job_title: String = ""
-
-## Ordered tags that describe which job pools may offer this character to the player.
-## Designers expand this set as meta-progression unlocks more recruitment tables.
-@export var job_pool_tags: Array[StringName] = []
+@export var job_component: Resource
 
 ## ---- Vital Resources ----
 ## Current health pool. When this reaches 0 the entity is considered defeated.
@@ -175,9 +171,7 @@ func to_dictionary() -> Dictionary:
         skill_catalog_copy[type_key] = rarity_copy
 
     return {
-        "job_id": job_id,
-        "job_title": job_title,
-        "job_pool_tags": job_pool_tags.duplicate(),
+        "job_component": _job_component_snapshot(),
         "health": health,
         "max_health": max_health,
         "energy": energy,
@@ -216,6 +210,28 @@ func to_dictionary() -> Dictionary:
         "equipped_items": equipped_items.duplicate(true),
         "inventory_items": inventory_items.duplicate(),
     }
+
+
+func _job_component_snapshot() -> Variant:
+    var component = _get_job_component()
+    if component == null:
+        return null
+    if not component.has_method("to_dictionary"):
+        return null
+    return component.to_dictionary()
+
+
+func _get_job_component() -> Resource:
+    if job_component == null:
+        return null
+    if _job_component_script == null:
+        _job_component_script = load(JOB_COMPONENT_SCRIPT_PATH)
+    if _job_component_script == null:
+        return null
+    if job_component.get_script() != _job_component_script:
+        push_warning("StatsComponent.job_component expects a JobComponent resource.")
+        return null
+    return job_component
 
 
 func apply_damage(amount: int) -> void:

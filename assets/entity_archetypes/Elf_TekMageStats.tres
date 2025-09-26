@@ -4,9 +4,7 @@
 
 [resource]
 script = ExtResource("1_703cd")
-job_id = &""
-job_title = ""
-job_pool_tags = Array[StringName]([])
+job_component = null
 health = 0
 max_health = 0
 energy = 0
