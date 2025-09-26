@@ -9,7 +9,7 @@ entity_id = ""
 display_name = ""
 entity_type = 1
 archetype_id = ""
-components = Dictionary[StringName, Resource]({
+components = Dictionary[StringName, Component]({
 &"stats": ExtResource("1_vjp57")
 })
 metadata/_custom_type_script = "uid://dkwlkfpl03j5t"
