@@ -1,0 +1,23 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+[ext_resource path="res://src/components/Skill.gd" type="Script" id=1]
+
+[resource]
+script = ExtResource(1)
+skill_name = "arcane_bolt"
+description = "Launches a focused bolt of energy at a single target."
+category = 1
+rarity = 0
+ap_cost = 2
+damage = 18
+target_type = 1
+initiative_modifier = 0
+area_of_effect = 0
+range_tiles = 6
+status_effect_to_apply = ""
+status_effect_duration = 3
+status_effect_is_long_term = false
+status_effect_chance = 1.0
+base_traits = []
+weapon_requirement = 0
+base_actions = []
+upgrades = {}

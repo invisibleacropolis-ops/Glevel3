@@ -24,6 +24,23 @@ func get_primary_job_id() -> StringName:
         return StringName("")
     return job.job_id
 
+func get_primary_job() -> Resource:
+    return _as_job(primary_job)
+
+func list_jobs() -> Array[Resource]:
+    var jobs: Array[Resource] = []
+    var primary := _as_job(primary_job)
+    if primary != null:
+        jobs.append(primary)
+    for entry in alternate_jobs:
+        var job := _as_job(entry)
+        if job == null:
+            continue
+        if jobs.has(job):
+            continue
+        jobs.append(job)
+    return jobs
+
 func list_job_ids() -> PackedStringArray:
     var ids: PackedStringArray = []
     var primary = _as_job(primary_job)
