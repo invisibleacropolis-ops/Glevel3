@@ -7,10 +7,6 @@ extends Node
 ## omit a `class_name` declaration to avoid Godot warnings about a global class
 ## hiding that singleton while keeping the API available through `preload()`
 ## constants and the autoload instance.
-
-## Ultimate enumeration registry that merges the streamlined constants from the
-## lightweight Enums helper with the diagnostic tooling of OldEnums.
-##
 ## The registry underpins the data-first architecture documented in the design
 ## docs by exposing canonical identifiers for entity taxonomies and component
 ## dictionaries. Systems such as the InteractionManager rely on
