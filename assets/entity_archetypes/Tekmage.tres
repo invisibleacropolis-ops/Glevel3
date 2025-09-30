@@ -1,20 +1,20 @@
-[gd_resource type="Resource" script_class="Job" load_steps=6 format=3 uid="uid://b4abbor4logl8"]
+[gd_resource type="Resource" script_class="Job" load_steps=6 format=3]
 
-[ext_resource type="Script" uid="uid://bkkmosxo50ibs" path="res://assets/jobs/Job.gd" id="1_vnk5k"]
-[ext_resource type="Script" uid="uid://dvjs6e5vsppal" path="res://src/components/Skill.gd" id="2_qs7j8"]
-[ext_resource type="Script" uid="uid://bsx7tuaarx0gy" path="res://src/components/Trait.gd" id="3_wc86o"]
-[ext_resource type="Script" uid="uid://cpspnyw6i4yeh" path="res://assets/jobs/JobStatBonus.gd" id="4_xuu1f"]
-[ext_resource type="Script" uid="uid://cwx4nfi1m8tfo" path="res://assets/jobs/JobTrainingBonus.gd" id="5_pq6ou"]
+[ext_resource type="Script" path="res://assets/jobs/Job.gd" id="1"]
+[ext_resource type="Script" path="res://src/components/Skill.gd" id="2"]
+[ext_resource type="Script" path="res://src/components/Trait.gd" id="3"]
+[ext_resource type="Script" path="res://assets/jobs/JobStatBonus.gd" id="4"]
+[ext_resource type="Script" path="res://assets/jobs/JobTrainingBonus.gd" id="5"]
 
 [resource]
-script = ExtResource("1_vnk5k")
+script = ExtResource("1")
 job_id = &""
 job_title = ""
 job_pool_tags = Array[StringName]([])
-stat_bonuses = Array[ExtResource("4_xuu1f")]([null, null])
-training_bonuses = Array[ExtResource("5_pq6ou")]([])
-starting_skills = Array[ExtResource("2_qs7j8")]([])
+stat_bonuses = Array[ExtResource("4")]([null, null])
+training_bonuses = Array[ExtResource("5")]([])
+starting_skills = Array[ExtResource("2")]([])
 skill_options = Dictionary[StringName, Array]({})
-starting_traits = Array[ExtResource("3_wc86o")]([null])
+starting_traits = Array[ExtResource("3")]([null])
 formula_overrides = Dictionary[StringName, Variant]({})
-metadata/_custom_type_script = "uid://bkkmosxo50ibs"
+metadata/_custom_type_script = "res://assets/jobs/Job.gd"

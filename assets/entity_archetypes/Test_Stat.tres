@@ -1,9 +1,9 @@
-[gd_resource type="Resource" script_class="StatsComponent" load_steps=2 format=3 uid="uid://c46lsnxkp8s43"]
+[gd_resource type="Resource" script_class="StatsComponent" load_steps=2 format=3]
 
-[ext_resource type="Script" uid="uid://dxb7uo6uqq8dx" path="res://src/components/StatsComponent.gd" id="1_33q5k"]
+[ext_resource type="Script" path="res://src/components/StatsComponent.gd" id="1"]
 
 [resource]
-script = ExtResource("1_33q5k")
+script = ExtResource("1")
 job_component = null
 health = 0
 max_health = 0
@@ -42,4 +42,4 @@ skill_levels = Dictionary[StringName, int]({})
 skill_options = Dictionary[StringName, Array]({})
 equipped_items = Dictionary[StringName, StringName]({})
 inventory_items = Array[StringName]([])
-metadata/_custom_type_script = "uid://dxb7uo6uqq8dx"
+metadata/_custom_type_script = "res://src/components/StatsComponent.gd"
