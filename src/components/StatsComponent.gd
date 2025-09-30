@@ -106,6 +106,9 @@ var _active_job_subresources: Array[Resource] = []
 ## Agility attribute controlling ranged accuracy, stealth, and evasive maneuvers.
 @export var agility: int = 0
 
+## Static initiative modifier used to represent gear, boons, or other persistent buffs.
+@export var initiative_static_bonus: int = 0
+
 ## Speed attribute influencing initiative and grid travel distance per action point.
 @export var speed: int = 0
 
@@ -215,6 +218,7 @@ func to_dictionary() -> Dictionary:
         "mind_pool_relative": mind_pool_relative,
         "strength": strength,
         "agility": agility,
+        "initiative_static_bonus": initiative_static_bonus,
         "speed": speed,
         "intelligence": intelligence,
         "wisdom": wisdom,
@@ -539,6 +543,19 @@ func restore_action_points(amount: int) -> void:
         action_points += amount
 
 
+func refresh_action_points_for_turn() -> int:
+    """Resets the turn budget to ``max_action_points`` and returns the restored amount."""
+    var previous_action_points := action_points
+    if max_action_points > 0:
+        action_points = max_action_points
+    return action_points - previous_action_points
+
+
+func calculate_initiative_seed() -> int:
+    """Returns the deterministic initiative seed derived from core mobility stats."""
+    return speed + agility + initiative_static_bonus
+
+
 func add_status(effect: StringName, is_long_term: bool = false) -> void:
     """Adds a status effect tag to the appropriate list if it is not already present.
 
@@ -711,6 +728,5 @@ func reset_for_new_run() -> void:
         health = max_health
     if max_energy > 0:
         energy = max_energy
-    if max_action_points > 0:
-        action_points = max_action_points
+    refresh_action_points_for_turn()
     short_term_statuses.clear()
