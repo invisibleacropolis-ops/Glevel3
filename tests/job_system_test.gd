@@ -1,9 +1,9 @@
 extends SceneTree
 
 const StatsComponent := preload("res://src/components/StatsComponent.gd")
-const Job := preload("res://src/jobs/Job.gd")
-const JobStatBonus := preload("res://src/jobs/JobStatBonus.gd")
-const JobTrainingBonus := preload("res://src/jobs/JobTrainingBonus.gd")
+const Job := preload("res://assets/jobs/Job.gd")
+const JobStatBonus := preload("res://assets/jobs/JobStatBonus.gd")
+const JobTrainingBonus := preload("res://assets/jobs/JobTrainingBonus.gd")
 const Trait := preload("res://src/components/Trait.gd")
 const JobComponent := preload("res://src/components/JobComponent.gd")
 

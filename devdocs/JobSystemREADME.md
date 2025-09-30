@@ -5,9 +5,9 @@ The job system layers modular profession data on top of a character's baseline `
 ## Data resources
 
 - **`JobComponent`** – Bridges the stats resource to modular job definitions. Designers assign a `primary_job` and optional `alternate_jobs` so generators can roll substitutes without touching baseline stats.【F:src/components/JobComponent.gd†L1-L55】
-- **`Job`** – Authorable profession resource that captures identity, stat bonuses, training bonuses, granted skills, granted traits, and formula overrides. Utility methods return defensive copies for serialization or runtime inspection.【F:src/jobs/Job.gd†L1-L88】
-- **`JobStatBonus`** – Helper resource for additive stat adjustments. The Inspector now exposes a curated dropdown of core `StatsComponent` fields (Health, Energy, AP, Body, Mind, STR, AGL, SPD, INT, WIS, CHR, plus their max/pool variants) so designers only edit the numeric amount. Custom string names are still accepted for edge cases.【F:src/jobs/JobStatBonus.gd†L1-L83】
-- **`JobTrainingBonus`** – Helper resource for training adjustments. Designers select the relevant training (Athletics, Combat, Thievery, Diplomacy, Lore, or Technical) and enter the additive amount.【F:src/jobs/JobTrainingBonus.gd†L1-L73】
+- **`Job`** – Authorable profession resource that captures identity, stat bonuses, training bonuses, granted skills, granted traits, and formula overrides. Utility methods return defensive copies for serialization or runtime inspection.【F:assets/jobs/Job.gd†L1-L88】
+- **`JobStatBonus`** – Helper resource for additive stat adjustments. The Inspector now exposes a curated dropdown of core `StatsComponent` fields (Health, Energy, AP, Body, Mind, STR, AGL, SPD, INT, WIS, CHR, plus their max/pool variants) so designers only edit the numeric amount. Custom string names are still accepted for edge cases.【F:assets/jobs/JobStatBonus.gd†L1-L83】
+- **`JobTrainingBonus`** – Helper resource for training adjustments. Designers select the relevant training (Athletics, Combat, Thievery, Diplomacy, Lore, or Technical) and enter the additive amount.【F:assets/jobs/JobTrainingBonus.gd†L1-L73】
 
 ## Runtime flow
 
@@ -17,7 +17,7 @@ Traits and skills added by the job follow the same lifecycle: they are injected 
 
 ## Inspector workflow
 
-1. Create or open a `Job` resource under `res://src/jobs/` or your content directory.
+1. Create or open a `Job` resource under `res://assets/jobs/` or your content directory.
 2. In the **Stat Bonuses** section, add entries as needed. Use the dropdown to pick the target stat; leave the amount at `0` for no adjustment or raise/lower to apply bonuses or penalties. The field accepts manual text if you must reference a bespoke `StatsComponent` property.
 3. Populate the **Training Bonuses** array with training modifiers. Each entry targets one of the canonical proficiencies exposed by `StatsComponent`.
 4. Assign `starting_traits`, `starting_skills`, and `formula_overrides` as required by your design.

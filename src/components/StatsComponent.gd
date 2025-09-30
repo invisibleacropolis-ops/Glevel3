@@ -8,8 +8,8 @@ class_name StatsComponent
 const JOB_COMPONENT_SCRIPT_PATH := "res://src/components/JobComponent.gd"
 const Trait := preload("res://src/components/Trait.gd")
 const Skill := preload("res://src/components/Skill.gd")
-const JobStatBonus := preload("res://src/jobs/JobStatBonus.gd")
-const JobTrainingBonus := preload("res://src/jobs/JobTrainingBonus.gd")
+const JobStatBonus := preload("res://assets/jobs/JobStatBonus.gd")
+const JobTrainingBonus := preload("res://assets/jobs/JobTrainingBonus.gd")
 var _job_component_script: GDScript = null
 var _job_component_internal: Resource = null
 var _job_component_monitor: Resource = null

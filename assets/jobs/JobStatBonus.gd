@@ -44,7 +44,7 @@ const STAT_PROPERTY_LOOKUP := {
 var _stat_property: StringName = StringName("")
 var _amount: int = 0
 
-@export_custom(PropertyHint.ENUM_SUGGESTION, STAT_PROPERTY_HINT_STRING) var stat_property: StringName:
+@export_custom(PROPERTY_HINT_ENUM_SUGGESTION, STAT_PROPERTY_HINT_STRING) var stat_property: StringName:
     get:
         return _stat_property
     set(value):

@@ -1,8 +1,8 @@
 extends Resource
 class_name Job
 
-const JobStatBonus := preload("res://src/jobs/JobStatBonus.gd")
-const JobTrainingBonus := preload("res://src/jobs/JobTrainingBonus.gd")
+const JobStatBonus := preload("res://assets/jobs/JobStatBonus.gd")
+const JobTrainingBonus := preload("res://assets/jobs/JobTrainingBonus.gd")
 const Trait := preload("res://src/components/Trait.gd")
 const Skill := preload("res://src/components/Skill.gd")
 
