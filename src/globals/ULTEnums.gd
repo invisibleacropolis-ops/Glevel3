@@ -83,6 +83,7 @@ class ComponentKeys:
     const AI_BEHAVIOR := StringName("ai_behavior")
     const FACTION := StringName("faction")
     const QUEST_STATE := StringName("quest_state")
+    const COMBAT_RUNTIME := StringName("combat_runtime")
 
     ## Returns the registered component keys as StringName values so systems can
     ## iterate without incurring temporary allocations.
@@ -96,6 +97,7 @@ class ComponentKeys:
             AI_BEHAVIOR,
             FACTION,
             QUEST_STATE,
+            COMBAT_RUNTIME,
         ]
 
     ## Returns the component keys as strings for editor drop-downs and UI lists.
@@ -139,6 +141,10 @@ const COMPONENT_KEY_METADATA := {
     ComponentKeys.QUEST_STATE: {
         "description": "QuestStateComponent tracking quest lifecycle data for an entity.",
         "resource": &"QuestStateComponent",
+    },
+    ComponentKeys.COMBAT_RUNTIME: {
+        "description": "CombatRuntimeComponent storing initiative state and timed modifiers for encounters.",
+        "resource": &"CombatRuntimeComponent",
     },
 }
 
