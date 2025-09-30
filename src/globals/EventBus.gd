@@ -74,6 +74,14 @@ const SIGNAL_CONTRACTS := {
             "results": TYPE_DICTIONARY,
         },
     },
+    &"combat_action_resolved": {
+        "description": "CombatSystem broadcast emitted when an action finishes resolving so the CombatTimer can advance the queue.",
+        "required_keys": {
+            "entity_id": [TYPE_STRING, TYPE_STRING_NAME],
+            "results": TYPE_DICTIONARY,
+        },
+        "optional_keys": {},
+    },
     &"combat_queue_rebuilt": {
         "description": "CombatTimer broadcast emitted whenever the initiative queue is recalculated and a fresh snapshot is available.",
         "required_keys": {
@@ -285,6 +293,14 @@ signal combat_turn_ready_for_action(data: Dictionary)
 ## - "results" (Dictionary): Aggregated outcome data such as damage dealt or status effects applied.
 @warning_ignore("unused_signal")
 signal combat_turn_completed(data: Dictionary)
+
+## Emitted by combat resolution systems once an action fully resolves so the
+## CombatTimer can advance to the next turn.
+## Required payload keys:
+## - "entity_id" (String or StringName): Identifier of the combatant that just acted.
+## - "results" (Dictionary): Summary of the action outcome to forward into turn completion events.
+@warning_ignore("unused_signal")
+signal combat_action_resolved(data: Dictionary)
 
 ## Emitted by CombatTimer whenever the initiative queue is rebuilt.
 ## Required payload keys:
