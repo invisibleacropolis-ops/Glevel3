@@ -2,14 +2,14 @@ extends "res://src/systems/System.gd"
 class_name CombatTimer
 
 const ULTEnums := preload("res://src/globals/ULTEnums.gd")
-const CombatEncounterState := preload("res://src/core/CombatEncounterState.gd")
-const Entity := preload("res://src/entities/Entity.gd")
-const EntityData := preload("res://src/core/EntityData.gd")
-const StatsComponent := preload("res://src/components/StatsComponent.gd")
-const CombatRuntimeComponent := preload("res://src/components/CombatRuntimeComponent.gd")
-const FactionComponent := preload("res://src/components/FactionComponent.gd")
+const CombatEncounterStateScript: GDScript = preload("res://src/core/CombatEncounterState.gd")
+const EntityScript: GDScript = preload("res://src/entities/Entity.gd")
+const EntityDataScript: GDScript = preload("res://src/core/EntityData.gd")
+const StatsComponentScript: GDScript = preload("res://src/components/StatsComponent.gd")
+const CombatRuntimeComponentScript: GDScript = preload("res://src/components/CombatRuntimeComponent.gd")
+const FactionComponentScript: GDScript = preload("res://src/components/FactionComponent.gd")
 
-@export var encounter_state: CombatEncounterState
+@export var encounter_state: Resource
 
 var _rng_seed_internal: int = 0
 @export var rng_seed: int:
@@ -109,12 +109,12 @@ func apply_initiative_modifier(entity_id: StringName, amount: int, duration: int
         push_warning("CombatTimer.apply_initiative_modifier requires a valid entity_id.")
         return
 
-    var runtime_info := encounter_state.get_participant_runtime(entity_id)
+    var runtime_info: Dictionary = encounter_state.get_participant_runtime(entity_id)
     if runtime_info.is_empty():
         push_warning("CombatTimer.apply_initiative_modifier missing runtime metadata for %s." % entity_id)
         return
 
-    var combat_runtime: CombatRuntimeComponent = runtime_info.get("combat_runtime")
+    var combat_runtime: Resource = runtime_info.get("combat_runtime")
     if combat_runtime == null:
         push_warning("CombatTimer.apply_initiative_modifier missing CombatRuntimeComponent for %s." % entity_id)
         return
@@ -140,13 +140,13 @@ func inject_participants(participants: Array[Entity], rebuild_queue: bool = true
     if participants == null or participants.is_empty():
         return
 
-    var participant_ids := encounter_state.participants.duplicate()
+    var participant_ids: Array[StringName] = encounter_state.participants.duplicate()
     for participant in participants:
         var entity: Entity = participant
         if entity == null:
             continue
 
-        var prepared := _prepare_participant_runtime(entity, true)
+        var prepared: Dictionary = _prepare_participant_runtime(entity, true)
         if prepared.is_empty():
             continue
 
@@ -172,28 +172,28 @@ func _rebuild_turn_queue() -> void:
         return
 
     encounter_state.round_counter += 1
-    var round_index := encounter_state.round_counter
+    var round_index: int = encounter_state.round_counter
     emit_event(&"combat_round_started", {"round": round_index})
 
     encounter_state.turn_queue.clear()
 
     for entity_id in encounter_state.participants:
-        var runtime_info := encounter_state.get_participant_runtime(entity_id)
+        var runtime_info: Dictionary = encounter_state.get_participant_runtime(entity_id)
         if runtime_info.is_empty():
             push_warning("CombatTimer._rebuild_turn_queue missing runtime metadata for %s." % entity_id)
             continue
 
         var stats: StatsComponent = runtime_info.get("stats")
-        var combat_runtime: CombatRuntimeComponent = runtime_info.get("combat_runtime")
+        var combat_runtime: Resource = runtime_info.get("combat_runtime")
         if stats == null or combat_runtime == null:
             push_warning("CombatTimer._rebuild_turn_queue missing stats or combat runtime for %s." % entity_id)
             continue
 
-        var initiative_seed := stats.calculate_initiative_seed()
-        var base_initiative := combat_runtime.current_initiative
-        var modifier_delta := combat_runtime.tick_initiative_modifiers()
-        var roll := _rng.randi_range(1, 100)
-        var total_initiative := roll + initiative_seed + base_initiative + modifier_delta
+        var initiative_seed: int = stats.calculate_initiative_seed()
+        var base_initiative: int = combat_runtime.current_initiative
+        var modifier_delta: int = combat_runtime.tick_initiative_modifiers()
+        var roll: int = _rng.randi_range(1, 100)
+        var total_initiative: int = roll + initiative_seed + base_initiative + modifier_delta
         combat_runtime.current_initiative = total_initiative
 
         var entry_metadata := {
@@ -230,17 +230,17 @@ func _advance_to_next_turn() -> void:
         if encounter_state.is_queue_empty():
             return
 
-    var next_entry := encounter_state.pop_next_turn()
+    var next_entry: Dictionary = encounter_state.pop_next_turn()
     if next_entry.is_empty():
         return
 
-    var entity_id_variant := next_entry.get("entity_id", StringName())
+    var entity_id_variant: Variant = next_entry.get("entity_id", StringName())
     var entity_id := _normalize_entity_id(entity_id_variant)
     if entity_id == StringName():
         push_warning("CombatTimer._advance_to_next_turn encountered an entry without entity_id.")
         return
 
-    var runtime_info := encounter_state.get_participant_runtime(entity_id)
+    var runtime_info: Dictionary = encounter_state.get_participant_runtime(entity_id)
     var stats: StatsComponent = runtime_info.get("stats") if not runtime_info.is_empty() else null
     if stats != null:
         stats.refresh_action_points_for_turn()
@@ -312,7 +312,7 @@ func _evaluate_encounter_outcome(results: Dictionary) -> bool:
     var opponent_faction := StringName()
 
     for entity_id in encounter_state.participants:
-        var runtime_info := encounter_state.get_participant_runtime(entity_id)
+        var runtime_info: Dictionary = encounter_state.get_participant_runtime(entity_id)
         if runtime_info.is_empty():
             continue
 
@@ -321,7 +321,7 @@ func _evaluate_encounter_outcome(results: Dictionary) -> bool:
             continue
 
         var faction_component: FactionComponent = runtime_info.get("faction")
-        var faction_id := _normalize_faction_id(faction_component)
+        var faction_id: StringName = _normalize_faction_id(faction_component)
         var is_player := faction_id == &"PLAYER"
 
         if stats.health > 0:
@@ -419,12 +419,12 @@ func _resolve_entity_data(participant: Entity) -> EntityData:
         return participant.entity_data
 
     if participant.has_method("get_entity_data"):
-        var via_method := participant.call("get_entity_data")
+        var via_method: Variant = participant.call("get_entity_data")
         if via_method is EntityData:
             return via_method
 
     if participant.has_meta("entity_data"):
-        var via_meta := participant.get_meta("entity_data")
+        var via_meta: Variant = participant.get_meta("entity_data")
         if via_meta is EntityData:
             return via_meta
 
@@ -435,23 +435,23 @@ func _resolve_stats_component(entity_data: EntityData) -> StatsComponent:
         return null
     if not entity_data.has_component(ULTEnums.ComponentKeys.STATS):
         return null
-    var component := entity_data.get_component(ULTEnums.ComponentKeys.STATS)
+    var component: Resource = entity_data.get_component(ULTEnums.ComponentKeys.STATS)
     return component if component is StatsComponent else null
 
-func _resolve_combat_runtime_component(entity_data: EntityData) -> CombatRuntimeComponent:
+func _resolve_combat_runtime_component(entity_data: EntityData) -> Resource:
     if entity_data == null:
         return null
     if not entity_data.has_component(ULTEnums.ComponentKeys.COMBAT_RUNTIME):
         return null
-    var component := entity_data.get_component(ULTEnums.ComponentKeys.COMBAT_RUNTIME)
-    return component if component is CombatRuntimeComponent else null
+    var component: Resource = entity_data.get_component(ULTEnums.ComponentKeys.COMBAT_RUNTIME)
+    return component if component is CombatRuntimeComponentScript else null
 
 func _resolve_faction_component(entity_data: EntityData) -> FactionComponent:
     if entity_data == null:
         return null
     if not entity_data.has_component(ULTEnums.ComponentKeys.FACTION):
         return null
-    var component := entity_data.get_component(ULTEnums.ComponentKeys.FACTION)
+    var component: Resource = entity_data.get_component(ULTEnums.ComponentKeys.FACTION)
     return component if component is FactionComponent else null
 
 func _resolve_participant_label(participant: Entity, entity_data: EntityData) -> String:
@@ -466,7 +466,7 @@ func _resolve_participant_identifier(participant: Entity, entity_data: EntityDat
         return entity_data.ensure_runtime_entity_id(StringName(participant.name))
     if participant != null:
         if participant.has_method("get_entity_id"):
-            var via_method := participant.call("get_entity_id")
+            var via_method: Variant = participant.call("get_entity_id")
             return _normalize_entity_id(via_method)
         return StringName(participant.name)
     return StringName()
@@ -481,7 +481,7 @@ func _normalize_entity_id(value: Variant) -> StringName:
 func _normalize_faction_id(component: FactionComponent) -> StringName:
     if component == null:
         return StringName()
-    var identifier := component.faction_id.strip_edges()
+    var identifier: String = component.faction_id.strip_edges()
     if identifier == "":
         return StringName()
     return StringName(identifier.to_upper())

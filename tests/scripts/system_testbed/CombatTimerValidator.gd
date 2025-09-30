@@ -21,15 +21,15 @@ advance_demo_turn, describe_encounter_state) so the dedicated
 `CombatTimer_Testbed.tscn` scene can drive the same logic via UI buttons.
 """
 
-const COMBAT_TIMER_SCRIPT := preload("res://src/systems/combat/CombatTimer.gd")
-const STATUS_SYSTEM_SCRIPT := preload("res://src/systems/StatusSystem.gd")
-const EVENT_BUS_SCRIPT := preload("res://src/globals/EventBus.gd")
-const COMBAT_ENCOUNTER_STATE_SCRIPT := preload("res://src/core/CombatEncounterState.gd")
-const ENTITY_SCRIPT := preload("res://src/entities/Entity.gd")
-const ENTITY_DATA_FIXTURE := preload("res://tests/test_assets/TestDum2.tres")
-const STATS_COMPONENT_SCRIPT := preload("res://src/components/StatsComponent.gd")
-const COMBAT_RUNTIME_COMPONENT_SCRIPT := preload("res://src/components/CombatRuntimeComponent.gd")
-const FACTION_COMPONENT_SCRIPT := preload("res://src/components/FactionComponent.gd")
+const COMBAT_TIMER_SCRIPT: GDScript = preload("res://src/systems/combat/CombatTimer.gd")
+const STATUS_SYSTEM_SCRIPT: GDScript = preload("res://src/systems/StatusSystem.gd")
+const EVENT_BUS_SCRIPT: GDScript = preload("res://src/globals/EventBus.gd")
+const COMBAT_ENCOUNTER_STATE_SCRIPT: GDScript = preload("res://src/core/CombatEncounterState.gd")
+const ENTITY_SCRIPT: GDScript = preload("res://src/entities/Entity.gd")
+const ENTITY_DATA_FIXTURE: Resource = preload("res://tests/test_assets/TestDum2.tres")
+const STATS_COMPONENT_SCRIPT: GDScript = preload("res://src/components/StatsComponent.gd")
+const COMBAT_RUNTIME_COMPONENT_SCRIPT: GDScript = preload("res://src/components/CombatRuntimeComponent.gd")
+const FACTION_COMPONENT_SCRIPT: GDScript = preload("res://src/components/FactionComponent.gd")
 const ULTENUMS := preload("res://src/globals/ULTEnums.gd")
 
 const VALIDATION_RNG_SEED := 424242
@@ -39,9 +39,9 @@ const VALIDATOR_TAG := "[CombatTimerValidator]"
 @export var auto_run_on_ready: bool = true
 
 var _event_bus: EventBusSingleton
-var _combat_timer: CombatTimer
-var _status_system: StatusSystem
-var _encounter_state: CombatEncounterState
+var _combat_timer: Node
+var _status_system: Node
+var _encounter_state: Resource
 var _environment_initialized := false
 
 var _combatants: Array[Dictionary] = []
@@ -107,7 +107,9 @@ func advance_demo_turn(results: Dictionary = {}) -> Dictionary:
             "message": "CombatTimer environment not initialised.",
         }
 
-    var active_id := _encounter_state.active_entity_id if _encounter_state != null else StringName()
+    var active_id: StringName = StringName()
+    if _encounter_state != null:
+        active_id = _encounter_state.active_entity_id
     if active_id == StringName():
         return {
             "status": "idle",
@@ -125,7 +127,7 @@ func advance_demo_turn(results: Dictionary = {}) -> Dictionary:
         "entity_id": active_id,
         "results": results.duplicate(true),
     })
-    await get_tree().process_frame()
+    await get_tree().process_frame
 
     return {
         "status": "ok",
@@ -184,7 +186,7 @@ func _setup_environment() -> bool:
     _combat_timer.encounter_state = _encounter_state
     add_child(_combat_timer)
 
-    await get_tree().process_frame()
+    await get_tree().process_frame
 
     if _event_bus == null or _combat_timer == null or _status_system == null:
         return false
@@ -264,7 +266,7 @@ func _spawn_combatants_from_config(configs: Array) -> void:
     _combatant_lookup.clear()
 
     for config in configs:
-        var context := await _create_combatant_context(config)
+        var context: Dictionary = await _create_combatant_context(config)
         if context.is_empty():
             continue
         _combatants.append(context)
@@ -277,7 +279,7 @@ func _create_combatant_context(config: Dictionary) -> Dictionary:
     if fixture == null:
         return {}
 
-    var entity := ENTITY_SCRIPT.new()
+    var entity: Entity = ENTITY_SCRIPT.new()
     entity.name = String(config.get("name", "Combatant"))
 
     var entity_data := fixture as EntityData
@@ -285,7 +287,7 @@ func _create_combatant_context(config: Dictionary) -> Dictionary:
     entity_data.display_name = String(config.get("display_name", entity.name))
     entity_data.archetype_id = "CombatTimerValidator"
 
-    var stats := STATS_COMPONENT_SCRIPT.new()
+    var stats: StatsComponent = STATS_COMPONENT_SCRIPT.new()
     entity_data.add_component(ULTENUMS.ComponentKeys.STATS, stats)
 
     stats.max_health = int(config.get("max_health", 30))
@@ -296,13 +298,13 @@ func _create_combatant_context(config: Dictionary) -> Dictionary:
     stats.agility = int(config.get("agility", 2))
     stats.initiative_static_bonus = int(config.get("initiative_bonus", 0))
 
-    var combat_runtime := COMBAT_RUNTIME_COMPONENT_SCRIPT.new()
+    var combat_runtime: Resource = COMBAT_RUNTIME_COMPONENT_SCRIPT.new()
     entity_data.add_component(ULTENUMS.ComponentKeys.COMBAT_RUNTIME, combat_runtime)
     combat_runtime.base_initiative_bonus = int(config.get("base_initiative", 0))
     combat_runtime.current_initiative = combat_runtime.base_initiative_bonus
     combat_runtime.initiative_modifiers.clear()
 
-    var faction_component := FACTION_COMPONENT_SCRIPT.new()
+    var faction_component: FactionComponent = FACTION_COMPONENT_SCRIPT.new()
     faction_component.faction_id = String(config.get("faction", "neutral"))
     entity_data.add_component(ULTENUMS.ComponentKeys.FACTION, faction_component)
 
@@ -310,7 +312,7 @@ func _create_combatant_context(config: Dictionary) -> Dictionary:
     add_child(entity)
     await entity.ready
 
-    var entity_id := entity_data.ensure_runtime_entity_id(StringName(entity.name))
+    var entity_id: StringName = entity_data.ensure_runtime_entity_id(StringName(entity.name))
 
     return {
         "entity": entity,
@@ -330,7 +332,7 @@ func _despawn_combatants() -> void:
             entity.queue_free()
     _combatants.clear()
     _combatant_lookup.clear()
-    await get_tree().process_frame()
+    await get_tree().process_frame
 
 func _ensure_round_reset_hook() -> void:
     if _round_reset_connected:
@@ -390,9 +392,9 @@ func _validate_combat_loop() -> Dictionary:
     var participants := _collect_participant_nodes()
     _combat_timer.initialize_encounter(participants)
 
-    await get_tree().process_frame()
+    await get_tree().process_frame
 
-    var predicted_rounds := _predict_round_snapshots(2)
+    var predicted_rounds: Array = _predict_round_snapshots(2)
 
     if queue_events.is_empty():
         errors.append("CombatTimer did not emit combat_queue_rebuilt after initialisation.")
@@ -408,7 +410,7 @@ func _validate_combat_loop() -> Dictionary:
             for i in range(snapshot.size()):
                 var entry: Dictionary = snapshot[i]
                 var expected_entry: Dictionary = predicted_rounds[0][i]
-                var entity_id := _normalize_entity_id(entry.get("entity_id"))
+                var entity_id: StringName = _normalize_entity_id(entry.get("entity_id"))
                 _expect(
                     entity_id == expected_entry.get("entity_id"),
                     "Queue order mismatch at index %d (expected %s, received %s)." % [
@@ -432,7 +434,7 @@ func _validate_combat_loop() -> Dictionary:
     var completed_cursor := 0
     var turn_passed_cursor := 0
 
-    var first_round_entries := predicted_rounds[0]
+    var first_round_entries: Array = predicted_rounds[0]
     for index in range(first_round_entries.size()):
         var expected_entry: Dictionary = first_round_entries[index]
         var entity_id: StringName = expected_entry.get("entity_id", StringName())
@@ -488,7 +490,7 @@ func _validate_combat_loop() -> Dictionary:
             "entity_id": entity_id,
             "results": results_payload,
         })
-        await get_tree().process_frame()
+        await get_tree().process_frame
 
         if completed_cursor >= turn_completed_events.size():
             errors.append("Missing combat_turn_completed event for %s." % String(entity_id))
@@ -505,7 +507,7 @@ func _validate_combat_loop() -> Dictionary:
             errors)
         completed_cursor += 1
     
-    await get_tree().process_frame()
+    await get_tree().process_frame
 
     if round_events.size() < 2:
         errors.append("CombatTimer failed to start a second round after cycling the queue.")
@@ -518,7 +520,7 @@ func _validate_combat_loop() -> Dictionary:
     if queue_events.size() >= 2:
         var second_queue := queue_events[1]
         var second_snapshot: Array = second_queue.get("queue_snapshot", [])
-        var predicted_second := predicted_rounds[1]
+        var predicted_second: Array = predicted_rounds[1]
         if second_snapshot.size() == predicted_second.size():
             for j in range(second_snapshot.size()):
                 var snapshot_entry: Dictionary = second_snapshot[j]
@@ -533,7 +535,7 @@ func _validate_combat_loop() -> Dictionary:
     else:
         errors.append("CombatTimer did not emit combat_queue_rebuilt for round two.")
 
-    var second_round_entries := predicted_rounds[1]
+    var second_round_entries: Array = predicted_rounds[1]
     if not second_round_entries.is_empty():
         if turn_cursor >= turn_started_events.size():
             errors.append("Missing combat_turn_started event for round 2 initial combatant.")
@@ -581,7 +583,7 @@ func _validate_combat_loop() -> Dictionary:
                 "entity_id": expected_round_two_id,
                 "results": results_second,
             })
-            await get_tree().process_frame()
+            await get_tree().process_frame
 
             if completed_cursor >= turn_completed_events.size():
                 errors.append("Missing combat_turn_completed for round 2 opener.")
@@ -610,8 +612,8 @@ func _validate_combat_loop() -> Dictionary:
             _expect(int(summary.get("turns", 0)) >= 4,
                 "Encounter summary should report at least four turns processed.",
                 errors)
-            var participants: Array = summary.get("participants", [])
-            _expect(participants.size() == _combatants.size(),
+            var summary_participants: Array = summary.get("participants", [])
+            _expect(summary_participants.size() == _combatants.size(),
                 "Encounter summary participant roster mismatch.",
                 errors)
         _expect(ended_payload.get("winning_team") == &"PLAYER",
@@ -649,8 +651,8 @@ func _disconnect_validation_signals(connections: Array[Dictionary]) -> void:
 func _capture_event(payload: Dictionary, sink: Array[Dictionary]) -> void:
     sink.append(payload.duplicate(true))
 
-func _predict_round_snapshots(round_count: int) -> Array[Array[Dictionary]]:
-    var predictions: Array[Array[Dictionary]] = []
+func _predict_round_snapshots(round_count: int) -> Array:
+    var predictions: Array = []
     if _combatants.is_empty():
         return predictions
 
@@ -668,10 +670,10 @@ func _predict_round_snapshots(round_count: int) -> Array[Array[Dictionary]]:
         for context in _combatants:
             var entity_id: StringName = context.get("entity_id", StringName())
             var stats: STATS_COMPONENT_SCRIPT = context.get("stats")
-            var previous_total := initiative_totals.get(entity_id, 0)
-            var roll := rng.randi_range(1, 100)
-            var seed := stats.calculate_initiative_seed() if stats != null else 0
-            var total := roll + seed + previous_total
+            var previous_total: int = initiative_totals.get(entity_id, 0)
+            var roll: int = rng.randi_range(1, 100)
+            var seed: int = stats.calculate_initiative_seed() if stats != null else 0
+            var total: int = roll + seed + previous_total
             initiative_totals[entity_id] = total
             entries.append({
                 "entity_id": entity_id,
@@ -686,13 +688,13 @@ func _predict_round_snapshots(round_count: int) -> Array[Array[Dictionary]]:
 func _prime_next_combatant_action_points() -> void:
     if _combat_timer == null or _encounter_state == null:
         return
-    var next_entry := _encounter_state.peek_next_turn()
+    var next_entry: Dictionary = _encounter_state.peek_next_turn()
     if next_entry.is_empty():
         return
-    var next_id := _normalize_entity_id(next_entry.get("entity_id"))
+    var next_id: StringName = _normalize_entity_id(next_entry.get("entity_id"))
     if next_id == StringName():
         return
-    var context := _combatant_lookup.get(next_id, {})
+    var context: Dictionary = _combatant_lookup.get(next_id, {})
     if context.is_empty():
         return
     var stats: STATS_COMPONENT_SCRIPT = context.get("stats")
@@ -725,7 +727,7 @@ func _build_result(name: String, errors: Array[String]) -> Dictionary:
 
 func _log_results(results: Array[Dictionary]) -> void:
     for result in results:
-        var label := result.get("name", "Unnamed Validation")
+        var label: String = result.get("name", "Unnamed Validation")
         if result.get("passed", false):
             print("%s %s - PASS" % [VALIDATOR_TAG, label])
         else:
