@@ -22,6 +22,12 @@ class_name CombatEncounterState
 ## keys, with optional metadata for system callbacks.
 @export var turn_queue: Array[Dictionary] = []
 
+## Runtime metadata for encounter participants keyed by entity identifier.
+## Stores references to the relevant EntityData and Component resources so the
+## CombatTimer system can operate purely on detached resources without storing
+## heavy state on the scene tree.
+@export var participant_runtime: Dictionary[StringName, Dictionary] = {}
+
 ## Clears the encounter state so the resource can be reused for a fresh battle.
 func reset() -> void:
     round_counter = 0
@@ -29,6 +35,7 @@ func reset() -> void:
     active_entity_id = StringName()
     participants.clear()
     turn_queue.clear()
+    participant_runtime.clear()
 
 ## Registers the combatants participating in the encounter.
 func set_participants(ids: Array[StringName]) -> void:
@@ -43,6 +50,30 @@ func record_turn_entry(entity_id: StringName, initiative: int, metadata: Diction
     if not metadata.is_empty():
         entry["metadata"] = metadata.duplicate(true)
     turn_queue.append(entry)
+
+## Stores runtime metadata for a specific participant, overwriting any previous
+## entry registered for the same entity identifier. Passing an empty dictionary
+## removes the participant entry to keep the cache clean for persistence.
+func register_participant_runtime(entity_id: StringName, runtime_data: Dictionary) -> void:
+    if entity_id == StringName():
+        return
+    if runtime_data.is_empty():
+        participant_runtime.erase(entity_id)
+        return
+    participant_runtime[entity_id] = runtime_data
+
+## Retrieves the runtime metadata dictionary for the supplied entity identifier.
+## Returns an empty dictionary when the entity has not been registered.
+func get_participant_runtime(entity_id: StringName) -> Dictionary:
+    if participant_runtime.has(entity_id):
+        return participant_runtime[entity_id]
+    return {}
+
+## Removes a participant's runtime metadata from the encounter state.
+func remove_participant_runtime(entity_id: StringName) -> void:
+    if entity_id == StringName():
+        return
+    participant_runtime.erase(entity_id)
 
 ## Removes and returns the next turn entry from the queue. Updates bookkeeping to
 ## reflect the active entity. Returns an empty dictionary when the queue is empty.
