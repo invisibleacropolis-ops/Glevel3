@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="JobComponent" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://src/components/JobComponent.gd" id="1"]
+[ext_resource type="Resource" path="res://assets/entity_archetypes/Tekmage.tres" id="2"]
+
+[resource]
+script = ExtResource("1")
+primary_job = ExtResource("2")
+alternate_jobs = Array[Resource]([])
+metadata/_custom_type_script = "res://src/components/JobComponent.gd"

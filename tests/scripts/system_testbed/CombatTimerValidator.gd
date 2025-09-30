@@ -672,8 +672,8 @@ func _predict_round_snapshots(round_count: int) -> Array:
 			var stats: STATS_COMPONENT_SCRIPT = context.get("stats")
 			var previous_total: int = initiative_totals.get(entity_id, 0)
 			var roll: int = rng.randi_range(1, 100)
-			var seed: int = stats.calculate_initiative_seed() if stats != null else 0
-			var total: int = roll + seed + previous_total
+			var initiative_seed: int = stats.calculate_initiative_seed() if stats != null else 0
+			var total: int = roll + initiative_seed + previous_total
 			initiative_totals[entity_id] = total
 			entries.append({
 				"entity_id": entity_id,
@@ -718,9 +718,9 @@ func _expect(condition: bool, message: String, errors: Array[String]) -> void:
 	if not condition:
 		errors.append(message)
 
-func _build_result(name: String, errors: Array[String]) -> Dictionary:
+func _build_result(label: String, errors: Array[String]) -> Dictionary:
 	return {
-		"name": name,
+		"name": label,
 		"passed": errors.is_empty(),
 		"errors": errors,
 	}

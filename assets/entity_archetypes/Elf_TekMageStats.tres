@@ -1,11 +1,11 @@
-[gd_resource type="Resource" script_class="StatsComponent" load_steps=3 format=3 uid="uid://ombtafnkam5a"]
+[gd_resource type="Resource" script_class="StatsComponent" load_steps=3 format=3]
 
-[ext_resource type="Script" uid="uid://bp5om06gwv0e1" path="res://src/components/StatsComponent.gd" id="1_703cd"]
-[ext_resource type="Resource" uid="uid://b4abbor4logl8" path="res://assets/entity_archetypes/Tekmage.tres" id="1_pkpp1"]
+[ext_resource type="Script" path="res://src/components/StatsComponent.gd" id="1"]
+[ext_resource type="Resource" path="res://assets/jobs/TekmageJobComponent.tres" id="2"]
 
 [resource]
-script = ExtResource("1_703cd")
-job_component = ExtResource("1_pkpp1")
+script = ExtResource("1")
+job_component = ExtResource("2")
 health = 2
 max_health = -1
 energy = 3
@@ -44,4 +44,4 @@ skill_levels = Dictionary[StringName, int]({})
 skill_options = Dictionary[StringName, Array]({})
 equipped_items = Dictionary[StringName, StringName]({})
 inventory_items = Array[StringName]([])
-metadata/_custom_type_script = "uid://dxb7uo6uqq8dx"
+metadata/_custom_type_script = "res://src/components/StatsComponent.gd"

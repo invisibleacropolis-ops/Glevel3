@@ -275,8 +275,6 @@ func _validate_long_term_lifecycle(
 	var stats: STATS_COMPONENT_SCRIPT = context.get("stats")
 	var status_component: STATUS_COMPONENT_SCRIPT = context.get("status_component")
 	var entity_data: ENTITY_DATA_SCRIPT = context.get("entity_data")
-	var entity: ENTITY_SCRIPT = context.get("entity")
-
 	var effect := STATUS_FX_SCRIPT.new()
 	effect.effect_name = LONG_TERM_EFFECT_NAME
 	effect.is_passive = false

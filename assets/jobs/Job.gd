@@ -1,10 +1,6 @@
 extends Resource
 class_name Job
 
-const JobStatBonus := preload("res://assets/jobs/JobStatBonus.gd")
-const JobTrainingBonus := preload("res://assets/jobs/JobTrainingBonus.gd")
-const Trait := preload("res://src/components/Trait.gd")
-const Skill := preload("res://src/components/Skill.gd")
 
 ## Data-only resource describing a modular profession or role overlay.
 ## Jobs augment baseline stats with additional bonuses, loadouts, and
