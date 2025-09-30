@@ -1,12 +1,12 @@
-[gd_resource type="Resource" script_class="EntityData" load_steps=2 format=3 uid="uid://bpucgrd5rvf30"]
+[gd_resource type="Resource" script_class="EntityData" load_steps=2 format=3]
 
-[ext_resource type="Script" uid="uid://cr8f74p6cofu8" path="res://src/core/EntityData.gd" id="2_4tj6f"]
+[ext_resource type="Script" path="res://src/core/EntityData.gd" id="1"]
 
 [resource]
-script = ExtResource("2_4tj6f")
+script = ExtResource("1")
 entity_id = ""
 display_name = ""
 entity_type = 1
 archetype_id = ""
 components = Dictionary[StringName, Resource]({})
-metadata/_custom_type_script = "uid://cr8f74p6cofu8"
+metadata/_custom_type_script = "res://src/core/EntityData.gd"
