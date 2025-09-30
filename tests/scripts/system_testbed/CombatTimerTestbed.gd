@@ -23,7 +23,7 @@ func _on_resolve_button_pressed() -> void:
     if validator == null:
         _append_status("Validator node missing; cannot resolve turns.")
         return
-    var result := await validator.advance_demo_turn()
+    var result: Dictionary = await validator.advance_demo_turn()
     match result.get("status"):
         "error":
             _append_status("Resolve failed: %s" % result.get("message", "Unknown error"))
@@ -48,4 +48,4 @@ func _append_status(message: String) -> void:
     status_label.append_text("%s\n" % message)
     var scroll_bar := status_label.get_v_scroll_bar()
     if scroll_bar != null:
-        status_label.scroll_vertical = scroll_bar.max_value
+        scroll_bar.value = scroll_bar.max_value
