@@ -22,6 +22,87 @@ static var _singleton: EventBusSingleton = null
 ## human-readable description plus dictionaries that map payload keys to the
 ## Variant types accepted for those keys.
 const SIGNAL_CONTRACTS := {
+    &"combat_encounter_started": {
+        "description": "CombatTimer broadcast emitted when an encounter opens and the turn queue seeds its participants.",
+        "required_keys": {
+            "participants": TYPE_ARRAY,
+        },
+        "optional_keys": {
+            "encounter_id": [TYPE_STRING, TYPE_STRING_NAME],
+        },
+    },
+    &"combat_round_started": {
+        "description": "CombatTimer broadcast emitted at the start of each new combat round after the initiative queue advances.",
+        "required_keys": {
+            "round": TYPE_INT,
+        },
+        "optional_keys": {
+            "queue_snapshot": TYPE_ARRAY,
+        },
+    },
+    &"combat_turn_started": {
+        "description": "CombatTimer broadcast emitted when the next combatant begins their turn before actions are processed.",
+        "required_keys": {
+            "entity_id": [TYPE_STRING, TYPE_STRING_NAME],
+            "round": TYPE_INT,
+            "initiative": TYPE_INT,
+        },
+        "optional_keys": {
+            "turn_index": TYPE_INT,
+            "queue_snapshot": TYPE_ARRAY,
+        },
+    },
+    &"combat_turn_ready_for_action": {
+        "description": "CombatTimer broadcast emitted once the active combatant's turn data is locked and downstream systems may perform actions.",
+        "required_keys": {
+            "entity_id": [TYPE_STRING, TYPE_STRING_NAME],
+            "round": TYPE_INT,
+            "initiative": TYPE_INT,
+        },
+        "optional_keys": {
+            "turn_index": TYPE_INT,
+            "queue_snapshot": TYPE_ARRAY,
+        },
+    },
+    &"combat_turn_completed": {
+        "description": "CombatTimer broadcast emitted after the active combatant finishes their actions and cleanup has completed.",
+        "required_keys": {
+            "entity_id": [TYPE_STRING, TYPE_STRING_NAME],
+            "round": TYPE_INT,
+        },
+        "optional_keys": {
+            "results": TYPE_DICTIONARY,
+        },
+    },
+    &"combat_queue_rebuilt": {
+        "description": "CombatTimer broadcast emitted whenever the initiative queue is recalculated and a fresh snapshot is available.",
+        "required_keys": {
+            "round": TYPE_INT,
+            "queue_snapshot": TYPE_ARRAY,
+        },
+        "optional_keys": {},
+    },
+    &"combat_encounter_ended": {
+        "description": "CombatTimer broadcast emitted when an encounter resolves so systems can react to the outcome summary.",
+        "required_keys": {
+            "outcome": TYPE_STRING_NAME,
+            "summary": TYPE_DICTIONARY,
+        },
+        "optional_keys": {
+            "winning_team": TYPE_STRING_NAME,
+        },
+    },
+    &"combat_initiative_modified": {
+        "description": "CombatTimer broadcast emitted whenever a combatant's initiative changes during an active encounter.",
+        "required_keys": {
+            "entity_id": [TYPE_STRING, TYPE_STRING_NAME],
+            "delta": TYPE_INT,
+            "source": TYPE_STRING_NAME,
+        },
+        "optional_keys": {
+            "remaining_turns": TYPE_INT,
+        },
+    },
     &"debug_stats_reported": {
         "description": "Telemetry broadcast emitted whenever DebugSystem captures "
             + "a snapshot of an entity's StatsComponent for diagnostics.",
@@ -154,6 +235,85 @@ signal entity_damaged(data: Dictionary)
 @warning_ignore("unused_signal")
 signal entity_killed(data: Dictionary)
 
+## Emitted by CombatTimer when a combat encounter begins and the round timer seeds
+## an initiative queue.
+## Required payload keys:
+## - "participants" (Array[StringName]): Ordered identifiers for combatants entering the encounter.
+## Optional payload keys:
+## - "encounter_id" (String or StringName): Author-provided identifier for analytics or scripted lookups.
+@warning_ignore("unused_signal")
+signal combat_encounter_started(data: Dictionary)
+
+## Emitted by CombatTimer at the start of each combat round after advancing the
+## initiative timeline.
+## Required payload keys:
+## - "round" (int): The 1-indexed combat round that just began.
+## Optional payload keys:
+## - "queue_snapshot" (Array[Dictionary]): Frozen initiative order for UI overlays or AI planning.
+@warning_ignore("unused_signal")
+signal combat_round_started(data: Dictionary)
+
+## Emitted by CombatTimer when the next combatant becomes active.
+## Required payload keys:
+## - "entity_id" (String or StringName): Identifier for the acting combatant.
+## - "round" (int): The combat round currently in progress.
+## - "initiative" (int): Initiative score or rank assigned to the combatant this round.
+## Optional payload keys:
+## - "turn_index" (int): Zero-based index of the turn within the round for deterministic playback.
+## - "queue_snapshot" (Array[Dictionary]): Initiative queue as recalculated for this turn.
+@warning_ignore("unused_signal")
+signal combat_turn_started(data: Dictionary)
+
+## Emitted by CombatTimer once the active combatant's turn has fully initialized
+## and downstream systems may resolve actions.
+## Required payload keys (matches `combat_turn_started`):
+## - "entity_id" (String or StringName): Identifier for the acting combatant.
+## - "round" (int): Combat round currently executing.
+## - "initiative" (int): Initiative score for the acting combatant.
+## Optional payload keys:
+## - "turn_index" (int): Zero-based index of the turn within the round.
+## - "queue_snapshot" (Array[Dictionary]): Initiative queue as recalculated for this action window.
+@warning_ignore("unused_signal")
+signal combat_turn_ready_for_action(data: Dictionary)
+
+## Emitted by CombatTimer after the active combatant finishes acting and any
+## cleanup (cooldowns, status checks) completes.
+## Required payload keys:
+## - "entity_id" (String or StringName): Identifier for the combatant whose turn concluded.
+## - "round" (int): Combat round during which the turn ended.
+## Optional payload keys:
+## - "results" (Dictionary): Aggregated outcome data such as damage dealt or status effects applied.
+@warning_ignore("unused_signal")
+signal combat_turn_completed(data: Dictionary)
+
+## Emitted by CombatTimer whenever the initiative queue is rebuilt.
+## Required payload keys:
+## - "round" (int): Combat round the rebuilt queue applies to.
+## - "queue_snapshot" (Array[Dictionary]): Ordered initiative entries ready for UI or AI consumers.
+@warning_ignore("unused_signal")
+signal combat_queue_rebuilt(data: Dictionary)
+
+## Emitted by CombatTimer when an encounter resolves and downstream systems need
+## to react to the final state.
+## Required payload keys:
+## - "outcome" (StringName): Encounter resolution classification (e.g., &"victory", &"defeat").
+## - "summary" (Dictionary): Aggregated encounter data for rewards, analytics, or scripting.
+## Optional payload keys:
+## - "winning_team" (StringName): Identifier for the victorious team when applicable.
+@warning_ignore("unused_signal")
+signal combat_encounter_ended(data: Dictionary)
+
+## Emitted by CombatTimer whenever a combatant's initiative value changes during
+## an encounter.
+## Required payload keys:
+## - "entity_id" (String or StringName): Identifier for the combatant whose initiative shifted.
+## - "delta" (int): Signed change applied to the initiative score.
+## - "source" (StringName): System or effect responsible for the adjustment.
+## Optional payload keys:
+## - "remaining_turns" (int): Number of turns the modification will persist when duration-based.
+@warning_ignore("unused_signal")
+signal combat_initiative_modified(data: Dictionary)
+
 ## Emitted whenever an item stack enters an inventory.
 ## Required payload keys:
 ## - "item_id" (String or StringName): Identifier of the acquired item resource.
@@ -248,8 +408,9 @@ func describe_signal(signal_name: StringName) -> Dictionary:
     return SIGNAL_CONTRACTS.get(signal_name, {})
 
 ## Internal validation routine that ensures every broadcast complies with the
-## contract declared in SIGNAL_CONTRACTS. Invalid payloads stop propagation and
-## surface descriptive errors in the editor console.
+## contract declared in SIGNAL_CONTRACTS, including CombatTimer's combat
+## encounter lifecycle events. Invalid payloads stop propagation and surface
+## descriptive errors in the editor console.
 func _validate_payload(signal_name: StringName, payload: Variant) -> int:
     if typeof(payload) != TYPE_DICTIONARY:
         push_error("EventBus.%s expects a Dictionary payload but received %s." % [
