@@ -1,8 +1,8 @@
 [gd_resource type="Resource" script_class="EntityData" load_steps=5 format=3 uid="uid://bf51md0pqvkmk"]
 
-[ext_resource type="Script" uid="uid://dkwlkfpl03j5t" path="res://src/core/EntityData.gd" id="1_leq2l"]
+[ext_resource type="Script" uid="uid://oarq6t337b4f" path="res://src/core/EntityData.gd" id="1_leq2l"]
 [ext_resource type="Resource" uid="uid://dv0qpux18fhv1" path="res://tests/test_assets/testDum2Stat.tres" id="1_vjp57"]
-[ext_resource type="Script" path="res://src/components/CombatRuntimeComponent.gd" id="2_9rkak"]
+[ext_resource type="Script" uid="uid://dg78gmwbt4v15" path="res://src/components/CombatRuntimeComponent.gd" id="2_9rkak"]
 
 [sub_resource type="Resource" id="CombatRuntimeComponent_04jo3"]
 script = ExtResource("2_9rkak")
@@ -16,8 +16,8 @@ entity_id = ""
 display_name = ""
 entity_type = 1
 archetype_id = ""
-components = Dictionary[StringName, Component]({
-&"stats": ExtResource("1_vjp57"),
-&"combat_runtime": SubResource("CombatRuntimeComponent_04jo3")
+components = Dictionary[StringName, Resource]({
+&"combat_runtime": SubResource("CombatRuntimeComponent_04jo3"),
+&"stats": ExtResource("1_vjp57")
 })
 metadata/_custom_type_script = "uid://dkwlkfpl03j5t"

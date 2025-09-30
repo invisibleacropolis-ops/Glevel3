@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="EntityData" load_steps=2 format=3 uid="uid://dfsri30vu4jnb"]
 
-[ext_resource type="Script" uid="uid://cr8f74p6cofu8" path="res://src/core/EntityData.gd" id="2_1ro6j"]
+[ext_resource type="Script" uid="uid://rqiyylddknmy" path="res://src/core/EntityData.gd" id="2_1ro6j"]
 
 [resource]
 script = ExtResource("2_1ro6j")
@@ -9,4 +9,3 @@ display_name = ""
 entity_type = 1
 archetype_id = "Elf_TekMage"
 components = Dictionary[StringName, Resource]({})
-metadata/_custom_type_script = "uid://cr8f74p6cofu8"
