@@ -26,6 +26,88 @@ CombatSystem notification that an entity has been removed from play. Downstream 
 | `entity_type` | `StringName` | Optional | High-level taxonomy from component enums. |
 | `components` | `Dictionary` | Optional | Snapshot of relevant Components for downstream systems. |
 
+## `combat_encounter_started`
+
+`CombatTimer` broadcast emitted when an encounter opens and the initiative queue seeds its participants.
+
+| Key | Type(s) | Requirement | Description |
+| --- | --- | --- | --- |
+| `participants` | `Array[StringName]` | Required | Ordered identifiers for combatants entering the encounter. |
+| `encounter_id` | `String` or `StringName` | Optional | Author-provided identifier for analytics or scripted lookups. |
+
+## `combat_round_started`
+
+`CombatTimer` broadcast emitted at the start of each new combat round after the initiative queue advances.
+
+| Key | Type(s) | Requirement | Description |
+| --- | --- | --- | --- |
+| `round` | `int` | Required | The 1-indexed combat round that just began. |
+| `queue_snapshot` | `Array[Dictionary]` | Optional | Frozen initiative order for UI overlays or AI planning. |
+
+## `combat_turn_started`
+
+`CombatTimer` broadcast emitted when the next combatant becomes active.
+
+| Key | Type(s) | Requirement | Description |
+| --- | --- | --- | --- |
+| `entity_id` | `String` or `StringName` | Required | Identifier for the acting combatant. |
+| `round` | `int` | Required | Combat round currently in progress. |
+| `initiative` | `int` | Required | Initiative score or rank assigned to the combatant this round. |
+| `turn_index` | `int` | Optional | Zero-based index of the turn within the round for deterministic playback. |
+| `queue_snapshot` | `Array[Dictionary]` | Optional | Initiative queue as recalculated for this turn. |
+
+## `combat_turn_ready_for_action`
+
+`CombatTimer` broadcast emitted once the active combatant's turn has fully initialized and downstream systems may resolve actions. Payload mirrors `combat_turn_started`.
+
+| Key | Type(s) | Requirement | Description |
+| --- | --- | --- | --- |
+| `entity_id` | `String` or `StringName` | Required | Identifier for the acting combatant. |
+| `round` | `int` | Required | Combat round currently executing. |
+| `initiative` | `int` | Required | Initiative score for the acting combatant. |
+| `turn_index` | `int` | Optional | Zero-based index of the turn within the round. |
+| `queue_snapshot` | `Array[Dictionary]` | Optional | Initiative queue as recalculated for this action window. |
+
+## `combat_turn_completed`
+
+`CombatTimer` broadcast emitted after the active combatant finishes acting and cleanup has completed.
+
+| Key | Type(s) | Requirement | Description |
+| --- | --- | --- | --- |
+| `entity_id` | `String` or `StringName` | Required | Identifier for the combatant whose turn concluded. |
+| `round` | `int` | Required | Combat round during which the turn ended. |
+| `results` | `Dictionary` | Optional | Aggregated outcome data such as damage dealt or status effects applied. |
+
+## `combat_queue_rebuilt`
+
+`CombatTimer` broadcast emitted whenever the initiative queue is rebuilt.
+
+| Key | Type(s) | Requirement | Description |
+| --- | --- | --- | --- |
+| `round` | `int` | Required | Combat round the rebuilt queue applies to. |
+| `queue_snapshot` | `Array[Dictionary]` | Required | Ordered initiative entries ready for UI or AI consumers. |
+
+## `combat_encounter_ended`
+
+`CombatTimer` broadcast emitted when an encounter resolves and downstream systems need to react to the final state.
+
+| Key | Type(s) | Requirement | Description |
+| --- | --- | --- | --- |
+| `outcome` | `StringName` | Required | Encounter resolution classification (for example, `&"victory"`, `&"defeat"`). |
+| `summary` | `Dictionary` | Required | Aggregated encounter data for rewards, analytics, or scripting. |
+| `winning_team` | `StringName` | Optional | Identifier for the victorious team when applicable. |
+
+## `combat_initiative_modified`
+
+`CombatTimer` broadcast emitted whenever a combatant's initiative value changes during an encounter.
+
+| Key | Type(s) | Requirement | Description |
+| --- | --- | --- | --- |
+| `entity_id` | `String` or `StringName` | Required | Identifier for the combatant whose initiative shifted. |
+| `delta` | `int` | Required | Signed change applied to the initiative score. |
+| `source` | `StringName` | Required | System or effect responsible for the adjustment. |
+| `remaining_turns` | `int` | Optional | Number of turns the modification will persist when duration-based. |
+
 ## `item_acquired`
 
 Inventory or loot system broadcast whenever an entity adds an item stack to its inventory.
