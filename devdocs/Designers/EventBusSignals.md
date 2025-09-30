@@ -78,6 +78,15 @@ CombatSystem notification that an entity has been removed from play. Downstream 
 | `round` | `int` | Required | Combat round during which the turn ended. |
 | `results` | `Dictionary` | Optional | Aggregated outcome data such as damage dealt or status effects applied. |
 
+## `combat_action_resolved`
+
+`CombatSystem` broadcast emitted once an action fully resolves so `CombatTimer` can advance the initiative queue.
+
+| Key | Type(s) | Requirement | Description |
+| --- | --- | --- | --- |
+| `entity_id` | `String` or `StringName` | Required | Identifier for the combatant whose action just resolved. |
+| `results` | `Dictionary` | Required | Action outcome payload forwarded to `combat_turn_completed` consumers. |
+
 ## `combat_queue_rebuilt`
 
 `CombatTimer` broadcast emitted whenever the initiative queue is rebuilt.

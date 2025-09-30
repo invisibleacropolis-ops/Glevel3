@@ -2,9 +2,14 @@ BASE CHARACTER STAT SHEET
 With full concept descriptions
 
 
-Base Stats– 
+Base Stats–
 
 Job  – profession or training or role, the number of them available is going to be moderate at start, and just keep increasing as the game progresses, typical to a “card collection” style. The Player generated Characters start with the ability to choose from a pool of 5 or so, and availability expands through Player meta-progress.  Randomly generated characters that join the Player are generated from whatever pool is required (up to max available).
+
+### Combat authoring notes
+- **Initiative static bonus** – Designers adjust long-lived initiative advantages by editing the `StatsComponent` attached to the entity (open the `.tres` resource or the node in the scene tree and set `initiative_static_bonus`). The value feeds directly into `StatsComponent.calculate_initiative_seed()` and is added to every initiative roll that `CombatTimer` performs.【F:src/components/StatsComponent.gd†L104-L113】【F:src/components/StatsComponent.gd†L554-L556】
+- **Max action points** – The same `StatsComponent` exposes `max_action_points`; set it to the number of action points the combatant should regain at the start of each turn. `CombatTimer` calls `refresh_action_points_for_turn()` before broadcasting `combat_turn_started`, so any non-zero cap instantly refreshes to the configured maximum.【F:src/components/StatsComponent.gd†L57-L59】【F:src/components/StatsComponent.gd†L537-L551】【F:src/systems/combat/CombatTimer.gd†L206-L222】
+- **Per-entity initiative modifiers** – Temporary or scenario-specific modifiers can be pre-seeded on the entity’s `CombatRuntimeComponent`. Select the component resource in the Inspector and add entries to `initiative_modifiers` (each dictionary expects `amount`, `remaining_turns`, and `source_id`). CombatTimer copies these values into the encounter state and ticks them down every round, ensuring deterministic queues during scripted setups.【F:src/components/CombatRuntimeComponent.gd†L12-L46】【F:src/systems/combat/CombatTimer.gd†L118-L201】
 
 Health – health points, typically by job formula (for example STR+AGL for a fighter, Body pool + INT for a scientist, etc) when at 0, dead
 
