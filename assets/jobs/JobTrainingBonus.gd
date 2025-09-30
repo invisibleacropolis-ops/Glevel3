@@ -23,7 +23,7 @@ const TRAINING_PROPERTY_LOOKUP := {
 var _training_property: StringName = StringName("")
 var _amount: int = 0
 
-@export_custom(PropertyHint.ENUM_SUGGESTION, TRAINING_PROPERTY_HINT_STRING) var training_property: StringName:
+@export_custom(PROPERTY_HINT_ENUM_SUGGESTION, TRAINING_PROPERTY_HINT_STRING) var training_property: StringName:
     get:
         return _training_property
     set(value):

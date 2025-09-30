@@ -1,4 +1,4 @@
-extends "res://src/jobs/Job.gd"
+extends "res://assets/jobs/Job.gd"
 class_name MageJob
 
 ## Sample job demonstrating how to preconfigure a magic-focused loadout.

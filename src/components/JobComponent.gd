@@ -5,7 +5,7 @@ class_name JobComponent
 ## Designers assign a primary Job resource plus optional alternates
 ## so generators can swap professions without duplicating baseline stats.
 
-const JOB_SCRIPT_PATH := "res://src/jobs/Job.gd"
+const JOB_SCRIPT_PATH := "res://assets/jobs/Job.gd"
 var _job_script: GDScript = null
 
 @export_group("Job Assignment")
